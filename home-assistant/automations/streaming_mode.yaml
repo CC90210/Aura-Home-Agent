@@ -1,0 +1,101 @@
+alias: "AURA - Streaming Mode"
+description: >
+  Triggered by the aura_streaming_mode webhook. Optimises the space for live
+  streaming. Key light at 100% / 5000K for clean on-camera exposure, fill
+  light at 60% / 4500K to soften shadows, desk accent LEDs to brand purple
+  (RGB 120,0,255) at 50% for production value in the background, background
+  LEDs to a complementary blue (RGB 0,80,200) at 30%, and all overheads off.
+  Speaker muted entirely so the microphone picks up no bleed. Do-not-disturb
+  input_boolean set so notification-driven automations stand down. Designed
+  for Conaugh and Adon's live streams and recorded content.
+
+trigger:
+  - platform: webhook
+    webhook_id: aura_streaming_mode
+    allowed_methods:
+      - POST
+    local_only: true
+
+condition: []
+
+action:
+  # Key light: 100% at 5000K — flattering, crisp camera exposure
+  - service: light.turn_on
+    target:
+      entity_id: light.key_light
+    data:
+      brightness_pct: 100
+      color_temp_kelvin: 5000
+      transition: 1
+    continue_on_error: true
+
+  # Fill light: 60% at 4500K — softens facial shadows from key light
+  - service: light.turn_on
+    target:
+      entity_id: light.fill_light
+    data:
+      brightness_pct: 60
+      color_temp_kelvin: 4500
+      transition: 1
+    continue_on_error: true
+
+  # Desk accent: brand purple (RGB 120,0,255) at 50% — visible in background
+  # on camera, gives the stream a signature look. Change rgb_color here to
+  # match personal brand colour.
+  - service: light.turn_on
+    target:
+      entity_id: light.desk_accent
+    data:
+      rgb_color: [120, 0, 255]
+      brightness_pct: 50
+      transition: 1
+    continue_on_error: true
+
+  # Background LEDs: complementary blue at 30% — depth without stealing focus
+  - service: light.turn_on
+    target:
+      entity_id: light.living_room_leds
+    data:
+      rgb_color: [0, 80, 200]
+      brightness_pct: 30
+      transition: 1
+    continue_on_error: true
+
+  # Bedroom LEDs: off — keep background clean
+  - service: light.turn_off
+    target:
+      entity_id: light.bedroom_leds
+    data:
+      transition: 1
+    continue_on_error: true
+
+  # Overheads off — flat ambient kills the professional look on camera
+  - service: light.turn_off
+    target:
+      entity_id: light.overhead
+    data:
+      transition: 1
+    continue_on_error: true
+
+  # Speaker muted: 0% — mic bleed from speakers is unusable on stream
+  - service: media_player.volume_set
+    target:
+      entity_id: media_player.living_room_speaker
+    data:
+      volume_level: 0.0
+    continue_on_error: true
+
+  # Do not disturb: suppress non-critical notification automations
+  - service: input_boolean.turn_on
+    target:
+      entity_id: input_boolean.do_not_disturb
+    continue_on_error: true
+
+  # Mark streaming mode active
+  - service: input_boolean.turn_on
+    target:
+      entity_id: input_boolean.streaming_mode_active
+    continue_on_error: true
+
+mode: single
+max_exceeded: silent

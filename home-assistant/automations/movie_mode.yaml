@@ -1,0 +1,65 @@
+alias: "AURA - Movie Mode"
+description: >
+  Triggered by the aura_movie_mode webhook. Sets the room up for a movie
+  session — all lights shift to a deep purple at 5% brightness for ambient
+  glow without eye strain, and blinds close to block out daylight. Leaves
+  the speaker untouched so the caller can manage audio separately.
+
+trigger:
+  - platform: webhook
+    webhook_id: aura_movie_mode
+    allowed_methods:
+      - POST
+    local_only: true
+
+condition: []
+
+action:
+  # All lights: deep purple at 5% — just enough ambient glow
+  - service: light.turn_on
+    target:
+      entity_id: light.living_room_leds
+    data:
+      rgb_color: [30, 10, 80]
+      brightness_pct: 5
+      transition: 2
+    continue_on_error: true
+
+  - service: light.turn_on
+    target:
+      entity_id: light.bedroom_leds
+    data:
+      rgb_color: [30, 10, 80]
+      brightness_pct: 5
+      transition: 2
+    continue_on_error: true
+
+  # Turn off brighter lights entirely — key light and overheads would wash
+  # out the screen
+  - service: light.turn_off
+    target:
+      entity_id:
+        - light.overhead
+        - light.key_light
+    data:
+      transition: 2
+    continue_on_error: true
+
+  # Desk accent: very dim purple to match the vibe
+  - service: light.turn_on
+    target:
+      entity_id: light.desk_accent
+    data:
+      rgb_color: [30, 10, 80]
+      brightness_pct: 5
+      transition: 2
+    continue_on_error: true
+
+  # Close the blinds
+  - service: cover.close_cover
+    target:
+      entity_id: cover.living_room_blinds
+    continue_on_error: true
+
+mode: single
+max_exceeded: silent

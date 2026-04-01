@@ -1,0 +1,75 @@
+alias: "AURA - Proactive: Personalized Welcome Home Greeting"
+description: >
+  Fires when Conaugh or Adon transitions to 'home'. Guards against false
+  triggers (stepping out briefly) by requiring they were away for at least
+  10 minutes. Activates the welcome home scene and fires the aura_greet_person
+  webhook with the person's name and time-of-day context so the voice agent can
+  deliver a personalised greeting. Runs in parallel so both residents can arrive
+  at the same time without conflict.
+
+trigger:
+  - platform: state
+    entity_id: person.conaugh
+    to: "home"
+    id: conaugh_arrived
+
+  - platform: state
+    entity_id: person.adon
+    to: "home"
+    id: adon_arrived
+
+condition:
+  # Require the person was 'not_home' for at least 10 minutes — filters out
+  # brief exits like checking the mail or grabbing something from the car.
+  - condition: template
+    value_template: >
+      {{ trigger.from_state.state == 'not_home'
+         and (now() - trigger.from_state.last_changed).total_seconds() >= 600 }}
+
+action:
+  # ── Welcome Home scene — warm amber lights, comfortable volume ───────────────
+  - service: scene.turn_on
+    target:
+      entity_id: scene.welcome_home
+    data:
+      transition: 2
+    continue_on_error: true
+
+  - service: input_boolean.turn_on
+    target:
+      entity_id: input_boolean.welcome_home_active
+    continue_on_error: true
+
+  # ── Start welcome playlist at comfortable volume ─────────────────────────────
+  - service: media_player.volume_set
+    target:
+      entity_id: media_player.living_room_speaker
+    data:
+      volume_level: 0.30
+    continue_on_error: true
+
+  - service: media_player.play_media
+    target:
+      entity_id: media_player.living_room_speaker
+    data:
+      media_content_id: "spotify:playlist:37i9dQZF1DX3rxVfibe1L0"
+      media_content_type: music
+    continue_on_error: true
+
+  # ── Fire greeting webhook with person name + time context ────────────────────
+  # The voice agent reads `person` and `time_of_day` to craft a dynamic greeting.
+  - service: rest_command.aura_webhook
+    data:
+      webhook_id: aura_greet_person
+      payload: >
+        {
+          "person": "{{ trigger.to_state.attributes.friendly_name }}",
+          "time_of_day": "{% if now().hour < 12 %}morning
+            {%- elif now().hour < 17 %}afternoon
+            {%- else %}evening{% endif %}",
+          "trigger_id": "{{ trigger.id }}"
+        }
+    continue_on_error: true
+
+mode: parallel
+max: 2

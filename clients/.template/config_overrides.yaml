@@ -1,0 +1,54 @@
+# Client Configuration Overrides
+# Copy this template to clients/{client_name}/config_overrides.yaml
+# Fill in all values before running the deployment script.
+# Do not commit the .env file — it contains secrets.
+
+client:
+  name: "Client Name"
+  location: "City, Province"
+  package: "standard"  # lite, standard, pro
+
+network:
+  pi_host: "homeassistant.local"  # or use the Pi's static IP: "192.168.1.XXX"
+  pi_user: "root"
+
+rooms:
+  - name: living_room
+    devices:
+      - entity_id: light.living_room_leds
+        type: govee_led
+        model: "H6159"
+      - entity_id: switch.living_room_plug
+        type: kasa_plug
+        model: "EP25"
+  - name: bedroom
+    devices:
+      - entity_id: light.bedroom_leds
+        type: govee_led
+        model: "H6163"
+
+scenes_enabled:
+  - welcome_home
+  - goodnight
+  - morning_routine
+  # Uncomment based on package tier:
+  # - studio_mode       # standard and above
+  # - movie_mode        # standard and above
+  # - party_mode        # standard and above
+  # - focus_mode        # pro only
+
+clap_patterns_enabled:
+  - double_clap   # Welcome Home
+  - triple_clap   # Studio Mode (standard and above)
+  # - quad_clap   # Party Mode (standard and above)
+
+schedule:
+  morning_routine_time: "07:30"   # 24-hour format, weekdays
+  goodnight_time: null            # null = manual trigger only
+
+media:
+  default_speaker_entity: "media_player.sonos_living_room"
+  welcome_home_playlist: ""       # Spotify URI, e.g. spotify:playlist:XXXXX
+  morning_playlist: ""
+  party_playlist: ""
+  focus_playlist: ""

@@ -1,0 +1,89 @@
+alias: "AURA - Routine: Meal Reminders (Lunch & Dinner)"
+description: >
+  Fires a gentle voice reminder at 12:00 PM for lunch and 6:30 PM for dinner.
+  Because Conaugh and Adon work from home and eat healthy, the reminders help
+  prevent the common WFH pattern of skipping meals due to flow state. Prompt is
+  delivered via the aura_voice_prompt webhook. Only fires if the relevant person
+  is home. Runs on all days of the week.
+
+trigger:
+  # Lunch reminder
+  - platform: time
+    at: "12:00:00"
+    id: lunch_reminder
+
+  # Dinner reminder
+  - platform: time
+    at: "18:30:00"
+    id: dinner_reminder
+
+condition:
+  # At least one person must be home — no point reminding an empty apartment
+  - condition: or
+    conditions:
+      - condition: state
+        entity_id: person.conaugh
+        state: "home"
+      - condition: state
+        entity_id: person.adon
+        state: "home"
+
+action:
+  - choose:
+      # ── 12:00 PM: Lunch ──────────────────────────────────────────────────────
+      - conditions:
+          - condition: trigger
+            id: lunch_reminder
+        sequence:
+          - service: rest_command.aura_webhook
+            data:
+              webhook_id: aura_voice_prompt
+              payload: >
+                {
+                  "message": "Time to eat. What are we cooking?",
+                  "context": "lunch",
+                  "priority": "low"
+                }
+            continue_on_error: true
+
+          # Subtle lighting shift — warm up the kitchen/living area slightly as
+          # a visual cue alongside the audio reminder
+          - service: light.turn_on
+            target:
+              entity_id: light.living_room_leds
+            data:
+              color_temp_kelvin: 3000
+              brightness_pct: 70
+              transition: 10
+            continue_on_error: true
+
+      # ── 6:30 PM: Dinner ──────────────────────────────────────────────────────
+      - conditions:
+          - condition: trigger
+            id: dinner_reminder
+        sequence:
+          - service: rest_command.aura_webhook
+            data:
+              webhook_id: aura_voice_prompt
+              payload: >
+                {
+                  "message": "Time to eat. What are we cooking?",
+                  "context": "dinner",
+                  "priority": "low"
+                }
+            continue_on_error: true
+
+          # Warm dinner lighting ambience
+          - service: light.turn_on
+            target:
+              entity_id:
+                - light.living_room_leds
+                - light.overhead
+            data:
+              color_temp_kelvin: 2700
+              brightness_pct: 65
+              transition: 10
+            continue_on_error: true
+
+mode: single
+max_exceeded: silent

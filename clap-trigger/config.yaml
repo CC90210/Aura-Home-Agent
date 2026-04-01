@@ -1,0 +1,45 @@
+# AURA Clap Detection Configuration
+# Adjust these values based on your microphone and room acoustics
+
+audio:
+  sample_rate: 44100
+  chunk_size: 1024
+  channels: 1
+  format: paInt16
+
+detection:
+  # Amplitude threshold for clap detection (0-32767 for 16-bit audio)
+  # Lower = more sensitive, higher = fewer false positives
+  # Start at 3000 and adjust based on your environment
+  threshold: 3000
+
+  # Maximum seconds between claps in a pattern
+  pattern_timeout: 0.6
+
+  # Seconds to wait after a pattern is triggered before listening again
+  cooldown: 2.0
+
+  # Minimum duration (seconds) of silence before a clap is registered
+  # Helps filter out sustained noise vs sharp transients
+  min_silence_before: 0.1
+
+patterns:
+  double_clap:
+    count: 2
+    webhook_id: aura_double_clap
+    description: "Toggle welcome home scene"
+
+  triple_clap:
+    count: 3
+    webhook_id: aura_triple_clap
+    description: "Toggle studio/content mode"
+
+  quad_clap:
+    count: 4
+    webhook_id: aura_quad_clap
+    description: "Toggle party mode"
+
+homeassistant:
+  # These can be overridden by environment variables HA_URL and HA_TOKEN
+  url: "http://homeassistant.local:8123"
+  # Token is loaded from .env file, never set it here

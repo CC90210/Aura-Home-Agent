@@ -1,0 +1,3 @@
+# Place client-specific scene overrides here.
+# Any .yaml file in this directory will REPLACE the matching base scene
+# when deploy_client.sh merges configs.

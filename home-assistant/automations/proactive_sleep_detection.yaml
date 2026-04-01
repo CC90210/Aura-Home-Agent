@@ -1,0 +1,131 @@
+alias: "AURA - Proactive: Sleep Detection & Wind Down"
+description: >
+  At 11:30 PM checks whether someone is home, no media is actively playing, and
+  the lights haven't been manually changed in the past 30 minutes. If all three
+  conditions hold, starts a gentle 5-minute light dim to signal wind-down time
+  and fires a soft voice prompt. If no manual light adjustment is detected within
+  10 minutes after the prompt, automatically triggers the goodnight sequence.
+  Designed to feel like an attentive assistant, not a nag.
+
+trigger:
+  # Primary trigger — configurable sleep check time
+  - platform: time
+    at: "23:30:00"
+    id: sleep_check
+
+  # Follow-up check 10 minutes later to see if they responded
+  - platform: time
+    at: "23:40:00"
+    id: sleep_followup
+
+condition: []
+
+action:
+  - choose:
+      # ── Branch 1: Initial wind-down check at 11:30 PM ───────────────────────
+      - conditions:
+          - condition: trigger
+            id: sleep_check
+
+          # Someone must be home
+          - condition: or
+            conditions:
+              - condition: state
+                entity_id: person.conaugh
+                state: "home"
+              - condition: state
+                entity_id: person.adon
+                state: "home"
+
+          # No media playing — if they're watching something, leave them alone
+          - condition: template
+            value_template: >
+              {{ states('media_player.living_room_tv') not in ['playing']
+                 and states('media_player.living_room_speaker') not in ['playing'] }}
+
+          # Lights haven't been manually adjusted in the past 30 minutes.
+          # We check that living_room_leds last_changed is older than 1800 seconds.
+          - condition: template
+            value_template: >
+              {{ (now() - states.light.living_room_leds.last_changed).total_seconds() > 1800 }}
+
+        sequence:
+          # Phase 1 — gentle dim to 10% over 5 minutes (300 seconds transition)
+          - service: light.turn_on
+            target:
+              entity_id:
+                - light.living_room_leds
+                - light.bedroom_leds
+                - light.overhead
+            data:
+              brightness_pct: 10
+              color_temp_kelvin: 2200
+              transition: 300
+            continue_on_error: true
+
+          # Soft voice prompt via webhook — voice agent delivers the message
+          - service: rest_command.aura_webhook
+            data:
+              webhook_id: aura_voice_prompt
+              payload: >
+                {
+                  "message": "Hey, it's getting late. Want me to shut things down?",
+                  "priority": "low"
+                }
+            continue_on_error: true
+
+          # Flag that we've issued the wind-down prompt so the follow-up knows
+          - service: input_boolean.turn_on
+            target:
+              entity_id: input_boolean.sleep_prompt_issued
+            continue_on_error: true
+
+      # ── Branch 2: Follow-up check at 11:40 PM ───────────────────────────────
+      # If the wind-down prompt was issued AND lights still haven't been touched,
+      # assume they're drifting off and trigger the full goodnight sequence.
+      - conditions:
+          - condition: trigger
+            id: sleep_followup
+
+          - condition: state
+            entity_id: input_boolean.sleep_prompt_issued
+            state: "on"
+
+          # Lights still haven't been manually adjusted since the prompt
+          - condition: template
+            value_template: >
+              {{ (now() - states.light.living_room_leds.last_changed).total_seconds() > 600 }}
+
+          # Someone is still home
+          - condition: or
+            conditions:
+              - condition: state
+                entity_id: person.conaugh
+                state: "home"
+              - condition: state
+                entity_id: person.adon
+                state: "home"
+
+        sequence:
+          # Trigger the goodnight webhook — this runs the full goodnight automation
+          - service: rest_command.aura_webhook
+            data:
+              webhook_id: aura_goodnight
+              payload: '{"source": "sleep_detection"}'
+            continue_on_error: true
+
+          # Reset the prompt flag for tomorrow
+          - service: input_boolean.turn_off
+            target:
+              entity_id: input_boolean.sleep_prompt_issued
+            continue_on_error: true
+
+    # Default: if no branch matched, reset the flag so it doesn't carry over
+    default:
+      - service: input_boolean.turn_off
+        target:
+          entity_id: input_boolean.sleep_prompt_issued
+        continue_on_error: true
+
+mode: single
+max_exceeded: silent

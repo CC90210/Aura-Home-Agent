@@ -1,0 +1,115 @@
+# AURA Voice Agent Configuration
+
+wake_word:
+  # Model to use for wake word detection.
+  # "hey_jarvis" is the closest built-in model to "Hey Aura".
+  # A custom "hey_aura" model can be trained with OpenWakeWord later:
+  #   https://github.com/dscripka/openWakeWord#training-custom-models
+  model: "hey_jarvis"
+
+  # Confidence threshold (0.0 - 1.0).
+  # Higher = fewer false activations, but may miss quiet commands.
+  # 0.7 is a safe starting point; lower to 0.5 if activations are missed.
+  threshold: 0.7
+
+audio:
+  sample_rate: 16000
+  chunk_size: 1280
+  channels: 1
+  format: paInt16
+
+  # Recording settings — used by SpeechRecorder
+  max_record_seconds: 10
+  silence_threshold: 500      # RMS amplitude below which audio is "silence"
+  silence_duration: 1.5       # Seconds of silence required to end recording
+
+stt:
+  # Whisper model size: tiny, base, small, medium
+  # "base" is the best balance of speed and accuracy on Pi 5 (8GB).
+  # Use "tiny" if transcription is too slow; "small" for better accuracy
+  # at the cost of ~2x CPU time.
+  model: "base"
+  language: "en"
+
+tts:
+  # ElevenLabs settings
+  model: "eleven_turbo_v2_5"
+  # voice_id is loaded from ELEVENLABS_VOICE_ID in .env — never set it here.
+
+  # Audio output device index.
+  # null = default system output device.
+  # Set to an integer (e.g. 1) to route to a specific speaker.
+  output_device: null
+
+claude:
+  # Model for intent processing.
+  model: "claude-sonnet-4-6"
+  max_tokens: 500
+
+  # Lower temperature = more predictable, structured JSON responses.
+  temperature: 0.3
+
+homeassistant:
+  # Overridden at runtime by HA_URL and HA_TOKEN environment variables.
+  url: "http://homeassistant.local:8123"
+
+# Known protocols AURA can execute.
+# These are described to Claude so it understands the scope of each scene.
+protocols:
+  close_down:
+    description: "Shut everything down for the night"
+    actions:
+      - "Turn off all lights (fade over 30 seconds)"
+      - "Set thermostat to 18C"
+      - "Close blinds"
+      - "Lock front door"
+      - "Stop all music"
+      - "Arm cameras"
+
+  open_up:
+    description: "Morning startup routine"
+    actions:
+      - "Open blinds"
+      - "Lights to warm white at 60%"
+      - "Set thermostat to 21C"
+      - "Start morning playlist"
+
+  studio_mode:
+    description: "Content creation lighting"
+    actions:
+      - "Key light to 100% daylight"
+      - "Desk accent LEDs blue at 60%"
+      - "Dim overheads to 20%"
+
+  movie_night:
+    description: "Movie watching ambiance"
+    actions:
+      - "All lights deep purple at 5%"
+      - "Close blinds"
+
+  party_mode:
+    description: "Party lighting and music"
+    actions:
+      - "LEDs to color cycle effect"
+      - "Speakers to 75% volume"
+      - "Overheads off"
+
+  focus_mode:
+    description: "Deep work environment"
+    actions:
+      - "Cool daylight at 80%"
+      - "Lo-fi playlist at low volume"
+
+  guest_mode:
+    description: "Comfortable settings for guests"
+    actions:
+      - "Neutral warm lighting"
+      - "Comfortable temperature (21C)"
+
+  away_mode:
+    description: "Security mode when nobody is home"
+    actions:
+      - "All lights off"
+      - "Thermostat to eco mode"
+      - "Arm cameras"
+      - "Random light simulation"

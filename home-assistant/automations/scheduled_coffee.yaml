@@ -1,0 +1,51 @@
+alias: "AURA - Scheduled: Coffee Maker (Weekday Auto-Brew)"
+description: >
+  Turns the coffee maker smart plug on at 6:25 AM on weekdays — five minutes
+  before the morning routine ramps up the lights at 6:30. Gives the coffee time
+  to brew so it's ready when the apartment comes alive. Auto safety shutoff fires
+  15 minutes later to ensure the coffee maker never runs unattended. Only
+  activates when at least one person is home.
+
+trigger:
+  - platform: time
+    at: "06:25:00"
+
+condition:
+  # Weekdays only
+  - condition: time
+    weekday:
+      - mon
+      - tue
+      - wed
+      - thu
+      - fri
+
+  # At least one person must be home — no point brewing for an empty apartment
+  - condition: or
+    conditions:
+      - condition: state
+        entity_id: person.conaugh
+        state: "home"
+      - condition: state
+        entity_id: person.adon
+        state: "home"
+
+action:
+  # Step 1 — Turn the coffee maker on
+  - service: switch.turn_on
+    target:
+      entity_id: switch.coffee_maker
+    continue_on_error: true
+
+  # Step 2 — Wait 15 minutes (900 seconds) — enough time for a full brew
+  - delay:
+      minutes: 15
+
+  # Step 3 — Safety shutoff: turn off regardless of what else is happening
+  - service: switch.turn_off
+    target:
+      entity_id: switch.coffee_maker
+    continue_on_error: true
+
+mode: single
+max_exceeded: silent

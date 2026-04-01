@@ -1,0 +1,52 @@
+alias: "AURA - Scheduled: Air Purifier (3-Hour Cycle)"
+description: >
+  Runs the air purifier for 30 minutes every 3 hours throughout the day —
+  at 8 AM, 11 AM, 2 PM, 5 PM, 8 PM, and 11 PM — to maintain continuous air
+  quality without leaving the unit running all day. The time_pattern trigger
+  fires on every third hour; a time condition gates it to the window between
+  8:00 AM and 11:59 PM so it does not run in the middle of the night. Only
+  activates when at least one person is home. The 30-minute shutoff uses a
+  delay so the purifier never runs past its intended window.
+
+trigger:
+  # Fires at the top of every third hour (08:00, 11:00, 14:00, 17:00, 20:00, 23:00)
+  - platform: time_pattern
+    hours: "/3"
+    minutes: "0"
+    seconds: "0"
+
+condition:
+  # Restrict to daytime — 8 AM through 11 PM (23:59)
+  - condition: time
+    after: "08:00:00"
+    before: "23:59:59"
+
+  # At least one person home — air quality work is wasted on an empty apartment
+  - condition: or
+    conditions:
+      - condition: state
+        entity_id: person.conaugh
+        state: "home"
+      - condition: state
+        entity_id: person.adon
+        state: "home"
+
+action:
+  # Step 1 — Turn the air purifier on
+  - service: switch.turn_on
+    target:
+      entity_id: switch.air_purifier
+    continue_on_error: true
+
+  # Step 2 — Run for 30 minutes
+  - delay:
+      minutes: 30
+
+  # Step 3 — Shut off until the next 3-hour window
+  - service: switch.turn_off
+    target:
+      entity_id: switch.air_purifier
+    continue_on_error: true
+
+mode: single
+max_exceeded: silent

@@ -1,0 +1,121 @@
+name: Validate AURA Configs
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate-yaml:
+    name: Validate YAML
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install pyyaml yamllint
+
+      - name: Lint YAML files
+        run: |
+          yamllint -d "{extends: relaxed, rules: {line-length: {max: 200}}}" \
+            home-assistant/automations/*.yaml \
+            home-assistant/scenes/*.yaml \
+            clap-trigger/config.yaml \
+            voice-agent/config.yaml
+
+      - name: Validate YAML syntax
+        run: |
+          python -c "
+          import yaml, glob, sys
+          errors = []
+          patterns = [
+              'home-assistant/**/*.yaml',
+              'clap-trigger/*.yaml',
+              'voice-agent/*.yaml',
+          ]
+          for pattern in patterns:
+              for f in glob.glob(pattern, recursive=True):
+                  try:
+                      with open(f) as fh:
+                          yaml.safe_load(fh)
+                  except yaml.YAMLError as e:
+                      errors.append(f'{f}: {e}')
+          if errors:
+              for e in errors:
+                  print(f'ERROR: {e}', file=sys.stderr)
+              sys.exit(1)
+          print('All YAML files valid.')
+          "
+
+  validate-python:
+    name: Validate Python
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install -r clap-trigger/requirements.txt
+          pip install -r voice-agent/requirements.txt
+          pip install -r learning/requirements.txt
+          pip install flake8
+
+      - name: Check Python syntax
+        run: |
+          python -m py_compile clap-trigger/clap_listener.py
+          for f in voice-agent/*.py; do
+            [ -f "$f" ] && python -m py_compile "$f" && echo "OK: $f"
+          done
+          for f in learning/*.py; do
+            [ -f "$f" ] && python -m py_compile "$f" && echo "OK: $f"
+          done
+
+      - name: Lint Python
+        run: |
+          flake8 clap-trigger/ --max-line-length=120 --ignore=E501,W503
+          flake8 voice-agent/ --max-line-length=120 --ignore=E501,W503
+          flake8 learning/ --max-line-length=120 --ignore=E501,W503
+
+  validate-scripts:
+    name: Validate Shell Scripts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check shell script syntax
+        run: |
+          for f in scripts/**/*.sh scripts/*.sh; do
+            if [ -f "$f" ]; then
+              bash -n "$f" && echo "OK: $f" || echo "FAIL: $f"
+            fi
+          done
+
+  lint-dashboard:
+    name: Lint Dashboard
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: dashboard/package-lock.json
+
+      - name: Install dashboard dependencies
+        run: cd dashboard && npm ci
+
+      - name: Lint dashboard
+        run: cd dashboard && npx next lint

@@ -1,0 +1,400 @@
+# AURA Capabilities Registry
+# This is the source of truth for what AURA can do.
+# The voice agent uses this to answer "what can you do?" questions.
+# All trigger phrases and descriptions are intentionally informal — they
+# are read aloud via TTS and must sound like natural speech.
+
+version: "1.0"
+
+introduction: >
+  I'm Aura, your apartment's AI. I control the lights, music, climate,
+  security, and pretty much everything else in here. You can talk to me
+  naturally — just say what you want and I'll handle it. Here's the rundown.
+
+categories:
+  lighting:
+    name: "Lighting Control"
+    description: "Full control over every light in the apartment"
+    capabilities:
+      - "Turn lights on or off in any room"
+      - "Set brightness (0-100%)"
+      - "Change colors (any RGB color or color name)"
+      - "Set color temperature (warm 2700K to cool 6500K)"
+      - "Activate light effects (color loop, music reactive)"
+      - "Fade lights gradually over time"
+    example_commands:
+      - "Turn the living room lights to blue"
+      - "Dim the bedroom to 30%"
+      - "Set warm lighting everywhere"
+      - "Make the lights purple at 50%"
+      - "Fade the lights off over 2 minutes"
+
+  music:
+    name: "Music and Audio"
+    description: "Spotify playback and speaker control"
+    capabilities:
+      - "Play, pause, skip tracks"
+      - "Control volume"
+      - "Play specific playlists, artists, or songs"
+      - "Control which speakers play"
+      - "Group speakers for whole-apartment audio"
+    example_commands:
+      - "Play some lo-fi beats"
+      - "Turn the volume up"
+      - "Skip this song"
+      - "Play Drake on the living room speaker"
+      - "Party mode on all speakers"
+
+  climate:
+    name: "Climate Control"
+    description: "Temperature and comfort management"
+    capabilities:
+      - "Set thermostat temperature"
+      - "Switch between heat, cool, and auto modes"
+      - "Adjust based on weather forecast automatically"
+      - "Set different temperatures for different times"
+    example_commands:
+      - "Set the temperature to 21"
+      - "Make it warmer in here"
+      - "What's the temperature right now?"
+      - "Turn on the AC"
+
+  scenes_and_protocols:
+    name: "Scenes and Protocols"
+    description: "Pre-configured modes that set multiple devices at once"
+    capabilities:
+      - "Activate any scene by name"
+      - "Custom protocols for different activities"
+    protocols:
+      close_down:
+        trigger: "Close down protocol / Goodnight / Shut it down"
+        description: "Lights fade off, thermostat to 18C, lock door, stop music, arm cameras"
+      open_up:
+        trigger: "Open up protocol / Good morning / Wake up"
+        description: "Blinds open, warm lights, thermostat to 21C, morning playlist"
+      studio_mode:
+        trigger: "Studio mode / Content time / Let's create"
+        description: "Key light on, blue accents, overheads dim, focused environment"
+      streaming_mode:
+        trigger: "Streaming mode / Going live"
+        description: "Camera lighting, brand colors, speakers muted, do not disturb"
+      gaming_mode:
+        trigger: "Gaming mode / Game time"
+        description: "TV backlight reactive, room dim, gaming audio profile"
+      music_mode:
+        trigger: "Music mode / DJ mode / Let's make music"
+        description: "Sound-reactive LEDs, speakers loud, ambient low"
+      podcast_mode:
+        trigger: "Podcast mode / Recording mode"
+        description: "Soft warm light, speakers off, blinds closed for quiet"
+      movie_mode:
+        trigger: "Movie mode / Movie night"
+        description: "Deep purple at 5%, blinds closed"
+      party_mode:
+        trigger: "Party mode / Let's go / Turn up"
+        description: "Color cycling LEDs, speakers at 75%, overheads off"
+      focus_mode:
+        trigger: "Focus mode / Deep work / Lock in"
+        description: "Cool daylight, lo-fi at low volume, notifications muted"
+      workout_mode:
+        trigger: "Workout mode / Exercise time"
+        description: "Bright energetic lighting, high-energy playlist, cool temp"
+      guest_mode:
+        trigger: "Guest mode / Company's coming"
+        description: "Neutral warm lighting, comfortable temp, background music"
+      away_mode:
+        trigger: "Away mode / Leaving / We're out"
+        description: "Everything off, eco thermostat, cameras armed, presence simulation"
+
+  clap_triggers:
+    name: "Clap Triggers"
+    description: "Quick hands-free control without voice"
+    capabilities:
+      - "Double clap: Toggle welcome home scene"
+      - "Triple clap: Toggle studio mode"
+      - "Quad clap: Toggle party mode"
+    example_commands:
+      - "Just clap twice to toggle the main lights"
+      - "Three quick claps for studio mode"
+      - "Four claps to party"
+
+  security:
+    name: "Security"
+    description: "Locks, cameras, and safety features"
+    capabilities:
+      - "Lock and unlock the front door"
+      - "Arm and disarm cameras"
+      - "Check who's home"
+      - "Away mode with presence simulation"
+    example_commands:
+      - "Lock the front door"
+      - "Are the cameras on?"
+      - "Is Adon home?"
+      - "Activate away mode"
+
+  accountability:
+    name: "Accountability and Habits"
+    description: "Track habits, streaks, and daily goals"
+    capabilities:
+      - "Track gym, meals, wake time, deep work, bedtime"
+      - "Report on streaks and consistency"
+      - "Gentle reminders when habits slip"
+      - "Weekly progress summaries"
+      - "Morning gym reminders"
+      - "Meal time reminders"
+    example_commands:
+      - "How's my streak looking?"
+      - "Did I hit the gym this week?"
+      - "Mark gym as done"
+      - "How are we doing on accountability?"
+      - "What's our weekly report?"
+
+  scheduling:
+    name: "Scheduling and Reminders"
+    description: "Time-based automations and reminders"
+    capabilities:
+      - "Morning routine (sunrise simulation + coffee + music)"
+      - "Evening wind-down (gradual dimming + sleep prep)"
+      - "Gym reminders"
+      - "Meal reminders"
+      - "Weekend relaxed schedule"
+      - "Custom scheduled tasks"
+    example_commands:
+      - "Remind me to take a break in 30 minutes"
+      - "What's on the schedule today?"
+      - "Set a timer for 20 minutes"
+      - "Wake me up at 7 tomorrow"
+
+  smart_appliances:
+    name: "Smart Appliances"
+    description: "Control connected appliances via smart plugs"
+    capabilities:
+      - "Turn appliances on and off (anything plugged into a smart plug)"
+      - "Coffee maker, fans, heaters, lamps, etc."
+      - "Schedule appliance on/off times"
+    example_commands:
+      - "Make me a coffee"
+      - "Turn on the fan"
+      - "Turn off everything in the kitchen"
+
+  information:
+    name: "Information and Status"
+    description: "Ask about apartment state and system health"
+    capabilities:
+      - "Current device states"
+      - "Who's home"
+      - "Current temperature"
+      - "What's playing"
+      - "System health and uptime"
+      - "Weather forecast"
+    example_commands:
+      - "What's the status of the apartment?"
+      - "Are all the lights off?"
+      - "What's the weather like?"
+      - "Is anything still on?"
+
+  adaptive_learning:
+    name: "Learning and Adaptation"
+    description: "AURA learns your patterns and improves over time"
+    capabilities:
+      - "Learns preferred lighting by time of day"
+      - "Adapts temperature to your habits"
+      - "Reduces false clap triggers over time"
+      - "Suggests automation improvements weekly"
+      - "Tracks which scenes you use most"
+    example_commands:
+      - "What have you learned about my preferences?"
+      - "Show me your suggestions"
+      - "Accept suggestion 1"
+      - "Reset your learning for bedroom lights"
+
+# Scheduled tasks that run automatically (no trigger phrase needed).
+# Used by get_scheduled_tasks() to answer "what do you run automatically?"
+scheduled_tasks:
+  - name: "Morning Routine"
+    schedule: "Weekdays 7:30 AM"
+    description: "Lights fade to warm white, blinds open, coffee maker on, morning playlist starts"
+  - name: "Evening Wind-Down"
+    schedule: "Daily 10:00 PM"
+    description: "Lights dim gradually, relaxing playlist, thermostat to sleep temp"
+  - name: "Gym Reminder"
+    schedule: "Weekdays 6:15 AM"
+    description: "Gentle nudge to hit the gym before the day starts"
+  - name: "Meal Reminder"
+    schedule: "Daily 12:30 PM and 6:30 PM"
+    description: "Reminder to eat — especially important on deep work days"
+  - name: "Weekly Accountability Summary"
+    schedule: "Sundays 7:00 PM"
+    description: "Breakdown of the week — streaks, habits hit, habits missed, what to focus on next week"
+
+# Onboarding content for new users or first-time setup.
+onboarding:
+  welcome_message: >
+    Yo, welcome to your new crib. I'm Aura — think of me as a smart roommate
+    who actually pulls their weight. I control the lights, music, temperature,
+    security, and basically everything plugged in. Just talk to me like a normal
+    person. Say Hey Aura and tell me what you need. Want a quick tour of what I can do?
+
+  tour_steps:
+    - step: 1
+      topic: "Lighting"
+      text: >
+        First up — lighting. Tell me any color, any brightness, any room.
+        Like "set the living room to warm at 60 percent." I got full control.
+    - step: 2
+      topic: "Music"
+      text: >
+        Music — I handle Spotify. "Play some chill beats" or "turn it up" — I got you.
+        I can group speakers, control volume per room, whatever you need.
+    - step: 3
+      topic: "Protocols"
+      text: >
+        Protocols are the power moves. Say "close down protocol" and I'll shut down
+        the whole apartment for the night — lights off, door locked, thermostat down,
+        cameras armed. One command, everything done.
+    - step: 4
+      topic: "Clap Triggers"
+      text: >
+        Claps work too. Double clap toggles the main lights. Triple clap for studio mode.
+        Quad clap for party mode. No phone, no voice needed.
+    - step: 5
+      topic: "Accountability"
+      text: >
+        I also keep you honest. I track gym, meals, sleep, and deep work.
+        If you're slacking, I'll let you know. Respectfully. Always with love.
+    - step: 6
+      topic: "Learning"
+      text: >
+        I learn over time. The more you use me, the better I get at predicting
+        what you want. That's the Aura difference.
+    - step: 7
+      topic: "Wrap-Up"
+      text: >
+        That's the basics. Just say "what can you do" anytime and I'll break it down.
+        Let's build.
+
+# Keyword groups used by search_capabilities() for fuzzy matching.
+# Each entry maps a canonical category key to a list of search terms.
+search_keywords:
+  lighting:
+    - light
+    - lights
+    - lamp
+    - brightness
+    - dim
+    - color
+    - colour
+    - hue
+    - glow
+    - led
+    - warm
+    - cool
+    - temperature
+    - fade
+  music:
+    - music
+    - song
+    - play
+    - spotify
+    - speaker
+    - volume
+    - audio
+    - sound
+    - playlist
+    - track
+    - beat
+    - sonos
+  climate:
+    - temperature
+    - thermostat
+    - heat
+    - cool
+    - ac
+    - warm
+    - cold
+    - climate
+    - degrees
+  scenes_and_protocols:
+    - scene
+    - protocol
+    - mode
+    - routine
+    - preset
+    - goodnight
+    - morning
+    - party
+    - studio
+    - movie
+    - focus
+    - gaming
+    - podcast
+    - workout
+    - guest
+    - away
+    - streaming
+  clap_triggers:
+    - clap
+    - claps
+    - hands-free
+    - handsfree
+    - tap
+    - gesture
+  security:
+    - lock
+    - unlock
+    - door
+    - camera
+    - security
+    - cameras
+    - who's home
+    - presence
+    - arm
+    - disarm
+  accountability:
+    - habit
+    - habits
+    - gym
+    - streak
+    - accountability
+    - reminder
+    - track
+    - progress
+    - goals
+    - meal
+    - sleep
+    - wake
+  scheduling:
+    - schedule
+    - reminder
+    - timer
+    - alarm
+    - routine
+    - morning
+    - evening
+    - automatic
+  smart_appliances:
+    - plug
+    - appliance
+    - coffee
+    - fan
+    - heater
+    - switch
+    - turn on
+    - turn off
+  information:
+    - status
+    - state
+    - what's on
+    - who's home
+    - weather
+    - temperature
+    - report
+  adaptive_learning:
+    - learn
+    - learning
+    - adapt
+    - preference
+    - suggest
+    - suggestion
+    - pattern
+    - memory

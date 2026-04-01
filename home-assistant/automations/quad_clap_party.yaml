@@ -1,0 +1,117 @@
+alias: "AURA - Quad Clap: Toggle Party Mode"
+description: >
+  Triggered by a four-clap webhook from the clap_listener.py service on the Pi.
+  Toggles party mode — LEDs switch to a color loop / music-reactive effect,
+  speakers jump to 75% volume, and overhead lights turn off so only the accent
+  lights carry the vibe. Uses input_boolean.party_mode_active to track state.
+
+trigger:
+  - platform: webhook
+    webhook_id: aura_quad_clap
+    allowed_methods:
+      - POST
+    local_only: true
+
+condition: []
+
+action:
+  - choose:
+      # --- BRANCH 1: Party mode OFF → turn it ON ---
+      - conditions:
+          - condition: state
+            entity_id: input_boolean.party_mode_active
+            state: "off"
+        sequence:
+          # Overhead lights off — accent LEDs own the room
+          - service: light.turn_off
+            target:
+              entity_id: light.overhead
+            data:
+              transition: 1
+            continue_on_error: true
+
+          # Living room LEDs: color loop effect (HA light effect)
+          - service: light.turn_on
+            target:
+              entity_id: light.living_room_leds
+            data:
+              effect: "colorloop"
+              brightness_pct: 100
+              transition: 1
+            continue_on_error: true
+
+          # Bedroom LEDs: color loop effect
+          - service: light.turn_on
+            target:
+              entity_id: light.bedroom_leds
+            data:
+              effect: "colorloop"
+              brightness_pct: 100
+              transition: 1
+            continue_on_error: true
+
+          # Desk accent: color loop
+          - service: light.turn_on
+            target:
+              entity_id: light.desk_accent
+            data:
+              effect: "colorloop"
+              brightness_pct: 100
+              transition: 1
+            continue_on_error: true
+
+          # Speakers to 75% volume
+          - service: media_player.volume_set
+            target:
+              entity_id: media_player.living_room_speaker
+            data:
+              volume_level: 0.75
+            continue_on_error: true
+
+          - service: input_boolean.turn_on
+            target:
+              entity_id: input_boolean.party_mode_active
+
+      # --- BRANCH 2: Party mode ON → turn it OFF ---
+      - conditions:
+          - condition: state
+            entity_id: input_boolean.party_mode_active
+            state: "on"
+        sequence:
+          # Turn off effects and restore comfortable defaults
+          - service: light.turn_on
+            target:
+              entity_id:
+                - light.living_room_leds
+                - light.bedroom_leds
+                - light.desk_accent
+            data:
+              effect: "none"
+              rgb_color: [255, 200, 150]
+              brightness_pct: 60
+              transition: 2
+            continue_on_error: true
+
+          - service: light.turn_on
+            target:
+              entity_id: light.overhead
+            data:
+              brightness_pct: 50
+              color_temp_kelvin: 3000
+              transition: 2
+            continue_on_error: true
+
+          # Bring speaker volume back to a comfortable level
+          - service: media_player.volume_set
+            target:
+              entity_id: media_player.living_room_speaker
+            data:
+              volume_level: 0.35
+            continue_on_error: true
+
+          - service: input_boolean.turn_off
+            target:
+              entity_id: input_boolean.party_mode_active
+
+mode: single
+max_exceeded: silent

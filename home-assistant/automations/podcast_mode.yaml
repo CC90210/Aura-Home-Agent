@@ -1,0 +1,85 @@
+alias: "AURA - Podcast Mode"
+description: >
+  Triggered by the aura_podcast_mode webhook. Prepares the space for podcast
+  recording or long-form audio content creation. Soft warm lighting at 2700K /
+  40% — comfortable for extended sessions and still looks good on video if the
+  podcast is filmed. All other lights off to reduce visual distractions. Speaker
+  muted to keep the recording environment clean. Blinds closed for noise
+  reduction and to eliminate window reflections. Designed for Conaugh and Adon's
+  podcast and interview recordings.
+
+trigger:
+  - platform: webhook
+    webhook_id: aura_podcast_mode
+    allowed_methods:
+      - POST
+    local_only: true
+
+condition: []
+
+action:
+  # Overhead: warm soft white 2700K at 40% — flattering for long sessions
+  - service: light.turn_on
+    target:
+      entity_id: light.overhead
+    data:
+      color_temp_kelvin: 2700
+      brightness_pct: 40
+      transition: 2
+    continue_on_error: true
+
+  # Key light: warm 2700K at 40% — consistent with overhead for cohesive look
+  - service: light.turn_on
+    target:
+      entity_id: light.key_light
+    data:
+      color_temp_kelvin: 2700
+      brightness_pct: 40
+      transition: 2
+    continue_on_error: true
+
+  # All accent and coloured LEDs off — remove visual distraction
+  - service: light.turn_off
+    target:
+      entity_id:
+        - light.living_room_leds
+        - light.bedroom_leds
+        - light.desk_accent
+        - light.tv_backlight_leds
+    data:
+      transition: 2
+    continue_on_error: true
+
+  # Speaker muted: 0% — any speaker audio bleeds into the recording mic
+  - service: media_player.volume_set
+    target:
+      entity_id: media_player.living_room_speaker
+    data:
+      volume_level: 0.0
+    continue_on_error: true
+
+  - service: media_player.media_stop
+    target:
+      entity_id: media_player.living_room_speaker
+    continue_on_error: true
+
+  # Close blinds: reduces exterior noise and prevents window reflections
+  - service: cover.close_cover
+    target:
+      entity_id: cover.living_room_blinds
+    continue_on_error: true
+
+  # Do not disturb: suppress non-critical notification automations
+  - service: input_boolean.turn_on
+    target:
+      entity_id: input_boolean.do_not_disturb
+    continue_on_error: true
+
+  # Mark podcast mode active
+  - service: input_boolean.turn_on
+    target:
+      entity_id: input_boolean.podcast_mode_active
+    continue_on_error: true
+
+mode: single
+max_exceeded: silent

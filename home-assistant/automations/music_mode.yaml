@@ -1,0 +1,87 @@
+alias: "AURA - Music / DJ Mode"
+description: >
+  Triggered by the aura_music_mode webhook. Sets the space for music production
+  or DJ sessions. All LED strips switch to sound-reactive (music visualiser)
+  mode so the room pulses with the mix. Accent lighting stays low so the LEDs
+  carry the atmosphere. Speaker set to 70% — loud enough to produce and monitor
+  without blowing the room. Overheads and key light off so the vibe stays dark
+  and immersive. Designed for Conaugh and Adon's beat-making, mixing, and DJ
+  practice sessions.
+
+trigger:
+  - platform: webhook
+    webhook_id: aura_music_mode
+    allowed_methods:
+      - POST
+    local_only: true
+
+condition: []
+
+action:
+  # Living room LEDs: sound-reactive / music visualiser effect
+  - service: light.turn_on
+    target:
+      entity_id: light.living_room_leds
+    data:
+      effect: "music"
+      brightness_pct: 100
+      transition: 1
+    continue_on_error: true
+
+  # Bedroom LEDs: sound-reactive — fills the whole space
+  - service: light.turn_on
+    target:
+      entity_id: light.bedroom_leds
+    data:
+      effect: "music"
+      brightness_pct: 100
+      transition: 1
+    continue_on_error: true
+
+  # TV backlight: sound-reactive — adds depth behind any screen/monitor
+  - service: light.turn_on
+    target:
+      entity_id: light.tv_backlight_leds
+    data:
+      effect: "music"
+      brightness_pct: 100
+      transition: 1
+    continue_on_error: true
+
+  # Desk accent: low ambient blue — a reference point in the dark without
+  # competing with the reactive LEDs
+  - service: light.turn_on
+    target:
+      entity_id: light.desk_accent
+    data:
+      rgb_color: [0, 60, 180]
+      brightness_pct: 20
+      transition: 1
+    continue_on_error: true
+
+  # Overheads and key light off — dark room lets the LEDs dominate
+  - service: light.turn_off
+    target:
+      entity_id:
+        - light.overhead
+        - light.key_light
+    data:
+      transition: 1
+    continue_on_error: true
+
+  # Speaker: 70% — production monitoring level
+  - service: media_player.volume_set
+    target:
+      entity_id: media_player.living_room_speaker
+    data:
+      volume_level: 0.70
+    continue_on_error: true
+
+  # Mark music mode active
+  - service: input_boolean.turn_on
+    target:
+      entity_id: input_boolean.music_mode_active
+    continue_on_error: true
+
+mode: single
+max_exceeded: silent

@@ -1,0 +1,16 @@
+[Unit]
+Description=AURA Voice Agent
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/home/pi/aura/voice-agent
+ExecStart=/home/pi/aura/.venv/bin/python aura_voice.py
+Restart=always
+RestartSec=5
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target

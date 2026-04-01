@@ -1,0 +1,76 @@
+alias: "AURA - Scheduled: Content Creation Reminder (2 PM Weekdays)"
+description: >
+  At 2:00 PM on weekdays, if both Conaugh and Adon are home and neither
+  studio/content mode is currently active, fires a gentle voice prompt
+  checking in on the day's content output: "Have you guys created any content
+  today? Just checking in." Respects input_boolean.content_reminder_enabled
+  so it can be toggled off from the dashboard or voice command when not
+  needed (e.g., vacation weeks, scheduled days off). Does not trigger if
+  content or studio mode is already running — that means they're already
+  creating. Default trigger time is 2:00 PM; update the trigger time value
+  to reconfigure without touching the logic.
+
+trigger:
+  # Default: 2:00 PM weekdays. To reconfigure, change the `at` value here.
+  - platform: time
+    at: "14:00:00"
+
+condition:
+  # Weekdays only — content cadence is a work-week concept
+  - condition: time
+    weekday:
+      - mon
+      - tue
+      - wed
+      - thu
+      - fri
+
+  # The reminder toggle must be on — allows easy opt-out without disabling
+  # the automation entirely
+  - condition: state
+    entity_id: input_boolean.content_reminder_enabled
+    state: "on"
+
+  # Both residents must be home — the prompt addresses them together
+  - condition: state
+    entity_id: person.conaugh
+    state: "home"
+
+  - condition: state
+    entity_id: person.adon
+    state: "home"
+
+  # Skip if content mode is already active — they're already on it
+  - condition: state
+    entity_id: input_boolean.content_mode_active
+    state: "off"
+
+  # Skip if studio mode is already active — same reasoning
+  - condition: state
+    entity_id: input_boolean.studio_mode_active
+    state: "off"
+
+action:
+  # Fire the voice prompt webhook. The voice agent reads `message` and
+  # `context` to deliver a natural check-in. The counter allows the
+  # learning engine to track how often this reminder lands on content days.
+  - service: rest_command.aura_webhook
+    data:
+      webhook_id: aura_voice_prompt
+      payload: >
+        {
+          "message": "Have you guys created any content today? Just checking in.",
+          "priority": "low",
+          "context": {
+            "reminder_type":      "content_creation",
+            "content_mode_active": "{{ states('input_boolean.content_mode_active') }}",
+            "studio_mode_active":  "{{ states('input_boolean.studio_mode_active')  }}",
+            "time_of_day":         "{{ now().strftime('%H:%M') }}",
+            "day_of_week":         "{{ now().strftime('%A') }}"
+          },
+          "source": "scheduled_content_reminder"
+        }
+    continue_on_error: true
+
+mode: single
+max_exceeded: silent

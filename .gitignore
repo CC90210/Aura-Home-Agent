@@ -1,0 +1,42 @@
+# Environment & secrets
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+
+# Node (if any tooling needs it)
+node_modules/
+.next/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Home Assistant local testing
+.storage/
+home-assistant.log
+
+# Claude Code
+.claude/
+
+# Recordings / audio (clap detection testing)
+*.wav
+*.mp3
+*.flac
+recordings/

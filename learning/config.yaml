@@ -1,0 +1,76 @@
+# AURA Adaptive Learning Configuration
+# All sensitive values (HA_URL, HA_TOKEN) come from the project .env file —
+# never stored here.
+
+database:
+  path: "/home/pi/aura/data/patterns.db"
+
+homeassistant:
+  # Overridden by HA_URL environment variable at runtime
+  url: "http://homeassistant.local:8123"
+
+tracking:
+  # Glob patterns for HA entity IDs to track. Uses fnmatch-style matching.
+  entities:
+    - "light.*"
+    - "switch.*"
+    - "climate.*"
+    - "media_player.*"
+    - "cover.*"
+    - "lock.*"
+    - "person.*"
+
+  # Minimum distinct-day samples before a learned pattern is trusted
+  min_samples: 7
+
+  # How often the evolution cycle runs (hours).  168 = one week.
+  evolution_interval: 168
+
+habits:
+  wake_target: "06:30"
+  gym_window: "06:30-08:30"
+
+  tracked_habits:
+    - name: "wake_up_on_time"
+      detection: "first_light_on_or_motion"
+      target_time: "06:30"
+      tolerance_minutes: 15
+
+    - name: "gym"
+      detection: "left_home_during_window"
+      window: "06:30-08:30"
+
+    - name: "deep_work"
+      detection: "studio_mode_duration"
+      min_duration_minutes: 60
+
+    - name: "healthy_dinner"
+      detection: "manual_log"
+      reminder_time: "19:00"
+
+    - name: "bedtime"
+      detection: "goodnight_scene_activated"
+      target_time: "23:00"
+      tolerance_minutes: 30
+
+  accountability:
+    # Days of missed habit before AURA proactively mentions it
+    nudge_threshold: 2
+    # Tone: supportive but direct — matches AURA personality
+    nudge_style: "homie"
+
+persons:
+  - id: conaugh
+    display_name: "Conaugh"
+    phone_entity: "person.conaugh"
+  - id: adon
+    display_name: "Adon"
+    phone_entity: "person.adon"
+
+fitness:
+  # Fraction of activations kept (not overridden) that marks an automation
+  # as healthy.  Below poor_fitness it is queued for mutation.
+  good_fitness: 0.8
+  poor_fitness: 0.4
+  # Maximum fractional change applied to a numeric parameter in one generation
+  mutation_rate: 0.1

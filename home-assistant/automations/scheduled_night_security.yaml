@@ -1,0 +1,98 @@
+alias: "AURA - Scheduled: Night Security Check (11:30 PM)"
+description: >
+  Every night at 11:30 PM checks whether the goodnight protocol has already
+  been activated (input_boolean.goodnight_active). If it has, the apartment
+  is already secured and this automation does nothing. If it has not, checks
+  the front door lock and camera states. If anything is unsecured, fires a
+  conversational voice prompt through the voice agent: "Heads up — front
+  door's still unlocked. Want me to shut things down?" — giving Conaugh or
+  Adon the chance to respond before AURA takes automatic action. Pairs with
+  the goodnight and sleep detection automations to form a complete nightly
+  security layer.
+
+trigger:
+  - platform: time
+    at: "23:30:00"
+
+condition:
+  # Only run if the goodnight protocol has NOT already been activated.
+  # If goodnight is active the apartment is already locked down — skip this.
+  - condition: state
+    entity_id: input_boolean.goodnight_active
+    state: "off"
+
+  # At least one person must be home to receive the prompt. If the
+  # apartment is empty a different automation handles away-mode security.
+  - condition: or
+    conditions:
+      - condition: state
+        entity_id: person.conaugh
+        state: "home"
+      - condition: state
+        entity_id: person.adon
+        state: "home"
+
+action:
+  - choose:
+      # ── Branch 1: Front door is unlocked — prompt before taking action ─────────
+      - conditions:
+          - condition: state
+            entity_id: lock.front_door
+            state: "unlocked"
+        sequence:
+          # Voice prompt via webhook — the voice agent delivers this naturally.
+          # The payload includes the security context so the agent can elaborate
+          # if asked (e.g., "also your cameras aren't armed yet").
+          - service: rest_command.aura_webhook
+            data:
+              webhook_id: aura_voice_prompt
+              payload: >
+                {
+                  "message": "Heads up — front door's still unlocked. Want me to shut things down?",
+                  "priority": "high",
+                  "context": {
+                    "lock_state":         "{{ states('lock.front_door')           }}",
+                    "camera_front_door":  "{{ states('camera.front_door')         }}",
+                    "camera_living_room": "{{ states('camera.living_room')        }}",
+                    "goodnight_active":   "{{ states('input_boolean.goodnight_active') }}"
+                  },
+                  "source": "scheduled_night_security"
+                }
+            continue_on_error: true
+
+      # ── Branch 2: Door is locked but cameras are not armed ────────────────────
+      - conditions:
+          - condition: state
+            entity_id: lock.front_door
+            state: "locked"
+          - condition: or
+            conditions:
+              - condition: state
+                entity_id: camera.front_door
+                state: "idle"
+              - condition: state
+                entity_id: camera.living_room
+                state: "idle"
+        sequence:
+          - service: rest_command.aura_webhook
+            data:
+              webhook_id: aura_voice_prompt
+              payload: >
+                {
+                  "message": "Door's locked but cameras aren't armed yet. Want me to finish securing things?",
+                  "priority": "normal",
+                  "context": {
+                    "lock_state":         "{{ states('lock.front_door')           }}",
+                    "camera_front_door":  "{{ states('camera.front_door')         }}",
+                    "camera_living_room": "{{ states('camera.living_room')        }}",
+                    "goodnight_active":   "{{ states('input_boolean.goodnight_active') }}"
+                  },
+                  "source": "scheduled_night_security"
+                }
+            continue_on_error: true
+
+    # ── Default: Everything is already secure — no action needed ───────────────
+    default: []
+
+mode: single
+max_exceeded: silent

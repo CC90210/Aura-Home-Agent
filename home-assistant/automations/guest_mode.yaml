@@ -1,0 +1,102 @@
+alias: "AURA - Guest Mode"
+description: >
+  Triggered by the aura_guest_mode webhook. Creates a welcoming, neutral
+  atmosphere for visitors. All lights shift to a warm neutral 3000K at 60% —
+  bright enough to be social, warm enough to be inviting. Thermostat set to a
+  comfortable 21°C. Background music playlist starts at 25% — present but not
+  intrusive. All accent lights on at moderate levels to give the space ambiance
+  without any mode-specific production lighting. Designed for when Conaugh or
+  Adon has guests over.
+
+trigger:
+  - platform: webhook
+    webhook_id: aura_guest_mode
+    allowed_methods:
+      - POST
+    local_only: true
+
+condition: []
+
+action:
+  # Overhead: neutral warm white 3000K at 60% — socially comfortable
+  - service: light.turn_on
+    target:
+      entity_id: light.overhead
+    data:
+      color_temp_kelvin: 3000
+      brightness_pct: 60
+      transition: 2
+    continue_on_error: true
+
+  # Living room LEDs: warm amber at 60% for ambiance
+  - service: light.turn_on
+    target:
+      entity_id: light.living_room_leds
+    data:
+      rgb_color: [255, 180, 100]
+      brightness_pct: 60
+      transition: 2
+    continue_on_error: true
+
+  # Bedroom LEDs: soft warm at 40% — visible but not harsh
+  - service: light.turn_on
+    target:
+      entity_id: light.bedroom_leds
+    data:
+      rgb_color: [255, 200, 150]
+      brightness_pct: 40
+      transition: 2
+    continue_on_error: true
+
+  # Desk accent: warm neutral at 50% — adds depth to the background
+  - service: light.turn_on
+    target:
+      entity_id: light.desk_accent
+    data:
+      color_temp_kelvin: 3000
+      brightness_pct: 50
+      transition: 2
+    continue_on_error: true
+
+  # Key light off — production lighting is out of place for a social setting
+  - service: light.turn_off
+    target:
+      entity_id: light.key_light
+    data:
+      transition: 2
+    continue_on_error: true
+
+  # Thermostat: 21°C — comfortable for a group of people in the space
+  - service: climate.set_temperature
+    target:
+      entity_id: climate.thermostat
+    data:
+      temperature: 21
+      hvac_mode: heat
+    continue_on_error: true
+
+  # Background music: 25% volume — conversational, not overpowering
+  - service: media_player.volume_set
+    target:
+      entity_id: media_player.living_room_speaker
+    data:
+      volume_level: 0.25
+    continue_on_error: true
+
+  - service: media_player.play_media
+    target:
+      entity_id: media_player.living_room_speaker
+    data:
+      # Replace with preferred background / social playlist URI
+      media_content_id: "spotify:playlist:37i9dQZF1DX4fpCWaHOned"
+      media_content_type: music
+    continue_on_error: true
+
+  # Mark guest mode active
+  - service: input_boolean.turn_on
+    target:
+      entity_id: input_boolean.guest_mode_active
+    continue_on_error: true
+
+mode: single
+max_exceeded: silent

@@ -1,0 +1,439 @@
+# AURA Scene Definitions
+# ----------------------
+# These are loaded by Home Assistant as scene entities. Each scene captures
+# a snapshot of device states. Call them via:
+#   service: scene.turn_on
+#   target:
+#     entity_id: scene.<scene_name>
+#
+# Entity IDs follow the convention: {domain}.{area}_{device}
+# Add `continue_on_error: true` on individual service calls in automations
+# that reference these scenes — not needed here in the scene definition itself.
+
+- id: "aura_welcome_home"
+  name: "Welcome Home"
+  entities:
+    light.living_room_leds:
+      state: "on"
+      rgb_color: [255, 180, 100]
+      brightness: 178          # 70% of 255
+      transition: 1
+
+    light.bedroom_leds:
+      state: "on"
+      rgb_color: [255, 200, 150]
+      brightness: 102          # 40% of 255
+      transition: 1
+
+    light.overhead:
+      state: "off"
+
+    light.key_light:
+      state: "off"
+
+    light.desk_accent:
+      state: "off"
+
+    media_player.living_room_speaker:
+      state: "playing"
+      volume_level: 0.30
+
+- id: "aura_studio_mode"
+  name: "Studio Mode"
+  entities:
+    light.key_light:
+      state: "on"
+      brightness: 255          # 100%
+      color_temp_kelvin: 5000
+
+    light.desk_accent:
+      state: "on"
+      rgb_color: [0, 120, 255]
+      brightness: 153          # 60% of 255
+
+    light.overhead:
+      state: "on"
+      brightness: 51           # 20% of 255
+      color_temp_kelvin: 4000
+
+    light.living_room_leds:
+      state: "off"
+
+    light.bedroom_leds:
+      state: "off"
+
+- id: "aura_movie_mode"
+  name: "Movie Mode"
+  entities:
+    light.living_room_leds:
+      state: "on"
+      rgb_color: [30, 10, 80]
+      brightness: 13           # 5% of 255
+      transition: 2
+
+    light.bedroom_leds:
+      state: "on"
+      rgb_color: [30, 10, 80]
+      brightness: 13
+      transition: 2
+
+    light.desk_accent:
+      state: "on"
+      rgb_color: [30, 10, 80]
+      brightness: 13
+      transition: 2
+
+    light.overhead:
+      state: "off"
+
+    light.key_light:
+      state: "off"
+
+    cover.living_room_blinds:
+      state: "closed"
+
+- id: "aura_party_mode"
+  name: "Party Mode"
+  entities:
+    light.living_room_leds:
+      state: "on"
+      effect: "colorloop"
+      brightness: 255
+
+    light.bedroom_leds:
+      state: "on"
+      effect: "colorloop"
+      brightness: 255
+
+    light.desk_accent:
+      state: "on"
+      effect: "colorloop"
+      brightness: 255
+
+    # Overheads off — accent lights carry the energy
+    light.overhead:
+      state: "off"
+
+    light.key_light:
+      state: "off"
+
+    media_player.living_room_speaker:
+      state: "playing"
+      volume_level: 0.75
+
+- id: "aura_goodnight"
+  name: "Goodnight"
+  entities:
+    light.living_room_leds:
+      state: "off"
+
+    light.bedroom_leds:
+      state: "off"
+
+    light.desk_accent:
+      state: "off"
+
+    light.key_light:
+      state: "off"
+
+    light.overhead:
+      state: "off"
+
+    media_player.living_room_speaker:
+      state: "idle"
+      volume_level: 0.10
+
+    lock.front_door:
+      state: "locked"
+
+    climate.thermostat:
+      state: "heat"
+      temperature: 18
+
+    cover.living_room_blinds:
+      state: "closed"
+
+# ---------------------------------------------------------------------------
+# NEW SCENES — Gaming, Streaming, Podcast, Music/DJ, Focus, Guest, Away, Workout
+# ---------------------------------------------------------------------------
+
+- id: "aura_gaming_mode"
+  name: "Gaming Mode"
+  entities:
+    light.tv_backlight_leds:
+      state: "on"
+      effect: "colorloop"
+      brightness: 204           # 80% of 255
+
+    light.living_room_leds:
+      state: "on"
+      rgb_color: [20, 10, 60]
+      brightness: 26            # 10% of 255
+      transition: 2
+
+    light.bedroom_leds:
+      state: "on"
+      rgb_color: [20, 10, 60]
+      brightness: 26
+      transition: 2
+
+    light.desk_accent:
+      state: "on"
+      rgb_color: [20, 10, 60]
+      brightness: 26
+      transition: 2
+
+    light.overhead:
+      state: "off"
+
+    light.key_light:
+      state: "off"
+
+    media_player.living_room_speaker:
+      state: "playing"
+      volume_level: 0.50
+
+- id: "aura_streaming_mode"
+  name: "Streaming Mode"
+  entities:
+    light.key_light:
+      state: "on"
+      brightness: 255           # 100%
+      color_temp_kelvin: 5000
+
+    light.fill_light:
+      state: "on"
+      brightness: 153           # 60% of 255
+      color_temp_kelvin: 4500
+
+    light.desk_accent:
+      state: "on"
+      rgb_color: [120, 0, 255]  # Brand purple — change to match personal brand
+      brightness: 128           # 50% of 255
+
+    light.living_room_leds:
+      state: "on"
+      rgb_color: [0, 80, 200]   # Complementary blue at 30%
+      brightness: 77
+
+    light.bedroom_leds:
+      state: "off"
+
+    light.overhead:
+      state: "off"
+
+    light.tv_backlight_leds:
+      state: "off"
+
+    media_player.living_room_speaker:
+      state: "idle"
+      volume_level: 0.0         # Muted — mic bleed protection
+
+- id: "aura_podcast_mode"
+  name: "Podcast Mode"
+  entities:
+    light.overhead:
+      state: "on"
+      color_temp_kelvin: 2700
+      brightness: 102           # 40% of 255
+      transition: 2
+
+    light.key_light:
+      state: "on"
+      color_temp_kelvin: 2700
+      brightness: 102
+      transition: 2
+
+    light.living_room_leds:
+      state: "off"
+
+    light.bedroom_leds:
+      state: "off"
+
+    light.desk_accent:
+      state: "off"
+
+    light.tv_backlight_leds:
+      state: "off"
+
+    media_player.living_room_speaker:
+      state: "idle"
+      volume_level: 0.0         # Muted — clean recording environment
+
+    cover.living_room_blinds:
+      state: "closed"           # Noise reduction + no window reflections
+
+- id: "aura_music_dj_mode"
+  name: "Music / DJ Mode"
+  entities:
+    light.living_room_leds:
+      state: "on"
+      effect: "music"
+      brightness: 255           # 100% — LEDs carry the full atmosphere
+
+    light.bedroom_leds:
+      state: "on"
+      effect: "music"
+      brightness: 255
+
+    light.tv_backlight_leds:
+      state: "on"
+      effect: "music"
+      brightness: 255
+
+    light.desk_accent:
+      state: "on"
+      rgb_color: [0, 60, 180]   # Low ambient blue reference point
+      brightness: 51            # 20% of 255
+
+    light.overhead:
+      state: "off"
+
+    light.key_light:
+      state: "off"
+
+    media_player.living_room_speaker:
+      state: "playing"
+      volume_level: 0.70
+
+- id: "aura_focus_mode"
+  name: "Focus Mode"
+  entities:
+    light.overhead:
+      state: "on"
+      color_temp_kelvin: 5000
+      brightness: 204           # 80% of 255
+
+    light.key_light:
+      state: "on"
+      color_temp_kelvin: 5000
+      brightness: 204
+
+    light.desk_accent:
+      state: "on"
+      color_temp_kelvin: 5000
+      brightness: 153           # 60% of 255
+
+    light.living_room_leds:
+      state: "off"
+
+    light.bedroom_leds:
+      state: "off"
+
+    light.tv_backlight_leds:
+      state: "off"
+
+    media_player.living_room_speaker:
+      state: "playing"
+      volume_level: 0.15
+
+- id: "aura_guest_mode"
+  name: "Guest Mode"
+  entities:
+    light.overhead:
+      state: "on"
+      color_temp_kelvin: 3000
+      brightness: 153           # 60% of 255
+      transition: 2
+
+    light.living_room_leds:
+      state: "on"
+      rgb_color: [255, 180, 100]
+      brightness: 153           # 60% of 255
+      transition: 2
+
+    light.bedroom_leds:
+      state: "on"
+      rgb_color: [255, 200, 150]
+      brightness: 102           # 40% of 255
+      transition: 2
+
+    light.desk_accent:
+      state: "on"
+      color_temp_kelvin: 3000
+      brightness: 128           # 50% of 255
+      transition: 2
+
+    light.key_light:
+      state: "off"
+
+    light.tv_backlight_leds:
+      state: "off"
+
+    media_player.living_room_speaker:
+      state: "playing"
+      volume_level: 0.25
+
+    climate.thermostat:
+      state: "heat"
+      temperature: 21
+
+- id: "aura_away_mode"
+  name: "Away Mode"
+  entities:
+    light.living_room_leds:
+      state: "off"
+
+    light.bedroom_leds:
+      state: "off"
+
+    light.desk_accent:
+      state: "off"
+
+    light.key_light:
+      state: "off"
+
+    light.overhead:
+      state: "off"
+
+    light.tv_backlight_leds:
+      state: "off"
+
+    media_player.living_room_speaker:
+      state: "idle"
+      volume_level: 0.0
+
+    climate.thermostat:
+      state: "heat"
+      temperature: 16           # Eco temperature while unoccupied
+
+    lock.front_door:
+      state: "locked"
+
+    cover.living_room_blinds:
+      state: "closed"
+
+- id: "aura_workout_mode"
+  name: "Workout Mode"
+  entities:
+    light.overhead:
+      state: "on"
+      color_temp_kelvin: 5000
+      brightness: 255           # 100% — maximum functional light
+      transition: 2
+
+    light.key_light:
+      state: "on"
+      color_temp_kelvin: 5000
+      brightness: 255
+      transition: 2
+
+    light.living_room_leds:
+      state: "off"
+
+    light.bedroom_leds:
+      state: "off"
+
+    light.desk_accent:
+      state: "off"
+
+    light.tv_backlight_leds:
+      state: "off"
+
+    media_player.living_room_speaker:
+      state: "playing"
+      volume_level: 0.60
+
+    climate.thermostat:
+      state: "heat"
+      temperature: 19           # Cooler room during exercise

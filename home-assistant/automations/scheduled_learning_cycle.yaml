@@ -1,0 +1,65 @@
+alias: "AURA - Scheduled: Learning Evolution Cycle (Sunday 2 AM)"
+description: >
+  Every Sunday at 2:00 AM — after the weekly report has been captured at
+  10 AM the day before and well before the household wakes — fires the
+  aura_learning_evolve webhook to trigger the Darwinian evolution cycle in
+  the learning engine. The payload includes the trailing 7-day automation
+  activation counters so the engine can score, prune, and evolve automation
+  rules based on actual usage patterns. Runs at 2 AM to avoid any conflict
+  with user activity and completes before the Sunday morning routine.
+
+trigger:
+  - platform: time
+    at: "02:00:00"
+
+condition:
+  # Sundays only — weekly cadence matches the reporting and review cycle
+  - condition: time
+    weekday:
+      - sun
+
+action:
+  # Fire the evolution webhook with the full usage-pattern payload.
+  # The learning engine uses `activation_counts` to score each automation,
+  # `skipped_counts` to identify automations that triggered but were
+  # overridden by manual action (indicating a bad fit), and `scene_usage`
+  # to weight scene popularity in the next generation.
+  - service: rest_command.aura_webhook
+    data:
+      webhook_id: aura_learning_evolve
+      payload: >
+        {
+          "cycle_date":  "{{ now().strftime('%Y-%m-%d') }}",
+          "cycle_time":  "{{ now().strftime('%H:%M:%S') }}",
+          "trailing_days": 7,
+          "activation_counts": {
+            "morning_routine":       "{{ states('counter.morning_routine_activations')    | default('0') }}",
+            "evening_wind_down":     "{{ states('counter.wind_down_activations')          | default('0') }}",
+            "studio_mode":           "{{ states('counter.studio_mode_activations')        | default('0') }}",
+            "movie_mode":            "{{ states('counter.movie_mode_activations')         | default('0') }}",
+            "party_mode":            "{{ states('counter.party_mode_activations')         | default('0') }}",
+            "focus_mode":            "{{ states('counter.focus_mode_activations')         | default('0') }}",
+            "welcome_home":          "{{ states('counter.welcome_home_activations')       | default('0') }}",
+            "goodnight":             "{{ states('counter.goodnight_activations')          | default('0') }}",
+            "energy_saver":          "{{ states('counter.energy_saver_activations')       | default('0') }}",
+            "content_mode":          "{{ states('counter.content_mode_activations')       | default('0') }}"
+          },
+          "skipped_counts": {
+            "sleep_detection_skipped": "{{ states('counter.sleep_detection_skipped') | default('0') }}",
+            "gym_reminder_skipped":    "{{ states('counter.gym_reminder_skipped')    | default('0') }}"
+          },
+          "scene_usage": {
+            "welcome_home":  "{{ states('counter.scene_welcome_home_use')  | default('0') }}",
+            "morning":       "{{ states('counter.scene_morning_use')       | default('0') }}",
+            "studio":        "{{ states('counter.scene_studio_use')        | default('0') }}",
+            "movie":         "{{ states('counter.scene_movie_use')         | default('0') }}",
+            "party":         "{{ states('counter.scene_party_use')         | default('0') }}",
+            "goodnight":     "{{ states('counter.scene_goodnight_use')     | default('0') }}",
+            "focus":         "{{ states('counter.scene_focus_use')         | default('0') }}"
+          },
+          "source": "scheduled_learning_cycle"
+        }
+    continue_on_error: true
+
+mode: single
+max_exceeded: silent

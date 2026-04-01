@@ -1,0 +1,54 @@
+alias: "AURA - Scheduled: Weekly Report (Sunday 10 AM)"
+description: >
+  Every Sunday at 10:00 AM fires the aura_weekly_report webhook with a
+  structured payload containing the reporting window, all tracked entity
+  states relevant to the accountability summary, and energy readings. The
+  voice agent picks up this webhook and reads the report aloud. No presence
+  condition — the report fires regardless of who is home so the data is
+  always captured; the voice agent handles delivery gracefully if nobody
+  is listening.
+
+trigger:
+  - platform: time
+    at: "10:00:00"
+
+condition:
+  # Sundays only
+  - condition: time
+    weekday:
+      - sun
+
+action:
+  # Fire the weekly report webhook with full context payload.
+  # The voice agent reads `report_date`, `week_summary`, and entity
+  # snapshots to compile and deliver the accountability report.
+  - service: rest_command.aura_webhook
+    data:
+      webhook_id: aura_weekly_report
+      payload: >
+        {
+          "report_date": "{{ now().strftime('%Y-%m-%d') }}",
+          "report_time": "{{ now().strftime('%H:%M') }}",
+          "week_start": "{{ (now() - timedelta(days=6)).strftime('%Y-%m-%d') }}",
+          "week_end":   "{{ now().strftime('%Y-%m-%d') }}",
+          "week_summary": {
+            "conaugh_home_ratio":  "{{ states('sensor.conaugh_home_time_pct')  | default('unavailable') }}",
+            "adon_home_ratio":     "{{ states('sensor.adon_home_time_pct')     | default('unavailable') }}",
+            "content_mode_count":  "{{ states('counter.content_mode_activations') | default('0') }}",
+            "studio_mode_count":   "{{ states('counter.studio_mode_activations')  | default('0') }}",
+            "party_mode_count":    "{{ states('counter.party_mode_activations')   | default('0') }}",
+            "gym_days_logged":     "{{ states('counter.gym_reminder_acknowledged') | default('0') }}",
+            "energy_kwh":          "{{ states('sensor.total_energy_today')        | default('unavailable') }}"
+          },
+          "device_snapshot": {
+            "thermostat_temp":     "{{ states('climate.thermostat')              | default('unavailable') }}",
+            "lock_state":          "{{ states('lock.front_door')                  | default('unavailable') }}",
+            "coffee_maker":        "{{ states('switch.coffee_maker')              | default('unavailable') }}",
+            "air_purifier":        "{{ states('switch.air_purifier')              | default('unavailable') }}"
+          },
+          "source": "scheduled_weekly_report"
+        }
+    continue_on_error: true
+
+mode: single
+max_exceeded: silent

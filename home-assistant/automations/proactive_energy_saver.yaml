@@ -1,0 +1,137 @@
+alias: "AURA - Proactive: Energy Saver (Vacant Room Lights Off)"
+description: >
+  Monitors motion sensors in each room. When a room has had no detected motion
+  for 30 consecutive minutes, turns off that room's lights — but only if at
+  least one other room still shows activity. This prevents AURA from plunging
+  the entire apartment into darkness when both residents are simply sitting still
+  (e.g., focused work or watching TV). Each trigger has a unique ID so the action
+  block can target the correct room's lights. Events are logged via a persistent
+  notification for pattern review.
+
+trigger:
+  # Living room — no motion for 30 min
+  - platform: state
+    entity_id: binary_sensor.living_room_motion
+    to: "off"
+    for:
+      minutes: 30
+    id: vacant_living_room
+
+  # Bedroom — no motion for 30 min
+  - platform: state
+    entity_id: binary_sensor.bedroom_motion
+    to: "off"
+    for:
+      minutes: 30
+    id: vacant_bedroom
+
+  # Office / desk area — no motion for 30 min
+  - platform: state
+    entity_id: binary_sensor.office_motion
+    to: "off"
+    for:
+      minutes: 30
+    id: vacant_office
+
+  # Bathroom — shorter timeout; 5 min is generous
+  - platform: state
+    entity_id: binary_sensor.bathroom_motion
+    to: "off"
+    for:
+      minutes: 5
+    id: vacant_bathroom
+
+condition:
+  # Only save energy if at least one OTHER area still has activity —
+  # prevents a complete blackout if both residents are just sitting quietly.
+  - condition: template
+    value_template: >
+      {{
+        is_state('binary_sensor.living_room_motion', 'on')
+        or is_state('binary_sensor.bedroom_motion', 'on')
+        or is_state('binary_sensor.office_motion', 'on')
+      }}
+
+action:
+  - choose:
+      # ── Living room vacant ───────────────────────────────────────────────────
+      - conditions:
+          - condition: trigger
+            id: vacant_living_room
+        sequence:
+          - service: light.turn_off
+            target:
+              entity_id:
+                - light.living_room_leds
+                - light.overhead
+            data:
+              transition: 10
+            continue_on_error: true
+
+          - service: persistent_notification.create
+            data:
+              title: "AURA Energy Saver"
+              message: >
+                Living room lights turned off — no motion for 30 minutes
+                at {{ now().strftime('%H:%M') }}.
+              notification_id: "aura_energy_living_room"
+            continue_on_error: true
+
+      # ── Bedroom vacant ───────────────────────────────────────────────────────
+      - conditions:
+          - condition: trigger
+            id: vacant_bedroom
+        sequence:
+          - service: light.turn_off
+            target:
+              entity_id: light.bedroom_leds
+            data:
+              transition: 10
+            continue_on_error: true
+
+          - service: persistent_notification.create
+            data:
+              title: "AURA Energy Saver"
+              message: >
+                Bedroom lights turned off — no motion for 30 minutes
+                at {{ now().strftime('%H:%M') }}.
+              notification_id: "aura_energy_bedroom"
+            continue_on_error: true
+
+      # ── Office / desk area vacant ────────────────────────────────────────────
+      - conditions:
+          - condition: trigger
+            id: vacant_office
+        sequence:
+          - service: light.turn_off
+            target:
+              entity_id:
+                - light.desk_accent
+                - light.key_light
+            data:
+              transition: 10
+            continue_on_error: true
+
+          - service: persistent_notification.create
+            data:
+              title: "AURA Energy Saver"
+              message: >
+                Office lights turned off — no motion for 30 minutes
+                at {{ now().strftime('%H:%M') }}.
+              notification_id: "aura_energy_office"
+            continue_on_error: true
+
+      # ── Bathroom vacant ──────────────────────────────────────────────────────
+      - conditions:
+          - condition: trigger
+            id: vacant_bathroom
+        sequence:
+          - service: light.turn_off
+            target:
+              entity_id: light.bathroom
+            data:
+              transition: 5
+            continue_on_error: true
+
+mode: parallel
+max: 4

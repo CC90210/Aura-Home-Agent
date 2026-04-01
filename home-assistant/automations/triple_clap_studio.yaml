@@ -1,0 +1,89 @@
+alias: "AURA - Triple Clap: Toggle Studio Mode"
+description: >
+  Triggered by a triple-clap webhook from the clap_listener.py service on the
+  Pi. Toggles studio/content creation mode — key light at 100% daylight 5000K,
+  desk accent LEDs blue at 60%, room overheads dimmed to 20%. Uses
+  input_boolean.studio_mode_active to track toggle state.
+
+trigger:
+  - platform: webhook
+    webhook_id: aura_triple_clap
+    allowed_methods:
+      - POST
+    local_only: true
+
+condition: []
+
+action:
+  - choose:
+      # --- BRANCH 1: Studio mode is currently OFF → turn it ON ---
+      - conditions:
+          - condition: state
+            entity_id: input_boolean.studio_mode_active
+            state: "off"
+        sequence:
+          # Key light: full brightness, daylight color temperature
+          - service: light.turn_on
+            target:
+              entity_id: light.key_light
+            data:
+              brightness_pct: 100
+              color_temp_kelvin: 5000
+              transition: 1
+            continue_on_error: true
+
+          # Desk accent LEDs: blue
+          - service: light.turn_on
+            target:
+              entity_id: light.desk_accent
+            data:
+              rgb_color: [0, 120, 255]
+              brightness_pct: 60
+              transition: 1
+            continue_on_error: true
+
+          # Room overheads: dim to 20% — keep light.turn_on (not turn_off) so the
+          # room isn't pitch black, just pulled back out of the shot
+          - service: light.turn_on
+            target:
+              entity_id: light.overhead
+            data:
+              brightness_pct: 20
+              transition: 2
+            continue_on_error: true
+
+          - service: input_boolean.turn_on
+            target:
+              entity_id: input_boolean.studio_mode_active
+
+      # --- BRANCH 2: Studio mode is currently ON → turn it OFF ---
+      - conditions:
+          - condition: state
+            entity_id: input_boolean.studio_mode_active
+            state: "on"
+        sequence:
+          - service: light.turn_off
+            target:
+              entity_id:
+                - light.key_light
+                - light.desk_accent
+            data:
+              transition: 2
+            continue_on_error: true
+
+          # Restore overheads to a comfortable working level
+          - service: light.turn_on
+            target:
+              entity_id: light.overhead
+            data:
+              brightness_pct: 70
+              color_temp_kelvin: 4000
+              transition: 2
+            continue_on_error: true
+
+          - service: input_boolean.turn_off
+            target:
+              entity_id: input_boolean.studio_mode_active
+
+mode: single
+max_exceeded: silent

@@ -1,0 +1,111 @@
+alias: "AURA - Routine: Gym Reminder (Weekday)"
+description: >
+  Fires two gym reminders on weekday mornings. First reminder at 6:45 AM — a
+  supportive nudge. If either Conaugh or Adon is still home at 7:15 AM (i.e.,
+  no 'not_home' transition detected), AURA escalates to a more direct callout.
+  Only runs on weekdays. Both prompts are delivered via the aura_voice_prompt
+  webhook so the voice agent handles TTS delivery through the speakers.
+
+trigger:
+  # First reminder — friendly
+  - platform: time
+    at: "06:45:00"
+    id: gym_reminder_1
+
+  # Second reminder — more direct if still home
+  - platform: time
+    at: "07:15:00"
+    id: gym_reminder_2
+
+condition:
+  # Weekdays only
+  - condition: time
+    weekday:
+      - mon
+      - tue
+      - wed
+      - thu
+      - fri
+
+action:
+  - choose:
+      # ── 6:45 AM: First reminder — at least one person still home ─────────────
+      - conditions:
+          - condition: trigger
+            id: gym_reminder_1
+
+          # Only fire if someone is still home (hasn't left for gym already)
+          - condition: or
+            conditions:
+              - condition: state
+                entity_id: person.conaugh
+                state: "home"
+              - condition: state
+                entity_id: person.adon
+                state: "home"
+
+        sequence:
+          - service: rest_command.aura_webhook
+            data:
+              webhook_id: aura_voice_prompt
+              payload: >
+                {
+                  "message": "Gym time soon. You got this.",
+                  "priority": "normal"
+                }
+            continue_on_error: true
+
+      # ── 7:15 AM: Escalation — still home, window is closing ─────────────────
+      - conditions:
+          - condition: trigger
+            id: gym_reminder_2
+
+          # Still home at 7:15 — they haven't left yet
+          - condition: or
+            conditions:
+              - condition: state
+                entity_id: person.conaugh
+                state: "home"
+              - condition: state
+                entity_id: person.adon
+                state: "home"
+
+        sequence:
+          - service: rest_command.aura_webhook
+            data:
+              webhook_id: aura_voice_prompt
+              payload: >
+                {
+                  "message": "Bro, gym window's closing. We said no excuses.",
+                  "priority": "normal"
+                }
+            continue_on_error: true
+
+          # Flash the lights once as a physical nudge — brief pulse then back to current
+          - service: light.turn_on
+            target:
+              entity_id:
+                - light.bedroom_leds
+                - light.living_room_leds
+            data:
+              brightness_pct: 100
+              color_temp_kelvin: 5000
+              transition: 1
+            continue_on_error: true
+
+          - delay:
+              seconds: 3
+
+          - service: light.turn_on
+            target:
+              entity_id:
+                - light.bedroom_leds
+                - light.living_room_leds
+            data:
+              brightness_pct: 70
+              color_temp_kelvin: 4000
+              transition: 2
+            continue_on_error: true
+
+mode: single
+max_exceeded: silent

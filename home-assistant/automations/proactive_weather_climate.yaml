@@ -1,0 +1,98 @@
+alias: "AURA - Proactive: Weather-Based Climate Adjustment"
+description: >
+  Runs every 30 minutes to read the outdoor temperature from weather.home and
+  automatically adjusts the thermostat to match conditions. Hot day (>25°C)
+  → AC at 22°C. Cold day (<5°C) → heat at 21°C. Mild day (15-25°C) → eco mode
+  and a TTS prompt to consider opening windows. Only runs when someone is home.
+  All device actions use continue_on_error so a missing thermostat never breaks
+  the sequence.
+
+trigger:
+  - platform: time_pattern
+    minutes: "/30"
+
+condition:
+  # Only adjust climate if someone is home — no point heating/cooling an empty flat
+  - condition: or
+    conditions:
+      - condition: state
+        entity_id: person.conaugh
+        state: "home"
+      - condition: state
+        entity_id: person.adon
+        state: "home"
+
+action:
+  - choose:
+      # ── Branch 1: Hot day — run AC ───────────────────────────────────────────
+      - conditions:
+          - condition: template
+            value_template: >
+              {{ state_attr('weather.home', 'temperature') | float(0) > 25 }}
+
+        sequence:
+          - service: climate.set_hvac_mode
+            target:
+              entity_id: climate.thermostat
+            data:
+              hvac_mode: cool
+            continue_on_error: true
+
+          - service: climate.set_temperature
+            target:
+              entity_id: climate.thermostat
+            data:
+              temperature: 22
+            continue_on_error: true
+
+      # ── Branch 2: Cold day — run heat ────────────────────────────────────────
+      - conditions:
+          - condition: template
+            value_template: >
+              {{ state_attr('weather.home', 'temperature') | float(0) < 5 }}
+
+        sequence:
+          - service: climate.set_hvac_mode
+            target:
+              entity_id: climate.thermostat
+            data:
+              hvac_mode: heat
+            continue_on_error: true
+
+          - service: climate.set_temperature
+            target:
+              entity_id: climate.thermostat
+            data:
+              temperature: 21
+            continue_on_error: true
+
+      # ── Branch 3: Mild day — eco mode + window prompt ────────────────────────
+      - conditions:
+          - condition: template
+            value_template: >
+              {{ state_attr('weather.home', 'temperature') | float(0) >= 15
+                 and state_attr('weather.home', 'temperature') | float(0) <= 25 }}
+
+        sequence:
+          # Set thermostat to eco / fan-only so it isn't working against open windows
+          - service: climate.set_hvac_mode
+            target:
+              entity_id: climate.thermostat
+            data:
+              hvac_mode: fan_only
+            continue_on_error: true
+
+          # Fire a webhook so the voice agent can suggest opening windows
+          - service: rest_command.aura_webhook
+            data:
+              webhook_id: aura_window_prompt
+              payload: >
+                {
+                  "message": "It's a comfortable
+                  {{ state_attr('weather.home', 'temperature') | round(0) }}°C outside.
+                  Perfect weather to open the windows and give the HVAC a rest."
+                }
+            continue_on_error: true
+
+mode: single
+max_exceeded: silent

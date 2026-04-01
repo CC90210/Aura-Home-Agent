@@ -1,0 +1,6 @@
+# Place client-specific automation overrides here.
+# Any .yaml file in this directory will REPLACE the matching base automation
+# when deploy_client.sh merges configs.
+#
+# Example: if this client needs a different double_clap_toggle.yaml,
+# copy home-assistant/automations/double_clap_toggle.yaml here and modify it.

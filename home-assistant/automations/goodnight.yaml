@@ -1,0 +1,81 @@
+alias: "AURA - Goodnight"
+description: >
+  Triggered by the aura_goodnight webhook (fired manually, via voice, or from
+  the HA dashboard). Executes the full goodnight sequence: all lights fade off
+  over 30 seconds, music fades and stops, smart lock engages, thermostat drops
+  to 18°C, and cameras arm to home security mode.
+
+trigger:
+  - platform: webhook
+    webhook_id: aura_goodnight
+    allowed_methods:
+      - POST
+    local_only: true
+
+condition: []
+
+action:
+  # Step 1 — Fade all lights off over 30 seconds
+  - service: light.turn_off
+    target:
+      entity_id:
+        - light.living_room_leds
+        - light.bedroom_leds
+        - light.desk_accent
+        - light.key_light
+        - light.overhead
+    data:
+      transition: 30
+    continue_on_error: true
+
+  # Step 2 — Fade speaker volume down gradually before stopping
+  - service: media_player.volume_set
+    target:
+      entity_id: media_player.living_room_speaker
+    data:
+      volume_level: 0.10
+    continue_on_error: true
+
+  - delay:
+      seconds: 5
+
+  - service: media_player.media_stop
+    target:
+      entity_id: media_player.living_room_speaker
+    continue_on_error: true
+
+  # Step 3 — Engage smart lock
+  - service: lock.lock
+    target:
+      entity_id: lock.front_door
+    continue_on_error: true
+
+  # Step 4 — Set thermostat to sleep temperature (18°C)
+  - service: climate.set_temperature
+    target:
+      entity_id: climate.thermostat
+    data:
+      temperature: 18
+      hvac_mode: heat
+    continue_on_error: true
+
+  # Step 5 — Arm cameras / security system to home mode
+  # If using an alarm panel, swap for alarm_control_panel.alarm_arm_home
+  - service: camera.enable_motion_detection
+    target:
+      entity_id:
+        - camera.front_door
+        - camera.living_room
+    continue_on_error: true
+
+  # Step 6 — Clear all mode booleans so the next day starts clean
+  - service: input_boolean.turn_off
+    target:
+      entity_id:
+        - input_boolean.welcome_home_active
+        - input_boolean.studio_mode_active
+        - input_boolean.party_mode_active
+    continue_on_error: true
+
+mode: single
+max_exceeded: silent

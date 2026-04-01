@@ -1,0 +1,118 @@
+alias: "AURA - Proactive: TV Bias Lighting"
+description: >
+  Watches the living room TV media_player. When playback starts after 6 PM,
+  dims all lights to cinema levels and activates warm bias lighting behind the
+  TV (soft amber at 15%) to reduce eye strain. When the TV stops playing,
+  restores all lights gradually over 30 seconds to a comfortable ambient level.
+  All device actions use continue_on_error so a missing device never kills the
+  sequence.
+
+trigger:
+  # TV starts playing
+  - platform: state
+    entity_id: media_player.living_room_tv
+    to: "playing"
+    id: tv_started
+
+  # TV stops (paused, idle, or off)
+  - platform: state
+    entity_id: media_player.living_room_tv
+    from: "playing"
+    to:
+      - "paused"
+      - "idle"
+      - "off"
+    id: tv_stopped
+
+condition: []
+
+action:
+  - choose:
+      # ── Branch 1: TV started playing after 6 PM ─────────────────────────────
+      - conditions:
+          - condition: trigger
+            id: tv_started
+          - condition: time
+            after: "18:00:00"
+            before: "23:59:59"
+
+        sequence:
+          # Dim all room lights to cinema level
+          - service: light.turn_on
+            target:
+              entity_id:
+                - light.living_room_leds
+                - light.overhead
+            data:
+              brightness_pct: 20
+              transition: 3
+            continue_on_error: true
+
+          # Dim bedroom lights to low so they don't bleed into the living room
+          - service: light.turn_on
+            target:
+              entity_id: light.bedroom_leds
+            data:
+              brightness_pct: 10
+              transition: 3
+            continue_on_error: true
+
+          # Bias light behind TV — warm amber to match most screen content
+          - service: light.turn_on
+            target:
+              entity_id: light.tv_bias_light
+            data:
+              rgb_color:
+                - 255
+                - 180
+                - 120
+              brightness_pct: 15
+              transition: 3
+            continue_on_error: true
+
+          # Desk accent off — not needed during viewing
+          - service: light.turn_off
+            target:
+              entity_id: light.desk_accent
+            data:
+              transition: 3
+            continue_on_error: true
+
+      # ── Branch 2: TV stopped — restore ambient lighting ──────────────────────
+      - conditions:
+          - condition: trigger
+            id: tv_stopped
+
+        sequence:
+          # Restore living room LEDs to comfortable evening ambient
+          - service: light.turn_on
+            target:
+              entity_id:
+                - light.living_room_leds
+                - light.overhead
+            data:
+              color_temp_kelvin: 2700
+              brightness_pct: 60
+              transition: 30
+            continue_on_error: true
+
+          # Restore bedroom to a calm level
+          - service: light.turn_on
+            target:
+              entity_id: light.bedroom_leds
+            data:
+              color_temp_kelvin: 2700
+              brightness_pct: 40
+              transition: 30
+            continue_on_error: true
+
+          # Turn off bias light
+          - service: light.turn_off
+            target:
+              entity_id: light.tv_bias_light
+            data:
+              transition: 30
+            continue_on_error: true
+
+mode: restart
+max_exceeded: silent

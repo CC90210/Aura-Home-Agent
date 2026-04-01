@@ -1,0 +1,134 @@
+alias: "AURA - Away Mode"
+description: >
+  Triggers in two ways: (1) via the aura_away_mode webhook (manual activation),
+  and (2) automatically when both person.conaugh and person.adon have been
+  'not_home' for at least 15 minutes (prevents false triggers from brief
+  departures like taking out the trash). All lights off, thermostat drops to
+  eco 16°C, front door locks, cameras arm. A random light simulation schedule
+  then runs to make the apartment appear occupied — a security deterrent. The
+  simulation fires a separate script (script.presence_simulation) that you can
+  configure independently in HA.
+
+trigger:
+  # Manual webhook trigger — fire this from the dashboard or on departure
+  - platform: webhook
+    webhook_id: aura_away_mode
+    allowed_methods:
+      - POST
+    local_only: true
+    id: webhook_away
+
+  # Automatic trigger when Conaugh leaves and has been gone 15+ min
+  - platform: state
+    entity_id: person.conaugh
+    to: "not_home"
+    for:
+      minutes: 15
+    id: conaugh_away
+
+  # Automatic trigger when Adon leaves and has been gone 15+ min
+  - platform: state
+    entity_id: person.adon
+    to: "not_home"
+    for:
+      minutes: 15
+    id: adon_away
+
+condition:
+  # For automatic triggers only: confirm BOTH residents are away.
+  # The webhook trigger bypasses this check (manual override).
+  - condition: or
+    conditions:
+      # Bypass condition check when fired by webhook
+      - condition: template
+        value_template: "{{ trigger.id == 'webhook_away' }}"
+      # For presence triggers: both people must be not_home
+      - condition: and
+        conditions:
+          - condition: state
+            entity_id: person.conaugh
+            state: "not_home"
+          - condition: state
+            entity_id: person.adon
+            state: "not_home"
+
+action:
+  # Turn off all lights
+  - service: light.turn_off
+    target:
+      entity_id:
+        - light.living_room_leds
+        - light.bedroom_leds
+        - light.desk_accent
+        - light.key_light
+        - light.overhead
+        - light.tv_backlight_leds
+    data:
+      transition: 5
+    continue_on_error: true
+
+  # Stop any playing media
+  - service: media_player.media_stop
+    target:
+      entity_id: media_player.living_room_speaker
+    continue_on_error: true
+
+  # Thermostat: eco mode at 16°C — saves energy while unoccupied
+  - service: climate.set_temperature
+    target:
+      entity_id: climate.thermostat
+    data:
+      temperature: 16
+      hvac_mode: heat
+    continue_on_error: true
+
+  # Lock front door
+  - service: lock.lock
+    target:
+      entity_id: lock.front_door
+    continue_on_error: true
+
+  # Arm cameras to away mode — full motion detection active
+  - service: camera.enable_motion_detection
+    target:
+      entity_id:
+        - camera.front_door
+        - camera.living_room
+    continue_on_error: true
+
+  # Close blinds — adds privacy and insulation while away
+  - service: cover.close_cover
+    target:
+      entity_id: cover.living_room_blinds
+    continue_on_error: true
+
+  # Clear all active mode booleans so nothing is stale on return
+  - service: input_boolean.turn_off
+    target:
+      entity_id:
+        - input_boolean.welcome_home_active
+        - input_boolean.studio_mode_active
+        - input_boolean.party_mode_active
+        - input_boolean.gaming_mode_active
+        - input_boolean.streaming_mode_active
+        - input_boolean.podcast_mode_active
+        - input_boolean.music_mode_active
+        - input_boolean.focus_mode_active
+        - input_boolean.guest_mode_active
+        - input_boolean.workout_mode_active
+        - input_boolean.do_not_disturb
+    continue_on_error: true
+
+  # Mark away mode active
+  - service: input_boolean.turn_on
+    target:
+      entity_id: input_boolean.away_mode_active
+    continue_on_error: true
+
+  # Start presence simulation script — randomly toggles lights to deter
+  # opportunistic entry. Configure script.presence_simulation in HA scripts.
+  - service: script.presence_simulation
+    continue_on_error: true
+
+mode: single
+max_exceeded: silent
