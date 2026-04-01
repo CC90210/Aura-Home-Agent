@@ -211,10 +211,13 @@ class WakeWordDetector:
         else:
             return 0.0
 
-        # The value may be a numpy scalar or a plain float
+        # OWW returns a numpy array (one score per frame); take the last element.
+        # Fall back to direct float conversion for scalar values.
         try:
+            if hasattr(val, "__len__") and len(val) > 0:
+                return float(val[-1])
             return float(val)
-        except (TypeError, ValueError):
+        except (TypeError, ValueError, IndexError):
             return 0.0
 
 

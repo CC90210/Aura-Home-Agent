@@ -70,7 +70,7 @@ PROJECT_ROOT = SCRIPT_DIR.parent
 CONFIG_PATH = SCRIPT_DIR / "config.yaml"
 ENV_PATH = PROJECT_ROOT / ".env"
 
-load_dotenv(ENV_PATH)
+load_dotenv(ENV_PATH, override=False)
 
 # ---------------------------------------------------------------------------
 # Enumerations
@@ -307,10 +307,11 @@ class PatternEngine:
     _BOOLEAN_MAP: dict[str, float] = {"on": 1.0, "off": 0.0, "home": 1.0, "not_home": 0.0}
 
     def __init__(self, config_path: Optional[Path] = None) -> None:
-        self._config = _load_config()
         if config_path is not None:
             with config_path.open("r", encoding="utf-8") as fh:
                 self._config = yaml.safe_load(fh)
+        else:
+            self._config = _load_config()
 
         self._db = _Database(self._config["database"]["path"])
         self._tracked_patterns: list[str] = self._config["tracking"]["entities"]

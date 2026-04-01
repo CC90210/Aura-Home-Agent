@@ -68,13 +68,29 @@ action:
         - camera.living_room
     continue_on_error: true
 
-  # Step 6 — Clear all mode booleans so the next day starts clean
+  # Step 6 — Mark goodnight as active
+  - service: input_boolean.turn_on
+    target:
+      entity_id: input_boolean.goodnight_active
+    continue_on_error: true
+
+  # Step 7 — Clear all mode booleans so the next day starts clean
   - service: input_boolean.turn_off
     target:
       entity_id:
         - input_boolean.welcome_home_active
         - input_boolean.studio_mode_active
         - input_boolean.party_mode_active
+        - input_boolean.gaming_mode_active
+        - input_boolean.streaming_mode_active
+        - input_boolean.podcast_mode_active
+        - input_boolean.music_mode_active
+        - input_boolean.focus_mode_active
+        - input_boolean.guest_mode_active
+        - input_boolean.workout_mode_active
+        - input_boolean.away_mode_active
+        - input_boolean.do_not_disturb
+        - input_boolean.content_mode_active
     continue_on_error: true
 
 mode: single

@@ -12,8 +12,6 @@ trigger:
   # Fires at the top of every third hour (08:00, 11:00, 14:00, 17:00, 20:00, 23:00)
   - platform: time_pattern
     hours: "/3"
-    minutes: "0"
-    seconds: "0"
 
 condition:
   # Restrict to daytime — 8 AM through 11 PM (23:59)

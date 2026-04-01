@@ -68,6 +68,7 @@ action:
               entity_id: climate.thermostat
             data:
               temperature: 19
+              hvac_mode: heat
             continue_on_error: true
 
           # Turn off work-mode lights that shouldn't carry into the evening

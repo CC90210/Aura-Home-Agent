@@ -1,0 +1,90 @@
+# AURA by OASIS — Home Assistant Configuration
+# This file is deployed to /config/configuration.yaml on the Pi
+
+homeassistant:
+  name: "AURA"
+  unit_system: metric
+  temperature_unit: C
+  time_zone: America/Toronto
+  currency: CAD
+
+# Load automations from the automations directory
+automation: !include_dir_list automations/
+
+# Load scenes
+scene: !include scenes/scenes.yaml
+
+# Load scripts
+script: !include_dir_named scripts/
+
+# Input booleans for mode tracking
+input_boolean:
+  welcome_home_active:
+    name: "Welcome Home Active"
+    icon: mdi:home-heart
+  studio_mode_active:
+    name: "Studio Mode Active"
+    icon: mdi:video
+  party_mode_active:
+    name: "Party Mode Active"
+    icon: mdi:party-popper
+  gaming_mode_active:
+    name: "Gaming Mode Active"
+    icon: mdi:controller
+  streaming_mode_active:
+    name: "Streaming Mode Active"
+    icon: mdi:broadcast
+  podcast_mode_active:
+    name: "Podcast Mode Active"
+    icon: mdi:microphone
+  music_mode_active:
+    name: "Music Mode Active"
+    icon: mdi:music
+  focus_mode_active:
+    name: "Focus Mode Active"
+    icon: mdi:head-lightbulb
+  guest_mode_active:
+    name: "Guest Mode Active"
+    icon: mdi:account-group
+  workout_mode_active:
+    name: "Workout Mode Active"
+    icon: mdi:dumbbell
+  away_mode_active:
+    name: "Away Mode Active"
+    icon: mdi:shield-lock
+  do_not_disturb:
+    name: "Do Not Disturb"
+    icon: mdi:bell-off
+  goodnight_active:
+    name: "Goodnight Active"
+    icon: mdi:weather-night
+  sleep_prompt_issued:
+    name: "Sleep Prompt Issued"
+    icon: mdi:sleep
+  weekend_gym_reminder:
+    name: "Weekend Gym Reminder"
+    icon: mdi:weight-lifter
+    initial: false
+  content_reminder_enabled:
+    name: "Content Reminder Enabled"
+    icon: mdi:content-save
+    initial: true
+  content_mode_active:
+    name: "Content Mode Active"
+    icon: mdi:creation
+
+# REST commands for webhooks (used by automations to trigger voice prompts)
+rest_command:
+  aura_webhook:
+    url: "http://localhost:8123/api/webhook/{{ webhook_id }}"
+    method: POST
+    headers:
+      Content-Type: "application/json"
+    payload: '{{ payload }}'
+    content_type: "application/json"
+
+# Logger configuration
+logger:
+  default: warning
+  logs:
+    homeassistant.components.automation: info

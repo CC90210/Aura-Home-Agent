@@ -34,7 +34,7 @@ from __future__ import annotations
 import json
 import logging
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -346,7 +346,7 @@ class AuraPersonality:
         entry: dict[str, str] = {
             "person": person.lower(),
             "phrase": phrase,
-            "logged_at": datetime.utcnow().isoformat(),
+            "logged_at": datetime.now(timezone.utc).isoformat(),
         }
 
         try:

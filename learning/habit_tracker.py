@@ -184,7 +184,6 @@ class HabitTracker:
             self._config = _load_config()
 
         self._db = _Database(self._config["database"]["path"])
-        self._db._ensure_schema()  # noqa: SLF001 — extend shared DB with habit tables
         self._extend_schema()
 
         habits_cfg = self._config.get("habits", {})

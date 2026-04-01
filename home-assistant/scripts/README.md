@@ -1,1 +1,1 @@
-Home Assistant reusable script sequences. Add scripts here as your automation needs grow.
+Home Assistant reusable script sequences. See presence_simulation.yaml for the security presence simulation script.

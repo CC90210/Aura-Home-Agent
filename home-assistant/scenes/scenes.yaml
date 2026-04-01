@@ -34,10 +34,6 @@
     light.desk_accent:
       state: "off"
 
-    media_player.living_room_speaker:
-      state: "playing"
-      volume_level: 0.30
-
 - id: "aura_studio_mode"
   name: "Studio Mode"
   entities:
@@ -89,9 +85,6 @@
     light.key_light:
       state: "off"
 
-    cover.living_room_blinds:
-      state: "closed"
-
 - id: "aura_party_mode"
   name: "Party Mode"
   entities:
@@ -117,10 +110,6 @@
     light.key_light:
       state: "off"
 
-    media_player.living_room_speaker:
-      state: "playing"
-      volume_level: 0.75
-
 - id: "aura_goodnight"
   name: "Goodnight"
   entities:
@@ -139,19 +128,9 @@
     light.overhead:
       state: "off"
 
-    media_player.living_room_speaker:
-      state: "idle"
-      volume_level: 0.10
-
-    lock.front_door:
-      state: "locked"
-
     climate.thermostat:
       state: "heat"
       temperature: 18
-
-    cover.living_room_blinds:
-      state: "closed"
 
 # ---------------------------------------------------------------------------
 # NEW SCENES — Gaming, Streaming, Podcast, Music/DJ, Focus, Guest, Away, Workout
@@ -189,10 +168,6 @@
     light.key_light:
       state: "off"
 
-    media_player.living_room_speaker:
-      state: "playing"
-      volume_level: 0.50
-
 - id: "aura_streaming_mode"
   name: "Streaming Mode"
   entities:
@@ -225,10 +200,6 @@
     light.tv_backlight_leds:
       state: "off"
 
-    media_player.living_room_speaker:
-      state: "idle"
-      volume_level: 0.0         # Muted — mic bleed protection
-
 - id: "aura_podcast_mode"
   name: "Podcast Mode"
   entities:
@@ -255,13 +226,6 @@
 
     light.tv_backlight_leds:
       state: "off"
-
-    media_player.living_room_speaker:
-      state: "idle"
-      volume_level: 0.0         # Muted — clean recording environment
-
-    cover.living_room_blinds:
-      state: "closed"           # Noise reduction + no window reflections
 
 - id: "aura_music_dj_mode"
   name: "Music / DJ Mode"
@@ -292,10 +256,6 @@
     light.key_light:
       state: "off"
 
-    media_player.living_room_speaker:
-      state: "playing"
-      volume_level: 0.70
-
 - id: "aura_focus_mode"
   name: "Focus Mode"
   entities:
@@ -322,10 +282,6 @@
 
     light.tv_backlight_leds:
       state: "off"
-
-    media_player.living_room_speaker:
-      state: "playing"
-      volume_level: 0.15
 
 - id: "aura_guest_mode"
   name: "Guest Mode"
@@ -360,10 +316,6 @@
     light.tv_backlight_leds:
       state: "off"
 
-    media_player.living_room_speaker:
-      state: "playing"
-      volume_level: 0.25
-
     climate.thermostat:
       state: "heat"
       temperature: 21
@@ -389,19 +341,9 @@
     light.tv_backlight_leds:
       state: "off"
 
-    media_player.living_room_speaker:
-      state: "idle"
-      volume_level: 0.0
-
     climate.thermostat:
       state: "heat"
       temperature: 16           # Eco temperature while unoccupied
-
-    lock.front_door:
-      state: "locked"
-
-    cover.living_room_blinds:
-      state: "closed"
 
 - id: "aura_workout_mode"
   name: "Workout Mode"
@@ -429,10 +371,6 @@
 
     light.tv_backlight_leds:
       state: "off"
-
-    media_player.living_room_speaker:
-      state: "playing"
-      volume_level: 0.60
 
     climate.thermostat:
       state: "heat"

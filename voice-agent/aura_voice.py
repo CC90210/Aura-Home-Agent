@@ -36,7 +36,6 @@ import logging
 import math
 import os
 import signal
-import struct
 import sys
 import time
 from pathlib import Path
@@ -63,6 +62,7 @@ ENV_PATH = PROJECT_ROOT / ".env"
 # resolve correctly when the daemon starts from any working directory.
 # ---------------------------------------------------------------------------
 sys.path.insert(0, str(PROJECT_ROOT))
+sys.path.insert(0, str(SCRIPT_DIR))
 
 from person_recognition import PersonRecognizer  # noqa: E402 — after path setup
 
@@ -186,7 +186,7 @@ def _play_tone(
     envelope[-fade_samples:] = np.linspace(1.0, 0.0, fade_samples)
 
     wave = (np.sin(2 * math.pi * frequency * t) * amplitude * envelope).astype(np.float32)
-    raw_bytes = struct.pack(f"{len(wave)}f", *wave)
+    raw_bytes = wave.tobytes()
 
     pa = pyaudio.PyAudio()
     try:
@@ -467,12 +467,15 @@ class AuraVoiceAgent:
 
         if self._context:
             ctx = self._context.get_current_context()
-            context = ctx.activity.value if ctx.activity else "casual"
+            context = ctx.activity.value if ctx.activity is not None else "casual"
 
         if self._habit_tracker and person:
             try:
                 report = self._habit_tracker.get_weekly_report(person)
-                habit_data = {"streaks": report.streaks} if report else None
+                habit_data = {
+                    habit: {"streak": streak, "days_missed": 0}
+                    for habit, streak in report.streaks.items()
+                } if report else None
             except Exception:  # noqa: BLE001
                 pass
 

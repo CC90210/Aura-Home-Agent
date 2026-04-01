@@ -33,14 +33,22 @@ jobs:
         run: |
           python -c "
           import yaml, glob, sys
+
+          # Skip files with HA-specific !include tags
+          SKIP_FILES = {'home-assistant/configuration.yaml'}
+
           errors = []
           patterns = [
               'home-assistant/**/*.yaml',
               'clap-trigger/*.yaml',
               'voice-agent/*.yaml',
+              'learning/*.yaml',
           ]
           for pattern in patterns:
               for f in glob.glob(pattern, recursive=True):
+                  if f.replace('\\\\', '/') in SKIP_FILES:
+                      print(f'SKIP (HA includes): {f}')
+                      continue
                   try:
                       with open(f) as fh:
                           yaml.safe_load(fh)

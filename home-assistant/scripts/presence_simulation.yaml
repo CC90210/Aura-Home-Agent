@@ -1,0 +1,53 @@
+presence_simulation:
+  alias: "Presence Simulation"
+  description: "Randomly toggles lights to simulate presence when nobody is home. Runs for up to 4 hours."
+  mode: single
+  sequence:
+    - repeat:
+        count: 8
+        sequence:
+          # Turn on a random light for 15-45 minutes
+          - service: light.turn_on
+            target:
+              entity_id: light.living_room_leds
+            data:
+              brightness_pct: 40
+              color_temp_kelvin: 3000
+            continue_on_error: true
+
+          - delay:
+              minutes: "{{ range(15, 45) | random }}"
+
+          - service: light.turn_off
+            target:
+              entity_id: light.living_room_leds
+            continue_on_error: true
+
+          # Brief pause, then toggle bedroom
+          - delay:
+              minutes: "{{ range(5, 15) | random }}"
+
+          - service: light.turn_on
+            target:
+              entity_id: light.bedroom_leds
+            data:
+              brightness_pct: 30
+              color_temp_kelvin: 2700
+            continue_on_error: true
+
+          - delay:
+              minutes: "{{ range(10, 30) | random }}"
+
+          - service: light.turn_off
+            target:
+              entity_id: light.bedroom_leds
+            continue_on_error: true
+
+    # Ensure all lights are off when simulation ends
+    - service: light.turn_off
+      target:
+        entity_id:
+          - light.living_room_leds
+          - light.bedroom_leds
+          - light.overhead
+      continue_on_error: true

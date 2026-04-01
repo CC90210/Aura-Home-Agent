@@ -60,7 +60,7 @@ action:
           # Bias light behind TV — warm amber to match most screen content
           - service: light.turn_on
             target:
-              entity_id: light.tv_bias_light
+              entity_id: light.tv_backlight_leds
             data:
               rgb_color:
                 - 255
@@ -109,7 +109,7 @@ action:
           # Turn off bias light
           - service: light.turn_off
             target:
-              entity_id: light.tv_bias_light
+              entity_id: light.tv_backlight_leds
             data:
               transition: 30
             continue_on_error: true
