@@ -59,7 +59,7 @@ Home Assistant OS is a purpose-built Linux distribution. It is not a regular Lin
 http://homeassistant.local:8123
 ```
 
-If that does not load after 10 minutes, skip to TROUBLESHOOTING.md — this is usually an mDNS issue on Windows.
+If that does not load after 10 minutes, this is usually an mDNS issue. Windows users: if `homeassistant.local` does not load, you may need to find the Pi's IP address directly. Log into your router's admin page (usually http://192.168.1.1 — check the label on your router if you are unsure) and look for a device named "homeassistant" in the connected devices list. Use that IP address instead, for example: `http://192.168.1.100:8123`. You can use this IP address anywhere in this guide in place of `homeassistant.local`.
 
 **2.2** You will see the Home Assistant onboarding screen. Click "Create my smart home."
 
@@ -80,14 +80,15 @@ If that does not load after 10 minutes, skip to TROUBLESHOOTING.md — this is u
 
 Add-ons are optional software packages that run alongside Home Assistant on the Pi. You need two: SSH access and the MCP server for Claude Code.
 
-**3.1 Install SSH & Web Terminal**
+**3.1 Install Advanced SSH & Web Terminal**
 
 - In the left sidebar, click "Settings"
 - Click "Add-ons"
 - Click "Add-on Store" (bottom right)
-- Search for "SSH & Web Terminal" (published by the Home Assistant community)
+- Search for "Advanced SSH & Web Terminal" (published by the Home Assistant community — make sure it says "Advanced" in the name)
 - Click it and click "Install" — wait for it to finish
-- After installation, click "Configuration" and set a password for the root user. Save it.
+- After installation, click the "Configuration" tab and set a password for the root user. Save it.
+- Still on the Configuration tab, find the "Protection mode" toggle and turn it OFF. This is required for AURA's setup script to work correctly — the script needs to interact with the underlying OS in ways that Protection mode blocks. Click Save.
 - Click "Start", then toggle "Start on boot" to on
 - Click "Show in sidebar" so you can easily access the terminal from the HA web UI
 
@@ -122,7 +123,9 @@ You will use this token in the `.env` file in the next step.
 
 ## Step 5: Clone the AURA Repo on the Pi
 
-**5.1** SSH into the Pi from your desktop terminal:
+Home Assistant OS is built on Alpine Linux. This is a minimal embedded Linux — it is not Ubuntu or Raspberry Pi OS, and many tools you might expect are not pre-installed. In particular, `git` is not installed by default. You will install it using `apk`, which is Alpine's package manager.
+
+**5.1** Open the "Advanced SSH & Web Terminal" from the HA sidebar (or SSH in from your desktop terminal):
 
 ```bash
 ssh root@homeassistant.local
@@ -130,13 +133,21 @@ ssh root@homeassistant.local
 
 Enter the password you set in Step 3.1 when prompted.
 
-**5.2** Navigate to the Home Assistant config directory:
+**5.2** Install git using Alpine's package manager:
+
+```bash
+apk add git
+```
+
+This will take a few seconds. You only need to do this once.
+
+**5.3** Navigate to the Home Assistant config directory:
 
 ```bash
 cd /config
 ```
 
-**5.3** Clone the AURA repository:
+**5.4** Clone the AURA repository into `/config/aura/`:
 
 ```bash
 git clone https://github.com/YOUR_ORG/aura.git aura
@@ -144,14 +155,14 @@ git clone https://github.com/YOUR_ORG/aura.git aura
 
 Replace `YOUR_ORG/aura` with the actual repository path. If the repo is private, you will need to authenticate with a GitHub personal access token.
 
-**5.4** Move into the cloned directory and copy the environment template:
+**5.5** Move into the cloned directory and copy the environment template:
 
 ```bash
 cd /config/aura
 cp .env.example .env
 ```
 
-**5.5** Open `.env` in the terminal editor:
+**5.6** Open `.env` in the terminal editor:
 
 ```bash
 nano .env
@@ -169,7 +180,7 @@ SPOTIFY_CLIENT_SECRET=<from developer.spotify.com>
 
 Save with Ctrl+O, Enter, then exit with Ctrl+X.
 
-**5.6** Secure the .env file so only root can read it:
+**5.7** Secure the .env file so only root can read it:
 
 ```bash
 chmod 600 /config/aura/.env
@@ -179,7 +190,7 @@ chmod 600 /config/aura/.env
 
 ## Step 6: Run the Pi Setup Script
 
-The setup script installs Python dependencies, creates the clap detection virtual environment, registers the clap detection systemd service, and sets correct permissions.
+The setup script installs Python dependencies, creates the clap detection virtual environment, registers the clap detection systemd service, and sets correct permissions. The script uses `apk` (Alpine's package manager) — this is correct for Home Assistant OS and is not a mistake.
 
 **6.1** Make the script executable and run it:
 
@@ -253,7 +264,9 @@ This step is done on your desktop, not the Pi.
 
 **8.1** Make sure Claude Code is installed on your desktop. If not, install it via the Anti-Gravity IDE or follow the Claude Code installation instructions at https://claude.ai/code.
 
-**8.2** In your terminal on your desktop, run:
+**8.2** Make sure Docker Desktop is installed on your desktop and that it is actually running — the Docker icon should be visible in your taskbar/menu bar and showing a "running" status. If Docker is installed but not started, the MCP connection will fail with a connection error. Start Docker Desktop before continuing.
+
+**8.3** In your terminal on your desktop, run:
 
 ```bash
 claude mcp add ha-mcp -- docker run -i --rm \
@@ -262,19 +275,17 @@ claude mcp add ha-mcp -- docker run -i --rm \
   voska/hass-mcp
 ```
 
-Replace `<your long-lived access token>` with the token from Step 4. This registers ha-mcp as an MCP server in Claude Code.
+Replace `<your long-lived access token>` with the token from Step 4. This registers ha-mcp as an MCP server in Claude Code. If you do not have Docker, install it from https://docker.com.
 
-Note: This requires Docker to be installed on your desktop. If you do not have Docker, install it from https://docker.com.
+**8.4** Test the connection by opening Claude Code and asking: "What lights are available in Home Assistant?" If Claude Code returns a list of your devices, the MCP connection is working.
 
-**8.3** Test the connection by opening Claude Code and asking: "What lights are available in Home Assistant?" If Claude Code returns a list of your devices, the MCP connection is working.
-
-**8.4** If you prefer not to use Docker, you can connect to the ha-mcp add-on running directly on the Pi. In that case, get the add-on's port from its configuration in HA and point the MCP URL at the Pi's IP address directly. Refer to the ha-mcp documentation for the exact connection string.
+**8.5** If you prefer not to use Docker, you can connect to the ha-mcp add-on running directly on the Pi. In that case, get the add-on's port from its configuration in HA and point the MCP URL at the Pi's IP address directly. Refer to the ha-mcp documentation for the exact connection string.
 
 ---
 
 ## Step 9: Deploy Automations
 
-The AURA automation YAML files need to be copied into the Home Assistant config directory so HA can load them.
+The AURA automation YAML files need to be copied into the Home Assistant config directory so HA can load them. This includes `configuration.yaml`, which defines the input boolean helpers used for mode tracking — you do not need to create those manually.
 
 **9.1** From your desktop, run the deployment script:
 
@@ -284,18 +295,21 @@ chmod +x scripts/deploy/update_configs.sh
 ./scripts/deploy/update_configs.sh
 ```
 
-The script uses SCP to copy the YAML files from your local repo to the Pi at `/config/`. It then calls the HA API to reload automations without restarting the whole system.
+The script uses SCP to copy the YAML files (including `configuration.yaml`) from your local repo to the Pi at `/config/`. It will copy automations, scenes, scripts, and the main configuration file.
 
-**9.2** If the script is not yet written (early installation), you can manually copy files:
+**9.2** After the script completes, restart Home Assistant so it picks up all the new configuration including `configuration.yaml`. In the HA web UI: Settings → System → Restart. Wait for HA to come back up (about 60 seconds) before continuing.
+
+**9.3** If the deploy script is not yet written (early installation), you can manually copy files:
 
 ```bash
+scp home-assistant/configuration.yaml root@homeassistant.local:/config/configuration.yaml
 scp -r home-assistant/automations/* root@homeassistant.local:/config/automations/
 scp -r home-assistant/scenes/* root@homeassistant.local:/config/scenes/
 ```
 
-Then reload automations from the HA web UI: Settings → Automations & Scenes → reload button (top right).
+Then restart HA: Settings → System → Restart.
 
-**9.3** Verify automations loaded without errors: Settings → Automations & Scenes. All six core automations should appear. If any show a red error badge, click them to read the error — it is usually a missing entity ID.
+**9.4** Verify automations loaded without errors: Settings → Automations & Scenes. All six core automations should appear. If any show a red error badge, click them to read the error — it is usually a missing entity ID.
 
 ---
 
@@ -355,29 +369,25 @@ If these work, the full stack is operational.
 
 ---
 
----
-
-## Step 11: Create Input Boolean Helpers for Mode Tracking
+## Step 11: Input Boolean Helpers for Mode Tracking
 
 AURA uses `input_boolean` helpers in Home Assistant to track active modes (gaming, streaming, etc.). Automations read these booleans to know which scene is currently active and to prevent conflicting automations from firing simultaneously.
 
-**11.1** In HA, go to Settings → Devices & Services → Helpers → Create Helper → Toggle.
+The input boolean helpers are automatically defined in `configuration.yaml` and will appear in Home Assistant after you deploy the configs and restart (which you did in Step 9). You do not need to create them manually.
 
-Create the following helpers one at a time. For each one, set the name exactly as shown — HA will generate the entity ID automatically from the name.
+To verify they are present, go to Settings → Devices & Services → Entities and search for `input_boolean`. You should see all of the following:
 
-| Helper Name | Entity ID (auto-generated) | Purpose |
-|---|---|---|
-| Gaming Mode Active | `input_boolean.gaming_mode_active` | Tracks gaming scene state |
-| Streaming Mode Active | `input_boolean.streaming_mode_active` | Tracks content creation/streaming scene |
-| Focus Mode Active | `input_boolean.focus_mode_active` | Tracks deep work / focus scene |
-| Movie Mode Active | `input_boolean.movie_mode_active` | Tracks movie scene state |
-| Party Mode Active | `input_boolean.party_mode_active` | Tracks party scene state |
-| Guest Mode Active | `input_boolean.guest_mode_active` | Enables guest-appropriate automations |
-| Sleep Mode Active | `input_boolean.sleep_mode_active` | Suppresses all non-alarm automations overnight |
+| Entity ID | Purpose |
+|---|---|
+| `input_boolean.gaming_mode_active` | Tracks gaming scene state |
+| `input_boolean.streaming_mode_active` | Tracks content creation/streaming scene |
+| `input_boolean.focus_mode_active` | Tracks deep work / focus scene |
+| `input_boolean.movie_mode_active` | Tracks movie scene state |
+| `input_boolean.party_mode_active` | Tracks party scene state |
+| `input_boolean.guest_mode_active` | Enables guest-appropriate automations |
+| `input_boolean.sleep_mode_active` | Suppresses all non-alarm automations overnight |
 
-**11.2** Verify the entity IDs match the table above. Go to Settings → Devices & Services → Entities, search for `input_boolean`, and confirm each entity appears with the exact ID listed. If any differ, click the entity → gear icon → edit the entity ID to match.
-
-**11.3** All helpers should default to `off` on creation. No further configuration is needed at this stage — the automations control them.
+If any are missing, check that `configuration.yaml` was deployed correctly and that HA was fully restarted after the deploy.
 
 ---
 
@@ -432,23 +442,22 @@ The voice agent runs on the Pi, listens for a wake word ("Hey Aura"), transcribe
 
 **13.1 Install Voice Agent Dependencies**
 
-SSH into the Pi and install the requirements:
+SSH into the Pi and install the requirements. The voice agent uses a virtual environment located at `/config/aura/.venv/`:
 
 ```bash
 ssh root@homeassistant.local
 cd /config/aura
-pip install -r voice-agent/requirements.txt
+python -m venv .venv
+.venv/bin/pip install -r voice-agent/requirements.txt
 ```
 
 The requirements include `faster-whisper`, `openWakeWord`, `anthropic`, `elevenlabs`, and `pydub`. The `faster-whisper` package will download its model files on first run — this takes a few minutes and requires internet access on the Pi.
 
-You also need ffmpeg for audio format conversion (used by pydub):
+You also need ffmpeg for audio format conversion (used by pydub). Because Home Assistant OS uses Alpine Linux, install it with `apk`:
 
 ```bash
 apk add ffmpeg
 ```
-
-Note: Home Assistant OS uses Alpine Linux. If `apk` is not available in your terminal session (possible if you are in the HA terminal add-on rather than a raw SSH session), install ffmpeg through an SSH session directly into the Alpine OS layer.
 
 **13.2 Configure ElevenLabs Voice**
 
@@ -461,31 +470,22 @@ ELEVENLABS_VOICE_ID=<the voice ID you want AURA to use>
 
 To find a voice ID: log into elevenlabs.io → Voices → click a voice → the ID is shown in the URL or voice details panel. The default AURA voice should be something calm and clear — avoid overly dramatic voices for a smart home context.
 
-**13.3 Test Wake Word Detection in Isolation**
+**13.3 Test the Voice Agent**
 
-Before running the full agent, test that the wake word engine can hear you:
+Before running the full agent, run it in test mode to confirm the wake word engine, microphone, and audio output are all working:
 
 ```bash
 cd /config/aura/voice-agent
-python wake_word_listener.py --test
+/config/aura/.venv/bin/python aura_voice.py --test
 ```
 
-Speak "Hey Aura" toward the USB microphone. You should see a "Wake word detected" log message. If nothing triggers, see TROUBLESHOOTING.md — Wake Word Not Detecting.
+Speak "Hey Aura" toward the USB microphone. The test mode will check wake word detection and play a short TTS phrase through the speakers. If wake word detection does not trigger, see TROUBLESHOOTING.md — Wake Word Not Detecting. If no audio plays, see TROUBLESHOOTING.md — TTS Not Speaking.
 
-**13.4 Test TTS in Isolation**
-
-```bash
-cd /config/aura/voice-agent
-python tts_responder.py --test "AURA online and ready."
-```
-
-You should hear the phrase spoken through the default audio output. If you hear nothing, see TROUBLESHOOTING.md — TTS Not Speaking.
-
-**13.5 Run the Full Voice Agent**
+**13.4 Run the Full Voice Agent**
 
 ```bash
 cd /config/aura/voice-agent
-python wake_word_listener.py
+/config/aura/.venv/bin/python aura_voice.py
 ```
 
 Say "Hey Aura" and then speak a command (for example: "Turn on studio mode"). The agent should:
@@ -495,16 +495,16 @@ Say "Hey Aura" and then speak a command (for example: "Turn on studio mode"). Th
 4. Execute the resulting HA action
 5. Speak a confirmation response back through the speakers
 
-**13.6 Register as a Systemd Service**
+**13.5 Register as a Systemd Service**
 
 To have the voice agent start automatically on Pi boot:
 
 ```bash
-cp /config/aura/voice-agent/voice_agent.service /etc/systemd/system/
+cp /config/aura/voice-agent/aura_voice.service /etc/systemd/system/
 systemctl daemon-reload
-systemctl enable voice_agent
-systemctl start voice_agent
-systemctl status voice_agent
+systemctl enable aura_voice
+systemctl start aura_voice
+systemctl status aura_voice
 ```
 
 You should see "active (running)." The voice agent and clap detection service can run simultaneously — they use separate audio streams.
@@ -515,13 +515,15 @@ You should see "active (running)." The voice agent and clap detection service ca
 
 The adaptive learning system observes how you interact with AURA over time — which scenes you activate at which times, what adjustments you make after activating a scene, and how long you stay in each mode. It stores this data in a local SQLite database on the Pi and uses it to suggest and eventually automate personalizations.
 
+The learning engine is triggered by Home Assistant webhooks and runs within the voice agent process — it does not run as a separate standalone service.
+
 **14.1 Verify the Learning Directory Exists**
 
 ```bash
 ls /config/aura/learning/
 ```
 
-You should see at least `learning_engine.py` and `requirements.txt`. If the directory is missing, pull the latest repo changes:
+You should see `pattern_engine.py`, `habit_tracker.py`, and `requirements.txt`. If the directory is missing, pull the latest repo changes:
 
 ```bash
 cd /config/aura && git pull
@@ -530,10 +532,10 @@ cd /config/aura && git pull
 **14.2 Install Learning System Dependencies**
 
 ```bash
-pip install -r /config/aura/learning/requirements.txt
+/config/aura/.venv/bin/pip install -r /config/aura/learning/requirements.txt
 ```
 
-The dependencies are lightweight — primarily `sqlite3` (stdlib), `schedule`, and any data processing libraries.
+The dependencies are lightweight — primarily data processing libraries. `sqlite3` is part of Python's standard library and does not need to be installed separately.
 
 **14.3 Configure the Database Path**
 
@@ -545,34 +547,21 @@ LEARNING_DB_PATH=learning/aura_learning.db
 
 This path is relative to `/config/aura/`. The learning engine will create the SQLite file automatically on first run — you do not need to create it manually.
 
-**14.4 Start the Learning Engine**
+**14.4 Verify Data Is Being Written**
+
+After using AURA normally for a day (activating scenes, adjusting lights), check that the learning database is accumulating records. If you need the `sqlite3` command-line tool to inspect the database, install it first:
 
 ```bash
-cd /config/aura
-python learning/learning_engine.py
+apk add sqlite
 ```
 
-On first run it will initialize the database schema and begin subscribing to HA state change events. You should see a log message confirming it is connected to HA and listening.
-
-**14.5 Register as a Systemd Service**
-
-```bash
-cp /config/aura/learning/learning_engine.service /etc/systemd/system/
-systemctl daemon-reload
-systemctl enable learning_engine
-systemctl start learning_engine
-systemctl status learning_engine
-```
-
-**14.6 Verify Data Is Being Written**
-
-After using AURA normally for a day (activating scenes, adjusting lights), check that the learning database is accumulating records:
+Then query the database:
 
 ```bash
 sqlite3 /config/aura/learning/aura_learning.db "SELECT COUNT(*) FROM events;"
 ```
 
-A non-zero count confirms events are being logged. If the count stays at zero, see TROUBLESHOOTING.md — Pattern Learning Not Working.
+A non-zero count confirms events are being logged. If the count stays at zero, check that the voice agent is running and that HA webhooks are configured correctly. See TROUBLESHOOTING.md — Pattern Learning Not Working.
 
 ---
 
@@ -641,7 +630,7 @@ Follow the prompts. When Vercel asks for environment variables, add `NEXT_PUBLIC
 
 At this point you have a fully operational AURA installation:
 - Home Assistant running on the Pi, controlling all smart devices
-- Input boolean helpers created for all mode states
+- Input boolean helpers deployed via `configuration.yaml` and active after restart
 - Person entities configured for Conaugh and Adon with presence detection
 - Clap detection active and wired to scene webhooks
 - Voice agent running with wake word, STT, Claude intent processing, and ElevenLabs TTS

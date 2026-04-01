@@ -142,6 +142,18 @@ for subdir in "${SUBDIRS[@]}"; do
   fi
 done
 
+# Deploy configuration.yaml (the root HA config)
+# This file contains !include directives and input_boolean declarations that
+# Home Assistant must read at startup — it cannot be omitted from deployment.
+local_config_yaml="${LOCAL_HA_DIR}/configuration.yaml"
+if [[ -f "${local_config_yaml}" ]]; then
+  echo "Deploying configuration.yaml..."
+  scp -q "${local_config_yaml}" "${PI_USER}@${PI_HOST}:${REMOTE_CONFIG_DIR}/configuration.yaml"
+  echo "      configuration.yaml deployed"
+else
+  echo "      configuration.yaml — skipped (not present locally)"
+fi
+
 echo ""
 echo "      Deployed directories: ${DEPLOYED[*]}"
 echo ""

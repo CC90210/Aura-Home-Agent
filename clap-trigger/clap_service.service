@@ -6,8 +6,8 @@ Wants=network-online.target
 [Service]
 Type=simple
 User=root
-WorkingDirectory=/home/pi/aura/clap-trigger
-ExecStart=/home/pi/aura/.venv/bin/python clap_listener.py
+WorkingDirectory=/config/aura/clap-trigger
+ExecStart=/config/aura/.venv/bin/python clap_listener.py
 Restart=always
 RestartSec=5
 Environment=PYTHONUNBUFFERED=1

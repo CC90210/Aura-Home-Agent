@@ -8,7 +8,11 @@
 # deployment pipelines.
 #
 # Can be run from your desktop (checks HA reachability over the network) OR
-# from the Pi itself (checks local venv, mic, and systemd).
+# from the Pi itself via the SSH & Web Terminal add-on (checks local venv,
+# mic, and systemd).
+#
+# NOTE: Home Assistant OS uses Alpine Linux. The AURA install path is
+# /config/aura/ (NOT /home/pi/aura/). Package manager is apk, not apt-get.
 #
 # Usage:
 #   bash scripts/setup/verify_install.sh
@@ -23,7 +27,10 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 
 ENV_FILE="${REPO_ROOT}/.env"
-AURA_DIR="/home/pi/aura"
+
+# On Home Assistant OS the writable persistent directory is /config/.
+# AURA installs itself at /config/aura/ -- NOT /home/pi/aura/.
+AURA_DIR="/config/aura"
 VENV_DIR="${AURA_DIR}/.venv"
 
 # Counters for summary
@@ -62,7 +69,7 @@ fi
 
 echo ""
 echo "=============================================="
-echo "  AURA by OASIS — Installation Verification"
+echo "  AURA by OASIS -- Installation Verification"
 echo "=============================================="
 echo ""
 
@@ -85,8 +92,8 @@ if [[ -f "${ENV_FILE}" ]]; then
     fi
   done
 else
-  fail ".env file NOT found at ${ENV_FILE} — copy .env.example and fill it in"
-  # Without the env file we can't do network checks, but continue to report all
+  fail ".env file NOT found at ${ENV_FILE} -- copy .env.example and fill it in"
+  # Without the env file we cannot do network checks, but continue to report all
 fi
 
 echo ""
@@ -104,14 +111,14 @@ if command -v curl &>/dev/null; then
     --max-time 10 "${HA_CHECK_URL}" 2>/dev/null || echo "000")
 
   if [[ "${HTTP_STATUS}" == "200" || "${HTTP_STATUS}" == "401" ]]; then
-    # 401 means HA is up but we hit an auth-protected endpoint — that's fine
+    # 401 means HA is up but we hit an auth-protected endpoint -- that is fine
     pass "Home Assistant is reachable at ${HA_URL} (HTTP ${HTTP_STATUS})"
   else
     fail "Home Assistant not reachable at ${HA_URL} (HTTP ${HTTP_STATUS})"
     echo "       Make sure the Pi is powered on and connected to the network."
   fi
 else
-  fail "curl is not installed — cannot check HA reachability"
+  fail "curl is not installed -- cannot check HA reachability"
 fi
 
 echo ""
@@ -134,7 +141,7 @@ if [[ -d "${VENV_DIR}" ]]; then
       if "${PYTHON}" -c "import ${pkg}" &>/dev/null; then
         pass "  Python package '${pkg}' is importable"
       else
-        fail "  Python package '${pkg}' is NOT importable — run pi_setup.sh again"
+        fail "  Python package '${pkg}' is NOT importable -- run pi_setup.sh again"
       fi
     done
   else
@@ -150,7 +157,7 @@ echo ""
 
 # =============================================================================
 # CHECK 4: USB microphone is detected
-# (Only meaningful on the Pi — arecord is an ALSA utility)
+# (Only meaningful on the Pi -- arecord is part of alsa-utils)
 # =============================================================================
 echo "[ Checking USB microphone ]"
 
@@ -163,18 +170,18 @@ if command -v arecord &>/dev/null; then
       echo "       ${line}"
     done
   else
-    fail "No recording devices found — plug in the USB microphone"
+    fail "No recording devices found -- plug in the USB microphone"
   fi
 else
-  fail "arecord not available — this check must be run on the Pi (ALSA not installed here)"
-  echo "       Install with: apt-get install -y alsa-utils"
+  fail "arecord not available -- this check must be run on the Pi"
+  echo "       Install with: apk add alsa-utils"
 fi
 
 echo ""
 
 # =============================================================================
 # CHECK 5: clap_service is registered with systemd
-# (Only meaningful on the Pi)
+# (Only meaningful on the Pi with Protection Mode OFF)
 # =============================================================================
 echo "[ Checking systemd service ]"
 
@@ -183,17 +190,19 @@ if command -v systemctl &>/dev/null; then
     SERVICE_STATE=$(systemctl is-enabled clap_service 2>/dev/null || echo "unknown")
     pass "clap_service.service is registered with systemd (state: ${SERVICE_STATE})"
 
-    # Check if it's currently running
+    # Check if it is currently running
     if systemctl is-active --quiet clap_service 2>/dev/null; then
       pass "  clap_service is currently RUNNING"
     else
       echo "       clap_service is not running (start with: systemctl start clap_service)"
     fi
   else
-    fail "clap_service.service is NOT registered — run pi_setup.sh on the Pi"
+    fail "clap_service.service is NOT registered -- run pi_setup.sh on the Pi"
   fi
 else
-  fail "systemctl not available — this check must be run on the Pi"
+  fail "systemctl not available -- Protection Mode may be ON"
+  echo "       Disable Protection Mode on the SSH & Web Terminal add-on, then"
+  echo "       re-run pi_setup.sh and this script."
 fi
 
 echo ""
@@ -216,11 +225,11 @@ if [[ -d "${VENV_DIR}" && -x "${VENV_DIR}/bin/python3" ]]; then
     if "${PYTHON}" -c "import ${pkg}" &>/dev/null; then
       pass "  Voice agent Python package '${pkg}' is importable"
     else
-      skip "  Voice agent Python package '${pkg}' not installed — run pi_setup.sh without SKIP_VOICE_AGENT=1"
+      skip "  Voice agent Python package '${pkg}' not installed -- run pi_setup.sh without SKIP_VOICE_AGENT=1"
     fi
   done
 else
-  skip "  Virtual environment not found — skipping voice agent package checks"
+  skip "  Virtual environment not found -- skipping voice agent package checks"
 fi
 
 # --- API keys ---
@@ -228,14 +237,14 @@ ANTHROPIC_KEY="${ANTHROPIC_API_KEY:-}"
 if [[ -n "${ANTHROPIC_KEY}" && "${ANTHROPIC_KEY}" != "your_"* ]]; then
   pass "  \$ANTHROPIC_API_KEY is set"
 else
-  skip "  \$ANTHROPIC_API_KEY is not set — required for voice agent intent processing"
+  skip "  \$ANTHROPIC_API_KEY is not set -- required for voice agent intent processing"
 fi
 
 ELEVENLABS_KEY="${ELEVENLABS_API_KEY:-}"
 if [[ -n "${ELEVENLABS_KEY}" && "${ELEVENLABS_KEY}" != "your_"* ]]; then
   pass "  \$ELEVENLABS_API_KEY is set"
 else
-  skip "  \$ELEVENLABS_API_KEY is not set — required for voice agent TTS responses"
+  skip "  \$ELEVENLABS_API_KEY is not set -- required for voice agent TTS responses"
 fi
 
 # --- systemd service ---
@@ -250,10 +259,10 @@ if command -v systemctl &>/dev/null; then
       echo "       aura_voice is not running (start with: systemctl start aura_voice)"
     fi
   else
-    skip "  aura_voice.service is not registered — run pi_setup.sh without SKIP_VOICE_AGENT=1"
+    skip "  aura_voice.service is not registered -- run pi_setup.sh without SKIP_VOICE_AGENT=1"
   fi
 else
-  skip "  systemctl not available — voice agent service check must be run on the Pi"
+  skip "  systemctl not available -- voice agent service check must be run on the Pi with Protection Mode OFF"
 fi
 
 echo ""
@@ -262,8 +271,7 @@ echo ""
 # CHECK 7 (OPTIONAL): Learning module files
 #
 # These checks are advisory. Missing learning module files print [SKIP], not
-# [FAIL], so the script still exits 0 if everything else is green. The learning
-# modules are installed separately and are not required for core AURA operation.
+# [FAIL], so the script still exits 0 if everything else is green.
 # =============================================================================
 echo "[ Checking learning modules (optional) ]"
 
@@ -279,7 +287,7 @@ for rel_path in "${LEARNING_FILES[@]}"; do
   if [[ -f "${full_path}" ]]; then
     pass "  ${rel_path} exists"
   else
-    skip "  ${rel_path} not found — learning modules not yet deployed"
+    skip "  ${rel_path} not found -- learning modules not yet deployed"
   fi
 done
 
@@ -306,7 +314,7 @@ if [[ "${FAIL}" -gt 0 ]]; then
 else
   echo "All required checks passed. AURA is ready."
   if [[ "${SKIP}" -gt 0 ]]; then
-    echo "(${SKIP} optional check(s) skipped — see above for details.)"
+    echo "(${SKIP} optional check(s) skipped -- see above for details.)"
   fi
   echo ""
   exit 0
