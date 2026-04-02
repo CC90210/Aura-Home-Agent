@@ -113,3 +113,44 @@ protocols:
       - "Thermostat to eco mode"
       - "Arm cameras"
       - "Random light simulation"
+
+# ---------------------------------------------------------------------------
+# Security
+# ---------------------------------------------------------------------------
+# Controls which voice commands require PIN verification and which are
+# blocked from voice control entirely.
+#
+# voice_pin: A 4-6 digit PIN spoken aloud to authorize sensitive actions.
+#   The PIN is stored as a SHA-256 hash in memory — the raw value here is
+#   read at startup and immediately discarded after hashing.
+#
+#   IMPORTANT: Change this from the default before going live.
+#   To generate a good PIN, use any random 4-6 digit number.
+#   Do not reuse a PIN you use for banking or other security systems.
+#
+# sensitive_actions: These require PIN confirmation before execution.
+#   Add or remove entries using "domain.service" format.
+#
+# blocked_actions: These CANNOT be triggered via voice under any circumstances.
+#   They must be performed through the HA web UI or physical access.
+#
+security:
+  voice_pin: "1234"
+
+  sensitive_actions:
+    - lock.unlock
+    - lock.lock
+    - lock.open
+    - alarm_control_panel.alarm_disarm
+    - alarm_control_panel.alarm_arm_away
+    - alarm_control_panel.alarm_arm_home
+    - camera.disable_motion_detection
+    - cover.open_cover
+
+  blocked_actions:
+    - homeassistant.stop
+    - homeassistant.restart
+    - hassio.host_shutdown
+    - hassio.host_reboot
+    - hassio.addon_stop
+    - hassio.addon_restart

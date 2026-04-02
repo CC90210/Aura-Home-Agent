@@ -46,6 +46,7 @@ import requests
 
 from personality import AuraPersonality
 from capabilities import AuraCapabilities
+from security import VoiceSecurityGuard
 
 log = logging.getLogger("aura.intent")
 
@@ -155,6 +156,17 @@ class IntentHandler:
                 "Failed to load AuraPersonality: %s — using fallback system prompt.",
                 exc,
             )
+
+        # Initialise the security guard.  Non-fatal — if config is missing,
+        # sensitive actions are blocked by default (safe failure mode).
+        self._security: VoiceSecurityGuard | None = None
+        try:
+            self._security = VoiceSecurityGuard(
+                config_path=Path(__file__).resolve().parent / "config.yaml"
+            )
+            log.info("VoiceSecurityGuard loaded.")
+        except Exception as exc:  # noqa: BLE001
+            log.warning("Failed to load VoiceSecurityGuard: %s", exc)
 
         # Initialise the capabilities registry.  Always non-fatal — the
         # instance degrades gracefully to empty strings when the YAML is
@@ -331,6 +343,16 @@ class IntentHandler:
         if not domain or not service:
             log.warning("Skipping malformed action (missing domain or service): %s", action)
             return
+
+        # Security check — block or require PIN for sensitive actions
+        if self._security:
+            status, message = self._security.check_action(domain, service)
+            if status == "blocked":
+                log.warning("BLOCKED by security policy: %s.%s — %s", domain, service, message)
+                return
+            if status == "pin_required":
+                log.warning("PIN required for %s.%s — action skipped (voice PIN flow not yet wired)", domain, service)
+                return
 
         url = f"{self._ha_url}/api/services/{domain}/{service}"
         payload: dict[str, Any] = {**extra_data}

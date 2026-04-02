@@ -3,6 +3,9 @@
 .env.*
 !.env.example
 
+# Security audit — local rotation timestamp (never commit, tracked per-machine)
+.ha_token_last_rotated
+
 # Python
 __pycache__/
 *.pyc

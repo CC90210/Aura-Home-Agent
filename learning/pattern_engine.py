@@ -17,7 +17,7 @@ Three cooperating classes form the core of AURA's self-improving intelligence:
                      smarter decisions without duplicating HA queries.
 
 All persistent state lives in a single SQLite database whose path is read
-from config.yaml (default: /home/pi/aura/data/patterns.db).
+from config.yaml (default: /config/aura/data/patterns.db).
 
 Typical deployment
 ------------------

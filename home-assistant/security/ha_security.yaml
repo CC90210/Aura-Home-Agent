@@ -1,0 +1,91 @@
+# AURA Security Configuration
+# =============================
+# These settings harden the Home Assistant instance against unauthorized access.
+#
+# HOW TO APPLY:
+#   Merge the sections below into /config/configuration.yaml on the Pi.
+#   Sections that already exist in configuration.yaml must be merged — do not
+#   duplicate top-level keys (e.g. if `http:` already exists, add the keys
+#   inside it rather than creating a second `http:` block).
+#
+# After editing configuration.yaml, restart HA:
+#   Settings -> System -> Restart
+#   or via SSH: ha core restart
+
+# ---------------------------------------------------------------------------
+# HTTP security
+# ---------------------------------------------------------------------------
+# ip_ban_enabled: locks out an IP address after login_attempts_threshold
+#   failed authentication attempts. This is your primary defence against
+#   brute-force attacks on the HA login page.
+#
+# use_x_forwarded_for + trusted_proxies: required when HA sits behind a
+#   reverse proxy (Nabu Casa, Cloudflare Tunnel, nginx). Without these,
+#   the ban system would block the proxy IP rather than the attacker's IP.
+#   Only list IPs that are genuinely trusted reverse proxies.
+#
+# cors_allowed_origins: controls which web origins can make cross-origin
+#   requests to the HA REST API. List exactly the domains that host the
+#   AURA dashboard. Remove localhost entries before going to production.
+#
+http:
+  ip_ban_enabled: true
+  login_attempts_threshold: 5
+
+  # Required when using Nabu Casa or Cloudflare Tunnel as a reverse proxy.
+  # The proxy IP must be listed here, otherwise ban/rate-limit logic will
+  # block the proxy itself instead of the attacker.
+  use_x_forwarded_for: true
+  trusted_proxies:
+    - 127.0.0.1
+    - ::1
+    # Cloudflare Tunnel uses 127.0.0.1 for the local connection — no additional
+    # IPs needed unless you add a separate nginx/caddy in front of HA.
+
+  # CORS: list every origin that the dashboard is served from.
+  # Requests from any other origin will be rejected by the browser.
+  cors_allowed_origins:
+    - http://localhost:3000
+    # Add your Vercel deployment URL after deploying:
+    # - https://your-aura-dashboard.vercel.app
+
+# ---------------------------------------------------------------------------
+# Recorder — limit stored history (privacy + performance)
+# ---------------------------------------------------------------------------
+# Keeping 30 days of history is sufficient for pattern learning.
+# Excluding camera domains avoids storing camera state-change noise.
+# Excluding battery sensors reduces database bloat from polling devices.
+#
+recorder:
+  purge_keep_days: 30
+  exclude:
+    domains:
+      # Do not record camera state change history — reduces privacy exposure
+      # if the HA database is ever accessed by an unauthorized party.
+      - camera
+    entity_globs:
+      # Skip battery sensor noise — these update frequently and have no
+      # automation value in long-term history.
+      - sensor.*.battery
+      - sensor.*.battery_level
+
+# ---------------------------------------------------------------------------
+# Logger — minimize information leakage
+# ---------------------------------------------------------------------------
+# HA logs are stored on the Pi's SD card and visible to anyone with SSH
+# access. Verbose logging can expose entity states, IP addresses, and
+# timing information useful to an attacker.
+#
+# The automation component stays at `info` so you can trace what fired.
+# HTTP and WebSocket components are set to `warning` to suppress the
+# per-request access logs that would otherwise reveal every API caller.
+#
+logger:
+  default: warning
+  logs:
+    homeassistant.components.automation: info
+    # Suppress per-request access logs — they are noisy and expose caller IPs
+    homeassistant.components.http: warning
+    homeassistant.components.websocket_api: warning
+    # Suppress detailed integration auth logs
+    homeassistant.components.auth: warning

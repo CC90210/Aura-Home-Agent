@@ -3,7 +3,7 @@
 # never stored here.
 
 database:
-  path: "/home/pi/aura/data/patterns.db"
+  path: "/config/aura/data/patterns.db"
 
 homeassistant:
   # Overridden by HA_URL environment variable at runtime

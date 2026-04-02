@@ -217,44 +217,67 @@ aura/
 │   └── clap_service.service     ← Systemd unit file for auto-start on Pi boot
 │
 ├── home-assistant/              ← Home Assistant YAML configurations
+│   ├── configuration.yaml       ← Root HA config (input_booleans, rest_commands, includes)
 │   ├── automations/             ← Event-driven automation rules
-│   │   ├── morning_routine.yaml
-│   │   ├── goodnight.yaml
 │   │   ├── double_clap_toggle.yaml
-│   │   ├── studio_mode.yaml
+│   │   ├── triple_clap_studio.yaml
+│   │   ├── quad_clap_party.yaml
+│   │   ├── goodnight.yaml
 │   │   ├── movie_mode.yaml
-│   │   ├── party_mode.yaml
-│   │   ├── presence_detection.yaml
 │   │   ├── gaming_mode.yaml
 │   │   ├── streaming_mode.yaml
-│   │   ├── dj_mode.yaml
 │   │   ├── podcast_mode.yaml
+│   │   ├── music_mode.yaml
 │   │   ├── focus_mode.yaml
 │   │   ├── guest_mode.yaml
 │   │   ├── away_mode.yaml
-│   │   └── workout_mode.yaml
+│   │   ├── workout_mode.yaml
+│   │   ├── presence_detection.yaml
+│   │   ├── proactive_tv_detection.yaml
+│   │   ├── proactive_weather_climate.yaml
+│   │   ├── proactive_greeting.yaml
+│   │   ├── proactive_sleep_detection.yaml
+│   │   ├── proactive_energy_saver.yaml
+│   │   ├── routine_morning_weekday.yaml
+│   │   ├── routine_evening_wind_down.yaml
+│   │   ├── routine_gym_reminder.yaml
+│   │   ├── routine_meal_reminder.yaml
+│   │   ├── routine_weekend_relaxed.yaml
+│   │   ├── scheduled_coffee.yaml
+│   │   ├── scheduled_air_purifier.yaml
+│   │   ├── scheduled_weekly_report.yaml
+│   │   ├── scheduled_device_check.yaml
+│   │   ├── scheduled_learning_cycle.yaml
+│   │   ├── scheduled_night_security.yaml
+│   │   └── scheduled_content_reminder.yaml
 │   ├── scenes/                  ← Preset device state snapshots
 │   │   └── scenes.yaml
 │   ├── scripts/                 ← Reusable HA action sequences
+│   │   └── presence_simulation.yaml
+│   ├── security/                ← Security hardening configs
+│   │   └── ha_security.yaml
 │   ├── dashboards/              ← Lovelace UI layouts
 │   └── packages/                ← Device-specific config bundles
 │
 ├── voice-agent/                 ← Full voice pipeline (deployed to Pi as systemd service)
-│   ├── aura_voice.py            ← Main entry point — orchestrates the full pipeline
-│   ├── wake_word.py             ← OpenWakeWord listener ("Hey Aura")
+│   ├── aura_voice.py            ← Main daemon — orchestrates full voice pipeline
+│   ├── wake_word.py             ← OpenWakeWord "Hey Aura" listener
 │   ├── stt.py                   ← Speech-to-text via faster-whisper
-│   ├── tts.py                   ← Text-to-speech via ElevenLabs API
-│   ├── intent_handler.py        ← Sends transcribed text to Claude API, parses response
-│   ├── personality.py           ← Loads and applies personality config
-│   ├── person_recognition.py    ← Identifies CC vs Adon via iCloud presence + voice
+│   ├── tts.py                   ← Text-to-speech via ElevenLabs
+│   ├── intent_handler.py        ← Claude API intent processing + HA action execution
+│   ├── personality.py           ← AURA personality engine
+│   ├── person_recognition.py    ← Identifies CC vs Adon
+│   ├── capabilities.py          ← Self-help and capabilities registry
+│   ├── security.py              ← Voice command security (PIN, blocked actions)
 │   ├── personality.yaml         ← AURA's personality traits, slang, speech patterns
+│   ├── capabilities.yaml        ← Registered capabilities and help text
 │   ├── config.yaml              ← Wake word sensitivity, TTS voice IDs, thresholds
 │   ├── requirements.txt         ← Python dependencies
 │   └── aura_voice.service       ← Systemd unit file for auto-start on Pi boot
 │
 ├── learning/                    ← Adaptive learning — pattern engine and habit tracker
-│   ├── pattern_engine.py        ← Detects behavioral patterns from HA event history
-│   ├── habit_tracker.py         ← Tracks goals (gym, meals, sleep) and nudges residents
+│   ├── pattern_engine.py        ← Behavioral pattern detection + Darwinian optimization
+│   ├── habit_tracker.py         ← Daily habit tracking and accountability
 │   ├── config.yaml              ← Habit goals, learning thresholds, optimization params
 │   ├── requirements.txt         ← Python dependencies (sqlite3, scikit-learn, etc.)
 │   └── __init__.py
@@ -262,25 +285,50 @@ aura/
 ├── dashboard/                   ← Next.js web dashboard for remote control
 │   ├── src/
 │   │   ├── app/                 ← Next.js App Router pages and layouts
-│   │   ├── components/          ← Reusable UI components (scene cards, device toggles, etc.)
-│   │   └── lib/                 ← HA REST API client, utility functions
-│   └── package.json
+│   │   │   ├── layout.tsx
+│   │   │   ├── page.tsx
+│   │   │   ├── globals.css
+│   │   │   ├── login/page.tsx   ← Dashboard authentication page
+│   │   │   └── api/
+│   │   │       ├── scene/route.ts
+│   │   │       ├── service/route.ts
+│   │   │       └── auth/route.ts ← Auth API endpoint
+│   │   ├── components/          ← Reusable UI components
+│   │   │   ├── SceneButton.tsx
+│   │   │   ├── RoomCard.tsx
+│   │   │   ├── NowPlaying.tsx
+│   │   │   ├── ClimateControl.tsx
+│   │   │   ├── HabitTracker.tsx
+│   │   │   └── StatusBar.tsx
+│   │   ├── lib/                 ← HA REST API client, utility functions
+│   │   │   ├── ha-client.ts
+│   │   │   └── types.ts
+│   │   └── middleware.ts        ← Security middleware (rate limiting, auth, headers)
+│   ├── package.json
+│   ├── tailwind.config.ts
+│   ├── tsconfig.json
+│   └── next.config.ts
 │
 ├── esp32-sensors/               ← Phase 4: Custom room sensors
-│   └── esphome/                 ← ESPHome YAML configs per room
-│
 ├── smart-mirror/                ← Phase 4: MagicMirror² config
 │
 ├── scripts/                     ← Setup and deployment automation
-│   ├── setup/                   ← First-time installation scripts
-│   └── deploy/                  ← Push configs to Pi, deploy to clients
+│   ├── setup/
+│   │   ├── pi_setup.sh          ← First-time Pi installation script
+│   │   └── verify_install.sh    ← Post-install verification
+│   ├── deploy/
+│   │   ├── update_configs.sh    ← Push configs to Pi
+│   │   └── deploy_client.sh     ← Deploy to a specific client
+│   ├── test_webhook.sh          ← Test HA webhooks manually
+│   ├── test_clap.sh             ← Test clap detection locally
+│   └── security_audit.sh        ← Security audit checker
 │
 ├── clients/                     ← Client-specific configuration overrides
 │   └── .template/               ← Copy this for each new client
 │
 ├── docs/                        ← Documentation
 │   ├── SETUP_GUIDE.md           ← Step-by-step from zero to working system
-│   ├── PRODUCT_LIST.md          ← Hardware recommendations with prices
+│   ├── SECURITY.md              ← Security hardening guide
 │   ├── TROUBLESHOOTING.md       ← Common issues and fixes
 │   └── CLIENT_ONBOARDING.md     ← How to deploy for a paying client
 │

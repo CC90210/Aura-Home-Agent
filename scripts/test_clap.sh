@@ -33,7 +33,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 ENV_FILE="${REPO_ROOT}/.env"
 
-AURA_DIR="/home/pi/aura"
+AURA_DIR="/config/aura"
 VENV_DIR="${AURA_DIR}/.venv"
 CLAP_SCRIPT="${REPO_ROOT}/clap-trigger/clap_listener.py"
 
