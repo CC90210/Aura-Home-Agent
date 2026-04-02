@@ -193,6 +193,45 @@ categories:
       - "What's the weather like?"
       - "Is anything still on?"
 
+  mirror_mode:
+    name: "Mirror Mode — Light Choreography"
+    description: "Transforms a mood phrase into a coordinated multi-light color palette designed by AI. Every light gets a different role and complementary color — like a movie set, not a dorm room."
+    capabilities:
+      - "Generate a cinematic lighting palette from any mood description"
+      - "Assigns roles to each light: key (dominant), fill (soft support), accent (contrasting pop), wash (broad fill), ambient (subtle background)"
+      - "Every light gets a unique, complementary color — never the same RGB twice"
+      - "Lights cascade on in role order with a staggered delay for a cinematic feel"
+      - "Works with any number of lights across any rooms"
+    example_commands:
+      - "Set the lights to ocean vibes"
+      - "Make it feel like a sunset in here"
+      - "Give me forest at dusk energy"
+      - "I want a cozy cabin mood"
+      - "Mirror mode: deep space"
+      - "Romantic lighting, let's go"
+      - "Set a focus vibe with cool daylight"
+      - "Rainy day mood on the lights"
+
+  aura_drops:
+    name: "AURA Drops — Scene Snapshots"
+    description: "Snapshot the current state of every device in the apartment with a name, then recall it instantly later. Like saving a save-state in a game — every light, plug, speaker, and thermostat setting preserved."
+    capabilities:
+      - "Save the current apartment state as a named Drop with one voice command"
+      - "Activate any saved Drop to restore all devices to that exact state"
+      - "List all saved Drops with device count and creator"
+      - "Delete Drops you no longer need"
+      - "Captures lights (color, brightness), switches, climate, media players, covers, and fans"
+      - "Restore plays lights back with a smooth stagger for a cinematic transition"
+    example_commands:
+      - "Save this as Vibe Check"
+      - "Save this vibe as Movie Night"
+      - "Activate Vibe Check"
+      - "Bring back Chill Mode"
+      - "What drops do I have?"
+      - "Show me my saved scenes"
+      - "Delete the Party Starter drop"
+      - "Remove Chill Mode"
+
   adaptive_learning:
     name: "Learning and Adaptation"
     description: "AURA learns your patterns and improves over time"
@@ -207,6 +246,90 @@ categories:
       - "Show me your suggestions"
       - "Accept suggestion 1"
       - "Reset your learning for bedroom lights"
+
+  vibe_sync:
+    name: "Vibe Sync"
+    description: >
+      Lights breathe with your music. High-energy track — lights brighten and
+      shift to vibrant colors. Chill lo-fi — lights dim and warm up.
+      Transitions are slow and cinematic (15–45 seconds) so the room feels
+      like it is responding atmospherically, not flashing like a nightclub.
+    capabilities:
+      - "Analyzes currently playing track and maps energy level to lighting mood"
+      - "Slow cinematic transitions — room breathes with the music"
+      - "Primary color goes to key lights, accent color to secondary lights"
+      - "Brightness scales with track energy (1–10 scale)"
+      - "Polls every 60 seconds — only adjusts when the track actually changes"
+      - "Can be toggled on or off at any time"
+    example_commands:
+      - "Turn on vibe sync"
+      - "Sync the lights to the music"
+      - "Stop syncing lights to music"
+      - "Vibe sync off"
+      - "Make the lights match the music"
+
+  deja_vu:
+    name: "Deja Vu"
+    description: >
+      Predictive scene activation. AURA learns your patterns and quietly sets
+      up scenes before you ask — you walk in on a Friday night and the lights
+      are already in chill mode because that is what you do every Friday night.
+      The design goal is subtle: if you notice and think "huh, how did it know?"
+      that is perfect. If you feel surveilled, that is a failure.
+    capabilities:
+      - "Learns which scenes you activate at which times on which days"
+      - "Activates scenes before you ask when confidence is high (75%+)"
+      - "Never overrides a scene you explicitly activated"
+      - "Records when you accept or reject predictions to improve over time"
+      - "Rejected scenes are suppressed for 1 hour before trying again"
+      - "Can be disabled if you prefer full manual control"
+    example_commands:
+      - "Stop predicting what I want"
+      - "Turn off deja vu"
+      - "That was a good prediction"
+      - "Good call"
+      - "Bad call"
+      - "Stop doing that automatically"
+      - "Turn predictive mode back on"
+
+  pulse_check:
+    name: "Pulse Check (Daily Check-In)"
+    description: "AURA proactively initiates a real daily conversation about your habits and goals at 8 PM"
+    capabilities:
+      - "Generates a personalised conversational check-in every evening at 8 PM"
+      - "Celebrates wins and streaks naturally without sounding like a report"
+      - "Gently probes missed habits with curiosity, never lectures"
+      - "Calls out weekly trends — improving, declining, or steady"
+      - "Ends every check-in with a genuine question about tomorrow"
+      - "Logs your verbal response to tune future check-in tone"
+      - "One check-in per person per calendar day — never annoying or repetitive"
+      - "Skips automatically if recording, streaming, podcast, or DND is active"
+    example_commands:
+      - "How am I doing this week?"
+      - "Give me my check-in"
+      - "Skip today's check-in"
+      - "I don't want a check-in tonight"
+      - "What's my habit streak?"
+      - "How's my accountability looking?"
+
+  ghost_dj:
+    name: "Ghost DJ (Auto Music)"
+    description: "AURA automatically selects and plays context-aware music — no command needed"
+    capabilities:
+      - "Selects a Spotify playlist based on time of day, who is home, and active mode"
+      - "Triggers on arrival home, mode changes, and 30-minute ambient fill checks"
+      - "Never interrupts music that is already playing"
+      - "Avoids repeating recently played playlists"
+      - "Scales volume to context: deep work is quiet, party is loud"
+      - "Skips automatically during recording, podcast, streaming, or DND mode"
+      - "Respects sleep hours: no auto-play between 11 PM and 7 AM"
+    example_commands:
+      - "What music would you play right now?"
+      - "Stop auto-playing music"
+      - "Turn Ghost DJ off"
+      - "Why did you play that playlist?"
+      - "Play something different"
+      - "I don't want music right now"
 
 # Scheduled tasks that run automatically (no trigger phrase needed).
 # Used by get_scheduled_tasks() to answer "what do you run automatically?"
@@ -389,6 +512,52 @@ search_keywords:
     - weather
     - temperature
     - report
+  mirror_mode:
+    - mirror
+    - mood
+    - vibe
+    - vibes
+    - feeling
+    - palette
+    - choreograph
+    - ocean
+    - sunset
+    - sunrise
+    - forest
+    - cozy
+    - space
+    - cosmic
+    - romantic
+    - rainy
+    - cinematic
+    - atmosphere
+    - lighting design
+    - color palette
+    - set the mood
+    - set the lights to
+    - make it feel like
+    - deep space
+    - cabin
+    - energy
+
+  aura_drops:
+    - drop
+    - drops
+    - snapshot
+    - save this
+    - save the vibe
+    - saved scene
+    - recall
+    - restore
+    - activate
+    - bring back
+    - what drops
+    - my drops
+    - vibe check
+    - scene snapshot
+    - delete drop
+    - remove drop
+
   adaptive_learning:
     - learn
     - learning
@@ -398,3 +567,69 @@ search_keywords:
     - suggestion
     - pattern
     - memory
+
+  vibe_sync:
+    - vibe sync
+    - sync lights
+    - sync the lights
+    - lights to music
+    - music sync
+    - lights match the music
+    - music reactive
+    - atmospheric
+    - breathe with the music
+    - lights follow
+    - stop syncing
+    - syncing lights
+
+  deja_vu:
+    - deja vu
+    - predict
+    - predictive
+    - stop predicting
+    - you knew
+    - read my mind
+    - automatic scenes
+    - good prediction
+    - bad prediction
+    - good call
+    - bad call
+    - don't predict
+    - anticipate
+    - before i ask
+
+  pulse_check:
+    - pulse check
+    - check in
+    - check-in
+    - daily check
+    - how am i doing
+    - how's my week
+    - habit check
+    - accountability check
+    - skip check-in
+    - skip check in
+    - don't check in
+    - evening check
+    - weekly progress
+    - how are my streaks
+    - my accountability
+    - how have i been doing
+
+  ghost_dj:
+    - ghost dj
+    - auto music
+    - auto play
+    - autoplay
+    - automatic music
+    - stop auto
+    - turn off music
+    - why did you play
+    - what would you play
+    - music selection
+    - music suggestion
+    - context music
+    - ambient music
+    - background music
+    - dj mode auto
+    - music off

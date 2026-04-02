@@ -1,0 +1,72 @@
+alias: "AURA - Pulse Check: Daily Evening Check-In"
+description: >
+  Fires at 8:00 PM every day when at least one resident is home and the
+  apartment is not in an active content/studio/streaming mode.  Calls the
+  aura_pulse_check webhook with the names of the residents currently home so
+  the voice agent can generate and speak a personalised habit check-in for
+  each person.  Runs once per day — the Python PulseCheck class enforces the
+  one-check-in-per-person-per-day rule regardless of trigger count.
+
+trigger:
+  # Primary trigger: 8:00 PM daily
+  - platform: time
+    at: "20:00:00"
+
+condition:
+  # ── At least one person must be home ────────────────────────────────────
+  - condition: or
+    conditions:
+      - condition: state
+        entity_id: person.conaugh
+        state: "home"
+      - condition: state
+        entity_id: person.adon
+        state: "home"
+
+  # ── No active content or recording mode ─────────────────────────────────
+  # Ghost DJ and Pulse Check both respect silent modes so we block the
+  # check-in if a session is in progress.
+  - condition: state
+    entity_id: input_boolean.studio_mode_active
+    state: "off"
+
+  - condition: state
+    entity_id: input_boolean.streaming_mode_active
+    state: "off"
+
+  - condition: state
+    entity_id: input_boolean.podcast_mode_active
+    state: "off"
+
+  - condition: state
+    entity_id: input_boolean.recording_mode_active
+    state: "off"
+
+  # ── Do not disturb must be off ───────────────────────────────────────────
+  - condition: state
+    entity_id: input_boolean.do_not_disturb
+    state: "off"
+
+action:
+  # ── Fire the pulse check webhook ─────────────────────────────────────────
+  # The payload includes the home status of each resident so the voice agent
+  # can run check-ins for everyone present without making extra HA queries.
+  - service: rest_command.aura_webhook
+    data:
+      webhook_id: aura_pulse_check
+      payload: >
+        {
+          "trigger": "scheduled_evening",
+          "trigger_time": "{{ now().strftime('%H:%M') }}",
+          "date": "{{ now().strftime('%Y-%m-%d') }}",
+          "conaugh_home": {{ (states('person.conaugh') == 'home') | lower }},
+          "adon_home": {{ (states('person.adon') == 'home') | lower }},
+          "active_mode": "{% if is_state('input_boolean.focus_mode_active', 'on') %}focus_mode
+            {%- elif is_state('input_boolean.gaming_mode_active', 'on') %}gaming_mode
+            {%- elif is_state('input_boolean.workout_mode_active', 'on') %}workout_mode
+            {%- else %}casual{% endif %}"
+        }
+    continue_on_error: true
+
+mode: single
+max_exceeded: silent

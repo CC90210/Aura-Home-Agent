@@ -1,0 +1,136 @@
+alias: "AURA - Ghost DJ: Context-Aware Auto Music"
+description: >
+  Fires Ghost DJ when a meaningful context transition happens: a resident
+  arrives home, any mode input_boolean turns on, or the 30-minute time
+  pattern fires during active hours.  The webhook payload includes the full
+  current context so the voice agent's GhostDJ class can make a single,
+  well-informed music suggestion without additional HA queries.
+  Ghost DJ will only play if no music is already running and the apartment
+  is not in a silent mode — the Python GhostDJ.should_suggest() method is
+  the authoritative gatekeeper; these HA conditions are a first-pass filter.
+
+trigger:
+  # ── Person arriving home ─────────────────────────────────────────────────
+  - platform: state
+    entity_id: person.conaugh
+    to: "home"
+    id: conaugh_arrived
+
+  - platform: state
+    entity_id: person.adon
+    to: "home"
+    id: adon_arrived
+
+  # ── Mode changes (any input_boolean turning on) ──────────────────────────
+  - platform: state
+    entity_id: input_boolean.focus_mode_active
+    to: "on"
+    id: focus_mode_on
+
+  - platform: state
+    entity_id: input_boolean.studio_mode_active
+    to: "on"
+    id: studio_mode_on
+
+  - platform: state
+    entity_id: input_boolean.gaming_mode_active
+    to: "on"
+    id: gaming_mode_on
+
+  - platform: state
+    entity_id: input_boolean.workout_mode_active
+    to: "on"
+    id: workout_mode_on
+
+  - platform: state
+    entity_id: input_boolean.welcome_home_active
+    to: "on"
+    id: welcome_home_on
+
+  # ── 30-minute time pattern (fill silence during active hours) ────────────
+  # Only runs between 7 AM and 11 PM to respect sleep hours.
+  - platform: time_pattern
+    minutes: "/30"
+    id: time_pattern_30min
+
+condition:
+  # ── At least one person must be home ────────────────────────────────────
+  - condition: or
+    conditions:
+      - condition: state
+        entity_id: person.conaugh
+        state: "home"
+      - condition: state
+        entity_id: person.adon
+        state: "home"
+
+  # ── Respect waking hours (7 AM – 11 PM) ─────────────────────────────────
+  - condition: time
+    after: "07:00:00"
+    before: "23:00:00"
+
+  # ── No music currently playing ───────────────────────────────────────────
+  - condition: not
+    conditions:
+      - condition: state
+        entity_id: media_player.living_room_speaker
+        state: "playing"
+
+  # ── Not in a silent/recording mode ──────────────────────────────────────
+  - condition: state
+    entity_id: input_boolean.podcast_mode_active
+    state: "off"
+
+  - condition: state
+    entity_id: input_boolean.streaming_mode_active
+    state: "off"
+
+  - condition: state
+    entity_id: input_boolean.recording_mode_active
+    state: "off"
+
+  # ── Do not disturb must be off ───────────────────────────────────────────
+  - condition: state
+    entity_id: input_boolean.do_not_disturb
+    state: "off"
+
+action:
+  # ── Fire the Ghost DJ webhook ─────────────────────────────────────────────
+  # Includes enough context for GhostDJ to make an informed suggestion without
+  # making additional HA REST calls.  ``context_transition`` is always true
+  # here because this automation only fires on real state changes or the
+  # 30-minute fill check.
+  - service: rest_command.aura_webhook
+    data:
+      webhook_id: aura_ghost_dj
+      payload: >
+        {
+          "context_transition": true,
+          "trigger_id": "{{ trigger.id }}",
+          "trigger_time": "{{ now().strftime('%H:%M') }}",
+          "hour": {{ now().hour }},
+          "weekday": {{ (now().weekday() < 5) | lower }},
+          "time_of_day": "{% if now().hour < 12 %}morning
+            {%- elif now().hour < 17 %}afternoon
+            {%- elif now().hour < 23 %}evening
+            {%- else %}late_night{% endif %}",
+          "conaugh_home": {{ (states('person.conaugh') == 'home') | lower }},
+          "adon_home": {{ (states('person.adon') == 'home') | lower }},
+          "both_home": {{ (states('person.conaugh') == 'home' and states('person.adon') == 'home') | lower }},
+          "music_playing": {{ (states('media_player.living_room_speaker') == 'playing') | lower }},
+          "active_mode": "{% if is_state('input_boolean.focus_mode_active', 'on') %}focus_mode
+            {%- elif is_state('input_boolean.studio_mode_active', 'on') %}studio_mode
+            {%- elif is_state('input_boolean.gaming_mode_active', 'on') %}gaming_mode
+            {%- elif is_state('input_boolean.workout_mode_active', 'on') %}workout_mode
+            {%- elif is_state('input_boolean.podcast_mode_active', 'on') %}podcast_mode
+            {%- elif is_state('input_boolean.streaming_mode_active', 'on') %}streaming_mode
+            {%- else %}casual{% endif %}",
+          "who_is_home": [
+            {% if states('person.conaugh') == 'home' %}"conaugh"{% if states('person.adon') == 'home' %},{% endif %}{% endif %}
+            {% if states('person.adon') == 'home' %}"adon"{% endif %}
+          ]
+        }
+    continue_on_error: true
+
+mode: single
+max_exceeded: silent
