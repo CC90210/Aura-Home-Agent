@@ -1,0 +1,50 @@
+alias: "AURA - Social Sonar: Evening Guest Detection Monitor"
+description: >
+  Fires the aura_social_sonar webhook every 5 minutes between 6 PM and
+  midnight when both residents are home. The voice agent's SocialSonar class
+  handles the webhook: it assesses audio levels, evaluates the composite
+  confidence score, and silently adjusts the environment if guests are
+  likely present. No announcement is made — the adjustments are invisible
+  to guests. If audio levels drop and confidence falls below threshold,
+  SocialSonar.reset() reverts the environment.
+
+trigger:
+  - platform: time_pattern
+    # Fire every 5 minutes (:00, :05, :10, ... :55)
+    minutes: "/5"
+
+condition:
+  # Only run during evening hours (6 PM to midnight)
+  - condition: time
+    after: "18:00:00"
+    before: "00:00:00"
+
+  # Only run when both residents are home
+  - condition: and
+    conditions:
+      - condition: state
+        entity_id: device_tracker.conaugh_iphone
+        state: "home"
+      - condition: state
+        entity_id: device_tracker.adon_iphone
+        state: "home"
+
+action:
+  # Fire the social sonar webhook so the voice agent can assess context.
+  # The voice agent picks up this webhook via the REST event listener and
+  # calls SocialSonar.detect_social_context() followed by
+  # SocialSonar.apply_social_mode() if confidence >= 0.6.
+  - service: rest_command.aura_webhook
+    data:
+      webhook_id: aura_social_sonar
+      payload: >
+        {
+          "timestamp": "{{ now().isoformat() }}",
+          "hour": {{ now().hour }},
+          "both_home": true,
+          "source": "social_sonar_monitor"
+        }
+    continue_on_error: true
+
+mode: single
+max_exceeded: silent

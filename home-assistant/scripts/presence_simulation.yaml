@@ -1,6 +1,22 @@
 presence_simulation:
   alias: "Presence Simulation"
-  description: "Randomly toggles lights to simulate presence when nobody is home. Runs for up to 4 hours."
+  description: >
+    Randomly toggles lights to simulate presence when nobody is home. Runs for up to 4 hours.
+
+    NOTE — STATIC VERSION (WILL BE REPLACED):
+    This script uses random timing and fixed entity patterns. It is the safe
+    fallback used until PhantomPresence 2.0 (voice-agent/phantom_presence.py)
+    has accumulated at least 7 days of real usage data.
+
+    Once the learning engine has enough history, PhantomPresence.generate_simulation_schedule()
+    produces a dynamic schedule based on your actual light/switch patterns from
+    the past week (with ±10 minute jitter so it's not machine-predictable).
+    PhantomPresence.create_ha_script() then generates a replacement YAML for
+    this file, which the away_mode automation writes to /config/scripts/ on the
+    Pi and activates via script.reload — replacing this static version entirely.
+
+    Until that threshold is reached, this static script remains active so
+    away mode always has a working presence simulation from day one.
   mode: single
   sequence:
     - repeat:

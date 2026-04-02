@@ -8,6 +8,17 @@ description: >
   always captured; the voice agent handles delivery gracefully if nobody
   is listening.
 
+  ENERGY ORACLE INTEGRATION:
+  This automation is the trigger for the EnergyOracle class
+  (voice-agent/energy_oracle.py). When the voice agent receives the
+  aura_weekly_report webhook, it instantiates EnergyOracle and calls
+  generate_weekly_brief(person) for each resident who is home. EnergyOracle
+  aggregates data from HabitTracker, PatternEngine, and ContentRadar, then
+  asks Claude to write a conversational 60-90 second spoken briefing.
+  The resulting text is passed to ElevenLabs TTS and played through the
+  apartment speakers. The structured data is also available via
+  EnergyOracle.get_weekly_data() for the web dashboard's weekly summary card.
+
 trigger:
   - platform: time
     at: "10:00:00"

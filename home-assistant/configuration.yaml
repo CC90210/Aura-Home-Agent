@@ -72,6 +72,14 @@ input_boolean:
   content_mode_active:
     name: "Content Mode Active"
     icon: mdi:creation
+  vibe_sync_enabled:
+    name: "Vibe Sync Enabled"
+    icon: mdi:music-note-plus
+    initial: false
+  deja_vu_enabled:
+    name: "Deja Vu Enabled"
+    icon: mdi:brain
+    initial: true
 
 # REST commands for webhooks (used by automations to trigger voice prompts)
 rest_command:

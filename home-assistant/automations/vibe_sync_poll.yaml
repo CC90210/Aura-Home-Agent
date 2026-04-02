@@ -1,0 +1,45 @@
+alias: "AURA - Vibe Sync: Poll Music and Adjust Lighting"
+description: >
+  Fires every 60 seconds to check whether the currently playing track has
+  changed. When Vibe Sync is enabled, someone is home, and music is playing,
+  it sends the current media_player state to the aura_vibe_sync webhook so
+  the VibeSync service can analyze the track and apply a slow, atmospheric
+  lighting transition. Transitions are handled by the light controller firmware
+  (15–45 seconds) so the room breathes with the music rather than reacting to it.
+
+trigger:
+  - platform: time_pattern
+    seconds: "/60"
+
+condition:
+  - condition: state
+    entity_id: input_boolean.vibe_sync_enabled
+    state: "on"
+  - condition: or
+    conditions:
+      - condition: state
+        entity_id: person.conaugh
+        state: home
+      - condition: state
+        entity_id: person.adon
+        state: home
+  - condition: state
+    entity_id: media_player.living_room_speaker
+    state: playing
+
+action:
+  - service: rest_command.aura_webhook
+    data:
+      webhook_id: aura_vibe_sync
+      payload: >
+        {
+          "entity_id": "{{ states.media_player.living_room_speaker.entity_id }}",
+          "state": "{{ states('media_player.living_room_speaker') }}",
+          "media_title": "{{ state_attr('media_player.living_room_speaker', 'media_title') }}",
+          "media_artist": "{{ state_attr('media_player.living_room_speaker', 'media_artist') }}",
+          "media_album_name": "{{ state_attr('media_player.living_room_speaker', 'media_album_name') }}"
+        }
+    continue_on_error: true
+
+mode: single
+max_exceeded: silent

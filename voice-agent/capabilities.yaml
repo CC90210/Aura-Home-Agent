@@ -247,6 +247,68 @@ categories:
       - "Accept suggestion 1"
       - "Reset your learning for bedroom lights"
 
+  content_radar:
+    name: "Content Radar"
+    description: "Tracks your content creation patterns and acts as a producer — reminds you to create and sets up the environment"
+    capabilities:
+      - "Logs every streaming, studio, podcast, and music session with duration"
+      - "Tracks sessions per week, average session length, and most productive day"
+      - "Generates contextual nudges when you haven't created content in more than 5 days"
+      - "Suggests the optimal time to create based on your historical patterns"
+      - "Reports on content creation trends and mode preferences"
+    example_commands:
+      - "Have I created content this week?"
+      - "When should I stream?"
+      - "How many studio sessions have I done this month?"
+      - "When's my best time to record?"
+      - "Am I keeping up with content creation?"
+
+  social_sonar:
+    name: "Social Sonar"
+    description: "Detects when guests are likely present and silently adjusts the environment — no announcement, just vibes"
+    capabilities:
+      - "Passively monitors resident presence, time of evening, and ambient audio levels"
+      - "Combines signals into a guest-likelihood confidence score (0.0 to 1.0)"
+      - "Silently adjusts lighting to warm 3000K with a subtle brightness boost"
+      - "Starts ambient background music at 20% volume if nothing is playing"
+      - "Sets thermostat to comfortable 21C for company"
+      - "Reverts environment when audio levels drop and guests leave"
+    example_commands:
+      - "Are there guests here?"
+      - "What's the social vibe like right now?"
+      - "Is social mode active?"
+
+  phantom_presence:
+    name: "Phantom Presence 2.0"
+    description: "When you're away, replays your ACTUAL light patterns from last week — not random toggling"
+    capabilities:
+      - "Analyses last 7 days of real light and switch events from the pattern engine"
+      - "Builds a schedule that mirrors what you actually did at the same times last week"
+      - "Applies plus or minus 10 minute jitter so the pattern isn't machine-predictable"
+      - "Falls back safely to a static schedule if learning data is insufficient"
+      - "Generates a live HA script that replaces the static presence simulation"
+    example_commands:
+      - "Show me what away mode would do tonight"
+      - "What does a typical evening look like here?"
+      - "How does presence simulation work?"
+
+  energy_oracle:
+    name: "Energy Oracle"
+    description: "Every Sunday morning AURA delivers a comprehensive spoken brief covering your apartment's entire week"
+    capabilities:
+      - "Aggregates habits, content sessions, automation health, and device usage"
+      - "Claude writes a conversational 60 to 90 second spoken briefing in AURA's voice"
+      - "Celebrates your best streaks, briefly acknowledges misses without lecturing"
+      - "Surfaces pending automation improvement suggestions from the pattern engine"
+      - "Reports on content creation cadence and most-used modes"
+      - "Structured weekly data available for the dashboard summary card"
+    example_commands:
+      - "Give me the weekly report"
+      - "What are your suggestions?"
+      - "How was our week?"
+      - "Break down the week for me"
+      - "What automation improvements do you have?"
+
   vibe_sync:
     name: "Vibe Sync"
     description: >
@@ -567,6 +629,69 @@ search_keywords:
     - suggestion
     - pattern
     - memory
+
+  content_radar:
+    - content
+    - creator
+    - create
+    - content radar
+    - streaming session
+    - studio session
+    - podcast session
+    - music session
+    - content this week
+    - when should i stream
+    - best time to record
+    - content creation
+    - am i creating
+    - keeping up with content
+    - how many sessions
+    - content schedule
+    - producer
+    - content nudge
+
+  social_sonar:
+    - social sonar
+    - guests
+    - guest
+    - social mode
+    - people over
+    - company
+    - visitors
+    - are there guests
+    - social vibe
+    - is social mode
+    - guest detection
+    - someone here
+
+  phantom_presence:
+    - phantom presence
+    - away mode simulation
+    - presence simulation
+    - when i'm away
+    - looks like someone's home
+    - typical evening
+    - what away mode would do
+    - light patterns away
+    - simulate presence
+    - random lights
+
+  energy_oracle:
+    - energy oracle
+    - weekly report
+    - weekly brief
+    - week summary
+    - how was the week
+    - break down the week
+    - weekly breakdown
+    - what are your suggestions
+    - automation improvements
+    - sunday report
+    - weekly intelligence
+    - week in review
+    - how did we do this week
+    - apartment report
+    - full report
 
   vibe_sync:
     - vibe sync
