@@ -73,6 +73,25 @@ try:
 except ImportError:
     _LEARNING_AVAILABLE = False
 
+# Feature modules — all optional, graceful degradation if any are missing
+# or if their dependencies (anthropic, requests) are not installed yet.
+try:
+    from mirror_mode import MirrorMode
+    from aura_drops import AuraDrops
+    from pulse_check import PulseCheck
+    from ghost_dj import GhostDJ
+    from vibe_sync import VibeSync
+    from deja_vu import DejaVu
+    from content_radar import ContentRadar
+    from social_sonar import SocialSonar
+    from phantom_presence import PhantomPresence
+    from energy_oracle import EnergyOracle
+    _FEATURES_AVAILABLE = True
+except ImportError as _features_import_error:
+    _FEATURES_AVAILABLE = False
+    # Logged after the logging config is set up (see bottom of this block).
+    _features_import_error_msg = str(_features_import_error)
+
 # ---------------------------------------------------------------------------
 # Logging — same format as clap_listener.py for consistency across services.
 # PYTHONUNBUFFERED=1 is set in the systemd unit, but we stream to stdout
@@ -85,6 +104,9 @@ logging.basicConfig(
     stream=sys.stdout,
 )
 log = logging.getLogger("aura.voice")
+
+if not _FEATURES_AVAILABLE:
+    log.warning("Feature modules not fully available — some features disabled: %s", _features_import_error_msg)  # type: ignore[name-defined]
 
 
 # ---------------------------------------------------------------------------
@@ -285,6 +307,22 @@ class AuraVoiceAgent:
         self._context: ContextAwareness | None = None  # type: ignore[assignment]
         self._habit_tracker: HabitTracker | None = None  # type: ignore[assignment]
 
+        # Feature module instances — each is None until _init_components() runs.
+        # Any feature that fails to initialise stays None; all callers guard with
+        # `if self._<feature>:` before invoking, so one broken feature cannot
+        # kill the rest of the pipeline.
+        self._mirror_mode: Any = None
+        self._drops: Any = None
+        self._pulse_check: Any = None
+        self._ghost_dj: Any = None
+        self._vibe_sync: Any = None
+        self._deja_vu: Any = None
+        self._content_radar: Any = None
+        self._social_sonar: Any = None
+        self._phantom_presence: Any = None
+        self._energy_oracle: Any = None
+        self._dispatcher: Any = None
+
     # ------------------------------------------------------------------
     # Lifecycle
     # ------------------------------------------------------------------
@@ -340,16 +378,6 @@ class AuraVoiceAgent:
             )
             self._tts = None
 
-        log.info("Initialising intent handler…")
-        self._intent = IntentHandler(
-            ha_url=self._secrets["ha_url"],
-            ha_token=self._secrets["ha_token"],
-            anthropic_api_key=self._secrets["anthropic_api_key"],
-            config=self._config,
-        )
-
-        log.info("All components initialised.")
-
         # ── Optional learning / personality layer ───────────────────────
         learning_cfg_path = PROJECT_ROOT / "learning" / "config.yaml"
 
@@ -382,6 +410,249 @@ class AuraVoiceAgent:
             log.warning(
                 "Learning package not found — ContextAwareness and HabitTracker disabled."
             )
+
+        # ── Feature modules ──────────────────────────────────────────────
+        # Each feature is initialised independently so one failure cannot
+        # prevent others from starting.  All failures are warnings, not errors.
+        self._init_features()
+
+        # ── Intent handler (needs features dict) ─────────────────────────
+        # Built after features so we can pass the live instances in.
+        log.info("Initialising intent handler…")
+        features: dict[str, Any] = {}
+        if self._mirror_mode:
+            features["mirror_mode"] = self._mirror_mode
+        if self._drops:
+            features["aura_drops"] = self._drops
+        if self._vibe_sync:
+            features["vibe_sync"] = self._vibe_sync
+        if self._deja_vu:
+            features["deja_vu"] = self._deja_vu
+        if self._pulse_check:
+            features["pulse_check"] = self._pulse_check
+        if self._ghost_dj:
+            features["ghost_dj"] = self._ghost_dj
+        if self._content_radar:
+            features["content_radar"] = self._content_radar
+        if self._energy_oracle:
+            features["energy_oracle"] = self._energy_oracle
+
+        self._intent = IntentHandler(
+            ha_url=self._secrets["ha_url"],
+            ha_token=self._secrets["ha_token"],
+            anthropic_api_key=self._secrets["anthropic_api_key"],
+            config=self._config,
+            features=features,
+        )
+
+        log.info("All components initialised.")
+
+        # ── Webhook dispatcher ───────────────────────────────────────────
+        self._start_webhook_dispatcher()
+
+    def _init_features(self) -> None:
+        """
+        Initialise all optional feature modules.
+
+        Each feature is wrapped in its own try/except so a single broken
+        feature (missing dependency, bad config, etc.) cannot prevent the
+        others from starting.
+        """
+        if not _FEATURES_AVAILABLE:
+            log.warning("Skipping feature initialisation — feature modules not available.")
+            return
+
+        ha_url: str = self._secrets["ha_url"]
+        ha_token: str = self._secrets["ha_token"]
+        api_key: str = self._secrets["anthropic_api_key"]
+
+        try:
+            self._mirror_mode = MirrorMode(ha_url, ha_token, api_key)
+            log.info("MirrorMode initialised.")
+        except Exception as exc:  # noqa: BLE001
+            log.warning("MirrorMode init failed: %s", exc)
+
+        try:
+            drops_db = Path(PROJECT_ROOT) / "data" / "drops.db"
+            self._drops = AuraDrops(ha_url, ha_token, drops_db)
+            log.info("AuraDrops initialised.")
+        except Exception as exc:  # noqa: BLE001
+            log.warning("AuraDrops init failed: %s", exc)
+
+        try:
+            if self._habit_tracker is not None:
+                personality = (
+                    self._intent._personality  # noqa: SLF001
+                    if self._intent and hasattr(self._intent, "_personality")
+                    else None
+                )
+                if personality is not None:
+                    self._pulse_check = PulseCheck(
+                        ha_url, ha_token, self._habit_tracker, personality, api_key
+                    )
+                    log.info("PulseCheck initialised.")
+                else:
+                    log.warning("PulseCheck skipped — personality not yet loaded (intent handler not ready).")
+        except Exception as exc:  # noqa: BLE001
+            log.warning("PulseCheck init failed: %s", exc)
+
+        try:
+            if self._context is not None:
+                self._ghost_dj = GhostDJ(
+                    ha_url, ha_token,
+                    context_awareness=self._context,
+                    anthropic_api_key=api_key,
+                )
+                log.info("GhostDJ initialised.")
+            else:
+                self._ghost_dj = GhostDJ(ha_url, ha_token, anthropic_api_key=api_key)
+                log.info("GhostDJ initialised (no context awareness).")
+        except Exception as exc:  # noqa: BLE001
+            log.warning("GhostDJ init failed: %s", exc)
+
+        try:
+            self._vibe_sync = VibeSync(ha_url, ha_token, anthropic_api_key=api_key)
+            log.info("VibeSync initialised.")
+        except Exception as exc:  # noqa: BLE001
+            log.warning("VibeSync init failed: %s", exc)
+
+        try:
+            if self._context is not None and hasattr(self._context, "_engine"):
+                self._deja_vu = DejaVu(
+                    self._context._engine,  # noqa: SLF001
+                    ha_url,
+                    ha_token,
+                )
+                log.info("DejaVu initialised.")
+        except Exception as exc:  # noqa: BLE001
+            log.warning("DejaVu init failed: %s", exc)
+
+        try:
+            self._content_radar = ContentRadar(
+                ha_url, ha_token,
+                str(Path(PROJECT_ROOT) / "data" / "patterns.db"),
+                api_key,
+            )
+            log.info("ContentRadar initialised.")
+        except Exception as exc:  # noqa: BLE001
+            log.warning("ContentRadar init failed: %s", exc)
+
+        try:
+            self._social_sonar = SocialSonar(ha_url, ha_token)
+            log.info("SocialSonar initialised.")
+        except Exception as exc:  # noqa: BLE001
+            log.warning("SocialSonar init failed: %s", exc)
+
+        try:
+            if self._context is not None and hasattr(self._context, "_engine"):
+                self._phantom_presence = PhantomPresence(self._context._engine)  # noqa: SLF001
+                log.info("PhantomPresence initialised.")
+        except Exception as exc:  # noqa: BLE001
+            log.warning("PhantomPresence init failed: %s", exc)
+
+        try:
+            if (
+                self._context is not None
+                and hasattr(self._context, "_engine")
+                and self._habit_tracker is not None
+                and self._content_radar is not None
+            ):
+                self._energy_oracle = EnergyOracle(
+                    ha_url,
+                    ha_token,
+                    api_key,
+                    self._context._engine,  # noqa: SLF001
+                    self._habit_tracker,
+                    self._content_radar,
+                )
+                log.info("EnergyOracle initialised.")
+        except Exception as exc:  # noqa: BLE001
+            log.warning("EnergyOracle init failed: %s", exc)
+
+    def _start_webhook_dispatcher(self) -> None:
+        """
+        Register all feature webhook handlers and start the HTTP dispatcher
+        on port 5123.  Each handler guards against a None feature instance so
+        a partially-initialised system still accepts webhooks safely.
+        """
+        from webhook_dispatcher import WebhookDispatcher
+
+        self._dispatcher = WebhookDispatcher(port=5123)
+
+        # ── Pulse check ──────────────────────────────────────────────────
+        if self._pulse_check:
+            def _handle_pulse_check(payload: dict) -> None:
+                for person_key in ["conaugh", "adon"]:
+                    if payload.get(f"{person_key}_home") == "true":
+                        if self._pulse_check.should_check_in(person_key):
+                            text = self._pulse_check.generate_check_in(person_key)
+                            if text:
+                                self._speak(text)
+            self._dispatcher.register("aura_pulse_check", _handle_pulse_check)
+
+        # ── Ghost DJ ─────────────────────────────────────────────────────
+        if self._ghost_dj:
+            def _handle_ghost_dj(payload: dict) -> None:
+                suggestion = self._ghost_dj.suggest_music(
+                    payload, payload.get("person")
+                )
+                if suggestion:
+                    self._ghost_dj.apply_music(suggestion)
+            self._dispatcher.register("aura_ghost_dj", _handle_ghost_dj)
+
+        # ── Vibe sync ────────────────────────────────────────────────────
+        if self._vibe_sync:
+            def _handle_vibe_sync(_payload: dict) -> None:
+                self._vibe_sync.poll_and_adjust()
+            self._dispatcher.register("aura_vibe_sync", _handle_vibe_sync)
+
+        # ── Social sonar ─────────────────────────────────────────────────
+        if self._social_sonar:
+            def _handle_social_sonar(_payload: dict) -> None:
+                detection = self._social_sonar.detect_social_context()
+                if (
+                    detection.get("likely_guests")
+                    and detection.get("confidence", 0) > 0.6
+                ):
+                    self._social_sonar.apply_social_mode()
+            self._dispatcher.register("aura_social_sonar", _handle_social_sonar)
+
+        # ── Weekly energy brief ──────────────────────────────────────────
+        if self._energy_oracle:
+            def _handle_weekly_report(_payload: dict) -> None:
+                for person in ["conaugh", "adon"]:
+                    text = self._energy_oracle.generate_weekly_brief(person)
+                    if text:
+                        self._speak(text)
+                        break  # One brief per trigger is enough
+            self._dispatcher.register("aura_weekly_report", _handle_weekly_report)
+
+        # ── Generic voice prompt (HA → TTS passthrough) ──────────────────
+        def _handle_voice_prompt(payload: dict) -> None:
+            message = payload.get("message", "")
+            if message:
+                self._speak(message)
+        self._dispatcher.register("aura_voice_prompt", _handle_voice_prompt)
+
+        # ── Learning evolution cycle ─────────────────────────────────────
+        if self._context is not None and hasattr(self._context, "_engine"):
+            _engine_ref = self._context._engine  # noqa: SLF001 — captured for closure
+
+            def _handle_learning_evolve(_payload: dict) -> None:
+                from learning.pattern_engine import RoutineOptimizer
+                optimizer = RoutineOptimizer(_engine_ref)
+                suggestions = optimizer.evolve()
+                log.info("Learning evolution complete: %d suggestions", len(suggestions))
+            self._dispatcher.register("aura_learning_evolve", _handle_learning_evolve)
+
+        # ── Habit auto-detection ─────────────────────────────────────────
+        if self._habit_tracker:
+            def _handle_habit_detect(_payload: dict) -> None:
+                for person in ["conaugh", "adon"]:
+                    self._habit_tracker.auto_detect_habits(person)
+            self._dispatcher.register("aura_habit_detect", _handle_habit_detect)
+
+        self._dispatcher.start()
 
     # ------------------------------------------------------------------
     # Main loop

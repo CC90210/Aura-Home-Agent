@@ -19,6 +19,9 @@ tracking:
     - "cover.*"
     - "lock.*"
     - "person.*"
+    - "voice_agent.*"
+    - "input_boolean.*"
+    - "scene.*"
 
   # Minimum distinct-day samples before a learned pattern is trusted
   min_samples: 7

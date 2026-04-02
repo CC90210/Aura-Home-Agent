@@ -121,6 +121,7 @@ class IntentHandler:
         ha_token: str,
         anthropic_api_key: str,
         config: dict[str, Any],
+        features: dict[str, Any] | None = None,
     ) -> None:
         if not ha_token:
             log.warning(
@@ -128,6 +129,10 @@ class IntentHandler:
             )
         if not anthropic_api_key:
             raise ValueError("ANTHROPIC_API_KEY must not be empty.")
+
+        # Feature module instances — keyed by feature name (e.g. "mirror_mode").
+        # None values are excluded by the caller, so every entry here is live.
+        self._features: dict[str, Any] = features or {}
 
         self._ha_url: str = ha_url.rstrip("/")
         self._ha_headers: dict[str, str] = {
@@ -279,11 +284,14 @@ class IntentHandler:
 
         # Step 5: Execute actions
         if actions:
-            log.info("Executing %d HA action(s)…", len(actions))
+            log.info("Executing %d action(s)…", len(actions))
             for action in actions:
-                self._execute_action(action)
+                if "feature" in action:
+                    self._execute_feature_command(action)
+                else:
+                    self._execute_action(action)
         else:
-            log.debug("No HA actions in Claude response.")
+            log.debug("No actions in Claude response.")
 
         elapsed = time.monotonic() - t0
         log.info("Intent processed in %.2f s — response: %r", elapsed, response_text[:80])
@@ -387,6 +395,137 @@ class IntentHandler:
             log.error("Timeout executing HA action %s.%s", domain, service)
         except Exception as exc:  # noqa: BLE001
             log.error("Unexpected error executing %s.%s: %s", domain, service, exc)
+
+    def _execute_feature_command(self, action: dict[str, Any]) -> None:
+        """
+        Route a feature-specific action returned by Claude to the correct
+        feature module instance.
+
+        Feature actions use a ``"feature"`` key instead of ``"domain"``/
+        ``"service"``, so the standard ``_execute_action`` path does not apply.
+
+        Supported feature actions and their required keys:
+
+        mirror_mode:
+            ``{"feature": "mirror_mode", "mood": "ocean vibes"}``
+        aura_drops:
+            ``{"feature": "aura_drops", "action": "save",     "name": "...", "person": "..."}``
+            ``{"feature": "aura_drops", "action": "activate", "name": "..."}``
+            ``{"feature": "aura_drops", "action": "list"}``
+        vibe_sync:
+            ``{"feature": "vibe_sync", "action": "enable"|"disable"}``
+        deja_vu:
+            ``{"feature": "deja_vu", "action": "enable"|"disable"}``
+        pulse_check:
+            ``{"feature": "pulse_check", "action": "check_in", "person": "..."}``
+        ghost_dj:
+            ``{"feature": "ghost_dj", "action": "suggest"}``
+        content_radar:
+            ``{"feature": "content_radar", "action": "stats", "person": "..."}``
+        energy_oracle:
+            ``{"feature": "energy_oracle", "action": "brief", "person": "..."}``
+
+        Unknown feature names and unhandled action values are logged as
+        warnings and silently skipped so the pipeline never crashes.
+        """
+        feature_name: str = action.get("feature", "")
+        feature_action: str = action.get("action", "")
+        instance = self._features.get(feature_name)
+
+        if instance is None:
+            log.warning(
+                "Feature %r is not available — skipping action %s",
+                feature_name,
+                action,
+            )
+            return
+
+        log.info("Feature command: %s  action=%s", feature_name, feature_action or "(default)")
+
+        try:
+            if feature_name == "mirror_mode":
+                mood: str = action.get("mood", "ambient")
+                instance.activate(mood)
+
+            elif feature_name == "aura_drops":
+                name: str = action.get("name", "")
+                person: str = action.get("person", "unknown")
+                if feature_action == "save":
+                    result = instance.save_drop(name, person)
+                    log.info("AuraDrops save result: %s", result)
+                elif feature_action == "activate":
+                    result = instance.activate_drop(name)
+                    log.info("AuraDrops activate result: %s", result)
+                elif feature_action == "list":
+                    result = instance.list_drops_summary()
+                    log.info("AuraDrops list: %s", result)
+                else:
+                    log.warning("Unknown aura_drops action: %r", feature_action)
+
+            elif feature_name == "vibe_sync":
+                if feature_action == "enable":
+                    instance.poll_and_adjust()
+                    log.info("VibeSync polled and adjusted.")
+                elif feature_action == "disable":
+                    log.info("VibeSync disable requested (no-op — managed via HA input_boolean).")
+                else:
+                    log.warning("Unknown vibe_sync action: %r", feature_action)
+
+            elif feature_name == "deja_vu":
+                if feature_action == "enable":
+                    instance.maybe_predict_and_activate()
+                    log.info("DejaVu prediction run triggered.")
+                elif feature_action == "disable":
+                    log.info("DejaVu disable requested (no-op — managed via HA input_boolean).")
+                else:
+                    log.warning("Unknown deja_vu action: %r", feature_action)
+
+            elif feature_name == "pulse_check":
+                if feature_action == "check_in":
+                    person = action.get("person", "conaugh")
+                    text = instance.generate_check_in(person)
+                    log.info("PulseCheck check-in generated for %s: %r", person, text[:80])
+                else:
+                    log.warning("Unknown pulse_check action: %r", feature_action)
+
+            elif feature_name == "ghost_dj":
+                if feature_action == "suggest":
+                    suggestion = instance.suggest_music({})
+                    if suggestion:
+                        instance.apply_music(suggestion)
+                        log.info("GhostDJ suggestion applied.")
+                    else:
+                        log.info("GhostDJ: no suggestion at this time.")
+                else:
+                    log.warning("Unknown ghost_dj action: %r", feature_action)
+
+            elif feature_name == "content_radar":
+                if feature_action == "stats":
+                    person = action.get("person", "conaugh")
+                    stats = instance.get_session_stats(person)
+                    log.info("ContentRadar stats for %s: %s", person, stats)
+                else:
+                    log.warning("Unknown content_radar action: %r", feature_action)
+
+            elif feature_name == "energy_oracle":
+                if feature_action == "brief":
+                    person = action.get("person", "conaugh")
+                    brief = instance.generate_weekly_brief(person)
+                    log.info("EnergyOracle brief for %s: %r", person, (brief or "")[:80])
+                else:
+                    log.warning("Unknown energy_oracle action: %r", feature_action)
+
+            else:
+                log.warning("No handler for feature %r — action dropped.", feature_name)
+
+        except Exception as exc:  # noqa: BLE001
+            log.error(
+                "Error executing feature command %r action=%r: %s",
+                feature_name,
+                feature_action,
+                exc,
+                exc_info=True,
+            )
 
     # ------------------------------------------------------------------
     # Claude integration
@@ -582,6 +721,64 @@ class IntentHandler:
         # can you do?", "can you do X?", and category-specific help questions.
         capabilities_block = self._capabilities.get_capabilities_for_prompt()
 
+        # ── Feature actions block ──────────────────────────────────────
+        available_features = list(self._features.keys())
+        if available_features:
+            feature_lines = [
+                "You can also return these special feature actions in the \"actions\" array.",
+                "Use the \"feature\" key instead of \"domain\"/\"service\":",
+                "",
+            ]
+            feature_examples: list[str] = []
+            if "mirror_mode" in available_features:
+                feature_examples.append(
+                    '  {"feature": "mirror_mode", "mood": "ocean vibes"}'
+                    " — coordinated multi-light color choreography"
+                )
+            if "aura_drops" in available_features:
+                feature_examples += [
+                    '  {"feature": "aura_drops", "action": "save", "name": "Chill Mode", "person": "<person>"}'
+                    " — snapshot current device state",
+                    '  {"feature": "aura_drops", "action": "activate", "name": "Chill Mode"}'
+                    " — restore a saved snapshot",
+                    '  {"feature": "aura_drops", "action": "list"}'
+                    " — list all saved drops",
+                ]
+            if "vibe_sync" in available_features:
+                feature_examples.append(
+                    '  {"feature": "vibe_sync", "action": "enable"}'
+                    " — run one music-reactive lighting adjustment"
+                )
+            if "deja_vu" in available_features:
+                feature_examples.append(
+                    '  {"feature": "deja_vu", "action": "enable"}'
+                    " — run a predictive scene activation check"
+                )
+            if "pulse_check" in available_features:
+                feature_examples.append(
+                    '  {"feature": "pulse_check", "action": "check_in", "person": "<person>"}'
+                    " — generate an accountability check-in"
+                )
+            if "ghost_dj" in available_features:
+                feature_examples.append(
+                    '  {"feature": "ghost_dj", "action": "suggest"}'
+                    " — auto-select and play context-aware music"
+                )
+            if "content_radar" in available_features:
+                feature_examples.append(
+                    '  {"feature": "content_radar", "action": "stats", "person": "<person>"}'
+                    " — content creation session statistics"
+                )
+            if "energy_oracle" in available_features:
+                feature_examples.append(
+                    '  {"feature": "energy_oracle", "action": "brief", "person": "<person>"}'
+                    " — weekly intelligence brief"
+                )
+            feature_lines += feature_examples
+            feature_actions_block = "\n".join(feature_lines)
+        else:
+            feature_actions_block = ""
+
         # ── JSON contract block ────────────────────────────────────────
         json_contract = """\
 RESPONSE FORMAT:
@@ -602,19 +799,27 @@ You MUST respond with a single valid JSON object and nothing else — no explana
 RULES:
 - The "response" field must always be a non-empty string.
 - The "actions" array can be empty if no device changes are needed.
-- Only include actions for devices that exist in the current device states list.
+- ONLY include actions for devices that exist in the CURRENT DEVICE STATES list above. If a device is not listed, you DO NOT have access to it. Period.
+- If the user asks you to control something that is not in the device states list (e.g. thermostat, blinds, lock, camera), be honest: "I don't have access to a thermostat right now. You'd need to add one to the system first." Do NOT pretend to control devices that aren't connected.
+- If the device states list says "(Home Assistant is currently unreachable)", tell the user: "I can't reach Home Assistant right now, so I can't control any devices. I can still chat though."
 - For scene activations, use domain "scene" and service "turn_on".
 - For script runs, use domain "script" and service "turn_on".
-- If you are unsure how to execute a command, say so in "response" and leave "actions" empty.
-- If Home Assistant is unreachable, acknowledge this in your response.
-- Never hallucinate entity IDs that are not in the current device states.
+- If you are unsure how to execute a command, say so in "response" and leave "actions" empty. Never guess.
+- Never hallucinate entity IDs. If it is not in the device states list, it does not exist.
 - Temperatures for climate entities are in Celsius.
-- Be honest if you cannot do something — do not pretend to execute actions you cannot.
+- Be honest and direct if you cannot do something. Say "I don't have access to that" or "That device isn't connected yet." Never pretend or make up actions.
 - If the user asks "what can you do", "help", "what are your capabilities", or similar,
   walk them through your capabilities conversationally using the CAPABILITIES section below.
   Keep it natural and spoken — no bullet lists, no markdown, no reading a menu aloud.
 - If the user asks about a specific feature (e.g. "how do I control lights?"), pull
   relevant examples directly from the CAPABILITIES section and speak them naturally."""
+
+        feature_section = (
+            f"FEATURE ACTIONS (use \"feature\" key instead of \"domain\"/\"service\"):\n"
+            f"{feature_actions_block}\n\n"
+            if feature_actions_block
+            else ""
+        )
 
         return (
             f"{personality_block}\n\n"
@@ -622,5 +827,6 @@ RULES:
             f"KNOWN PROTOCOLS (pre-configured scenes you can activate):\n"
             f"{protocols_block}\n\n"
             f"{capabilities_block}\n\n"
+            f"{feature_section}"
             f"{json_contract}"
         )
