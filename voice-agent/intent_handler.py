@@ -46,7 +46,12 @@ import requests
 
 from personality import AuraPersonality
 from capabilities import AuraCapabilities
-from security import VoiceSecurityGuard
+
+try:
+    from security import VoiceSecurityGuard
+    _SECURITY_AVAILABLE = True
+except ImportError:
+    _SECURITY_AVAILABLE = False
 
 log = logging.getLogger("aura.intent")
 
@@ -157,16 +162,19 @@ class IntentHandler:
                 exc,
             )
 
-        # Initialise the security guard.  Non-fatal — if config is missing,
-        # sensitive actions are blocked by default (safe failure mode).
-        self._security: VoiceSecurityGuard | None = None
-        try:
-            self._security = VoiceSecurityGuard(
-                config_path=Path(__file__).resolve().parent / "config.yaml"
-            )
-            log.info("VoiceSecurityGuard loaded.")
-        except Exception as exc:  # noqa: BLE001
-            log.warning("Failed to load VoiceSecurityGuard: %s", exc)
+        # Initialise the security guard.  Non-fatal — if the module or config
+        # is missing, sensitive actions default to blocked (safe failure mode).
+        self._security = None  # type: ignore[assignment]
+        if _SECURITY_AVAILABLE:
+            try:
+                self._security = VoiceSecurityGuard(
+                    config_path=Path(__file__).resolve().parent / "config.yaml"
+                )
+                log.info("VoiceSecurityGuard loaded.")
+            except Exception as exc:  # noqa: BLE001
+                log.warning("Failed to load VoiceSecurityGuard: %s", exc)
+        else:
+            log.warning("security.py not found — voice security guard disabled.")
 
         # Initialise the capabilities registry.  Always non-fatal — the
         # instance degrades gracefully to empty strings when the YAML is
