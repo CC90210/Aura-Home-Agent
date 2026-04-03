@@ -1803,6 +1803,11 @@
     font-size: 9px;
     border-radius: 10px;
   }
+
+  /* --- 14. Intelligence Hub: single column on mobile --- */
+  .hubGrid {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* ============================================
@@ -2172,4 +2177,19 @@
   .main {
     padding-bottom: 120px;
   }
+}
+
+/* ============================================
+   Intelligence Hub layout
+   ============================================ */
+
+.hubGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.hubFullWidth {
+  margin-bottom: 16px;
 }

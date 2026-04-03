@@ -512,7 +512,7 @@ function FloatingQuickBar({ onScenePress, scenes, nowPlaying, onMediaAction }: F
 
       <div className={s.floatingBarDivider} aria-hidden="true" />
 
-      {scenes.slice(0, 3).map((sc) => {
+      {scenes.filter((sc) => sc.id !== "close-down").slice(0, 3).map((sc) => {
         const Icon = SCENE_ICON_MAP[sc.icon] ?? Zap;
         return (
           <button
@@ -1146,6 +1146,7 @@ interface HomeViewProps {
   habits: HabitEntry[];
   onHabitToggle: (id: string) => void;
   haConnected: boolean;
+  onTabChange: (tab: Tab) => void;
 }
 
 function HomeView({
@@ -1164,6 +1165,7 @@ function HomeView({
   habits,
   onHabitToggle,
   haConnected,
+  onTabChange,
 }: HomeViewProps) {
   const activeScene = scenes.find((s) => s.active);
 
@@ -1212,10 +1214,38 @@ function HomeView({
   ];
 
   const quickActions = [
-    { label: "Control Lights", sub: "Adjust all rooms", iconBg: "rgba(245,158,11,0.15)", iconColor: "#F59E0B", icon: <Zap size={18} aria-hidden="true" /> },
-    { label: "Play Music",     sub: "Spotify + Echo",   iconBg: "rgba(124,58,237,0.15)", iconColor: "#A78BFA", icon: <Music2 size={18} aria-hidden="true" /> },
-    { label: "Set Climate",    sub: "Temperature control", iconBg: "rgba(96,165,250,0.15)", iconColor: "#60A5FA", icon: <Thermometer size={18} aria-hidden="true" /> },
-    { label: "Lock Down",      sub: "Secure all locks",  iconBg: "rgba(16,185,129,0.15)", iconColor: "#10B981", icon: <Server size={18} aria-hidden="true" /> },
+    {
+      label: "Control Lights",
+      sub: "Adjust all rooms",
+      iconBg: "rgba(245,158,11,0.15)",
+      iconColor: "#F59E0B",
+      icon: <Zap size={18} aria-hidden="true" />,
+      onClick: () => onTabChange("rooms"),
+    },
+    {
+      label: "Play Music",
+      sub: "Spotify + Echo",
+      iconBg: "rgba(124,58,237,0.15)",
+      iconColor: "#A78BFA",
+      icon: <Music2 size={18} aria-hidden="true" />,
+      onClick: () => { if (nowPlaying) onMediaAction("media_play_pause", nowPlaying.entity_id); },
+    },
+    {
+      label: "Set Climate",
+      sub: "Temperature control",
+      iconBg: "rgba(96,165,250,0.15)",
+      iconColor: "#60A5FA",
+      icon: <Thermometer size={18} aria-hidden="true" />,
+      onClick: () => onTabChange("rooms"),
+    },
+    {
+      label: "Lock Down",
+      sub: "Close everything",
+      iconBg: "rgba(16,185,129,0.15)",
+      iconColor: "#10B981",
+      icon: <Moon size={18} aria-hidden="true" />,
+      onClick: () => { const cd = scenes.find((sc) => sc.id === "close-down"); if (cd) onScenePress(cd); },
+    },
   ];
 
   return (
@@ -1290,7 +1320,13 @@ function HomeView({
       </div>
       <div className={s.quickActions} role="list" aria-label="Quick actions">
         {quickActions.map((action) => (
-          <button key={action.label} className={s.quickAction} role="listitem" aria-label={action.label}>
+          <button
+            key={action.label}
+            className={s.quickAction}
+            role="listitem"
+            aria-label={action.label}
+            onClick={action.onClick}
+          >
             <div className={s.quickActionIcon} style={{ background: action.iconBg, color: action.iconColor }}>
               {action.icon}
             </div>
@@ -1329,30 +1365,23 @@ function HomeView({
       </div>
 
       {/* Row 1: Music Visualizer + Voice Activity Log */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
-          gap: 16,
-          marginBottom: 16,
-        }}
-      >
+      <div className={s.hubGrid}>
         <MusicVisualizer />
         <VoiceActivityLog />
       </div>
 
       {/* Row 2: Energy Dashboard */}
-      <div style={{ marginBottom: 16 }}>
+      <div className={s.hubFullWidth}>
         <EnergyDashboard />
       </div>
 
       {/* Row 3: AURA Drops Gallery */}
-      <div style={{ marginBottom: 16 }}>
+      <div className={s.hubFullWidth}>
         <AuraDropsGallery />
       </div>
 
       {/* Row 4: System Health */}
-      <div style={{ marginBottom: 32 }}>
+      <div className={s.hubFullWidth} style={{ marginBottom: 32 }}>
         <SystemHealth />
       </div>
     </div>
@@ -1748,6 +1777,7 @@ export default function DashboardPage() {
             habits={habits}
             onHabitToggle={handleHabitToggle}
             haConnected={haConnected}
+            onTabChange={handleTabChange}
           />
         )}
         {activeTab === "scenes" && (
