@@ -146,8 +146,8 @@ class EnergyOracle:
         ha_token: str,
         anthropic_api_key: str,
         pattern_engine: _PatternEngineProtocol,
-        habit_tracker: _HabitTrackerProtocol,
-        content_radar: _ContentRadarProtocol,
+        habit_tracker: Optional[_HabitTrackerProtocol] = None,
+        content_radar: Optional[_ContentRadarProtocol] = None,
         claude_model: str = _CLAUDE_MODEL,
     ) -> None:
         if not ha_token:
@@ -273,12 +273,6 @@ class EnergyOracle:
             ),
             threading.Thread(
                 target=_fetch,
-                args=("content_stats", self._content_radar.get_content_stats, person),
-                kwargs={"days": 7},
-                daemon=True,
-            ),
-            threading.Thread(
-                target=_fetch,
                 args=("suggestions", self.get_automation_suggestions),
                 daemon=True,
             ),
@@ -288,6 +282,16 @@ class EnergyOracle:
                 daemon=True,
             ),
         ]
+
+        if self._content_radar is not None:
+            threads.append(
+                threading.Thread(
+                    target=_fetch,
+                    args=("content_stats", self._content_radar.get_content_stats, person),
+                    kwargs={"days": 7},
+                    daemon=True,
+                )
+            )
 
         for t in threads:
             t.start()
@@ -340,6 +344,16 @@ class EnergyOracle:
         """
         Build a structured habit summary from the HabitTracker weekly report.
         """
+        if self._habit_tracker is None:
+            log.debug("HabitTracker not available — returning empty habit summary.")
+            return {
+                "average_completion_pct": 0.0,
+                "streaks": {},
+                "best_habit": None,
+                "worst_habit": None,
+                "plain_summary": "No habit data available.",
+            }
+
         report = self._habit_tracker.get_weekly_report(person)
         plain_summary = self._habit_tracker.format_weekly_summary(person)
 

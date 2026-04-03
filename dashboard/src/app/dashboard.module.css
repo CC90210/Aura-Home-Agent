@@ -1571,6 +1571,217 @@
 }
 
 /* ============================================
+   iPhone / Mobile-first polish
+   All rules below use max-width: 639px to stay
+   strictly mobile-only and never break desktop.
+   ============================================ */
+
+@media (max-width: 639px) {
+  /* --- 1. Safe area: top notch / Dynamic Island --- */
+  .main {
+    padding-top: calc(60px + env(safe-area-inset-top, 0px));
+    /* bottom accounts for bottom nav (~56px) + safe area + breathing room */
+    padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* --- 2. Bottom nav: safe area inset --- */
+  /* The existing .bottomNav already has:
+       padding-bottom: max(env(safe-area-inset-bottom, 8px), 8px)
+     We reinforce it here to be explicit and ensure content never slides
+     under the home indicator bar on iPhone. */
+  .bottomNav {
+    padding-bottom: max(env(safe-area-inset-bottom, 12px), 12px);
+  }
+
+  /* --- 3. Header: compact mobile layout --- */
+  /* Stack greeting + date; shrink clock to fit the status row */
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+
+  /* Clock row: sits above the greeting on mobile (column-reverse from 768px
+     is overridden here so greeting leads, clock is a compact right-aligned row) */
+  .headerRight {
+    width: 100%;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  .clockDisplay {
+    font-size: 22px;
+    letter-spacing: -0.01em;
+  }
+
+  .clockSeconds {
+    font-size: 13px;
+  }
+
+  .clockBlock {
+    align-items: flex-start;
+    gap: 1px;
+  }
+
+  .greeting {
+    font-size: 18px;
+    line-height: 1.25;
+  }
+
+  .headerDate {
+    font-size: 11px;
+    margin-top: 3px;
+  }
+
+  /* Status badge: tuck it beside the clock */
+  .statusBadge {
+    font-size: 10px;
+    padding: 4px 9px;
+  }
+
+  /* --- 4. Scene grid: 2-column, breathing room, 44px+ tap targets --- */
+  .scenesGrid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+
+  .sceneCard {
+    /* Ensure minimum 44px height per iOS HIG */
+    min-height: 44px;
+    padding: 16px 12px;
+    gap: 8px;
+    /* Slightly tighter radius on small screens */
+    border-radius: var(--radius-md);
+  }
+
+  /* Tighter active-state scale for snappier iPhone feel */
+  .sceneCard:active {
+    transform: scale(0.97);
+  }
+
+  /* --- 5. Quick action buttons: 44px tap targets + active feedback --- */
+  .quickAction {
+    padding: 13px 14px;
+    border-radius: 12px;
+    min-height: 44px;
+  }
+
+  .quickAction:active {
+    transform: scale(0.97);
+  }
+
+  /* --- 6. Intelligence Hub: single column, 16px gap --- */
+  /* The Intelligence Hub grids are inline styles in page.tsx (JSX), so we
+     target them via a wrapper class injected on mobile via CSS only.
+     Because those grids use inline `style` on a div, we override via
+     the CSS custom property trick isn't available — instead we apply a
+     mobile-specific class that wraps the hub rows. Since we cannot add
+     classes without touching page.tsx, we rely on the auto-fit behavior:
+     minmax(300px, 1fr) already collapses to 1 column on 375px screens
+     (300px fits once; 2x300 = 600 > 375). The gap and margin are the
+     only things to enforce here. We do this via the infoGrid and existing
+     patterns for consistency. */
+
+  .infoGrid {
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  /* --- 7. Now Playing card: compact left-side album art layout --- */
+  /* The card is full-width already (infoGrid → 1fr). On mobile we make
+     the track info row more compact so it doesn't feel cramped. */
+  .trackInfo {
+    gap: 14px;
+  }
+
+  .albumArt {
+    width: 56px;
+    height: 56px;
+    border-radius: 12px;
+    flex-shrink: 0;
+  }
+
+  .trackTitle {
+    font-size: 15px;
+  }
+
+  .trackArtist {
+    font-size: 12px;
+  }
+
+  .mediaControls {
+    margin-top: 14px;
+    padding-top: 12px;
+  }
+
+  /* Larger tap targets for media buttons on iPhone */
+  .mediaBtn {
+    padding: 10px;
+  }
+
+  .playBtn {
+    width: 48px;
+    height: 48px;
+  }
+
+  /* --- 8. Stats grid: tighter on smallest screens --- */
+  .statsGrid {
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+
+  .statCard {
+    padding: 14px;
+  }
+
+  .statValue {
+    font-size: 18px;
+  }
+
+  /* --- 9. Section titles: tighter vertical rhythm --- */
+  .sectionTitle {
+    margin-bottom: 10px;
+  }
+
+  /* --- 10. Weather card: compact on mobile --- */
+  .weatherCard {
+    padding: 14px 16px;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .weatherIcon {
+    font-size: 32px;
+  }
+
+  .weatherTemp {
+    font-size: 26px;
+  }
+
+  /* --- 11. Who's Home card: tight padding --- */
+  .whosHomeCard {
+    padding: 14px 16px;
+  }
+
+  /* --- 12. Floating bar: already hidden at 768px via its own rule.
+     Reinforce here so it never bleeds through on iPhone. --- */
+  .floatingBar {
+    display: none !important;
+  }
+
+  /* --- 13. Bottom nav: ensure label text doesn't clip --- */
+  .bottomNavBtn {
+    padding: 6px 12px;
+    font-size: 9px;
+    border-radius: 10px;
+  }
+}
+
+/* ============================================
    Weather Widget
    ============================================ */
 

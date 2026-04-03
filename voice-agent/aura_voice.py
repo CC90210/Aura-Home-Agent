@@ -601,6 +601,9 @@ class AuraVoiceAgent:
         api_key: str = self._secrets["anthropic_api_key"]
         shared_db_path = self._resolve_shared_db_path()
         shared_data_dir = shared_db_path.parent
+        default_speaker: str = self._config.get("speakers", {}).get(
+            "default", "media_player.living_room_speaker"
+        )
 
         try:
             if MirrorMode is None:
@@ -645,9 +648,6 @@ class AuraVoiceAgent:
         try:
             if GhostDJ is None:
                 raise RuntimeError("ghost_dj import failed")
-            default_speaker = self._config.get("speakers", {}).get(
-                "default", "media_player.living_room_speaker"
-            )
             ghost_model = resolve_model(self._config, "ghost_dj")
             if self._context is not None:
                 self._ghost_dj = GhostDJ(
@@ -680,7 +680,6 @@ class AuraVoiceAgent:
                 claude_model=vibe_model,
             )
             log.info("VibeSync initialised (model: %s).", vibe_model)
-            log.info("VibeSync initialised.")
         except Exception as exc:  # noqa: BLE001
             log.warning("VibeSync init failed: %s", exc)
 

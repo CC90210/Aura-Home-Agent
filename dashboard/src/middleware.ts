@@ -139,6 +139,11 @@ export function middleware(request: NextRequest): NextResponse {
 }
 
 // Run on all routes except Next.js internals and static assets.
+// sw.js, offline.html, manifest.json, and icon files must be publicly
+// reachable so the browser can install the PWA and register the service
+// worker without hitting the auth gate.
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|manifest.json|icons/).*)"],
+  matcher: [
+    "/((?!_next/static|_next/image|favicon\\.ico|favicon\\.svg|manifest\\.json|sw\\.js|offline\\.html|icon-|apple-touch-icon\\.png).+)",
+  ],
 };

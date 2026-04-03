@@ -74,6 +74,20 @@ body {
   min-height: 100dvh;
 }
 
+/* Pull-to-refresh overscroll: match app background so the default
+   white flash never appears when the user over-scrolls on iPhone.
+   This sets the elastic overscroll area to the same deep navy base. */
+@supports (-webkit-overflow-scrolling: touch) {
+  html {
+    background-color: var(--bg-base);
+  }
+}
+
+/* For modern iOS Safari (no @supports needed — safe fallback) */
+html {
+  background-color: var(--bg-base);
+}
+
 *,
 *::before,
 *::after {
