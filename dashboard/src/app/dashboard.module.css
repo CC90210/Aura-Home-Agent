@@ -1563,7 +1563,6 @@
   }
 
   .headerRight {
-    align-items: flex-start;
     flex-direction: row;
     align-items: center;
     gap: 12px;
@@ -1941,6 +1940,10 @@
   pointer-events: none;
 }
 
+.whosHomeBody {
+  flex: 1;
+}
+
 .whosHomeTitle {
   font-size: 10px;
   font-weight: 700;
@@ -2180,6 +2183,193 @@
 }
 
 /* ============================================
+   Inline-style replacements — extracted from JSX
+   ============================================ */
+
+/* "you" / "You" badge next to the active user's name */
+.youBadge {
+  margin-left: 6px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #7C3AED;
+  background: rgba(124, 58, 237, 0.12);
+  border: 1px solid rgba(124, 58, 237, 0.22);
+  border-radius: 5px;
+  padding: 1px 5px;
+}
+
+/* Sidebar presence section "You" badge (slightly different radius) */
+.youBadgeSidebar {
+  margin-left: auto;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #7C3AED;
+  background: rgba(124, 58, 237, 0.12);
+  border: 1px solid rgba(124, 58, 237, 0.25);
+  border-radius: 6px;
+  padding: 2px 6px;
+}
+
+/* Climate — humidity row */
+.climateHumidityRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  margin-top: 12px;
+  border-radius: 10px;
+  background: rgba(26, 26, 62, 0.5);
+  border: 1px solid rgba(30, 30, 64, 0.5);
+}
+
+.climateHumidityLabel {
+  font-size: 12px;
+  color: #64748B;
+}
+
+.climateHumidityValue {
+  font-size: 12px;
+  font-weight: 600;
+  color: #E2E8F0;
+  margin-left: auto;
+}
+
+/* Climate — no thermostat row */
+.climateOfflineRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  margin-top: 12px;
+  border-radius: 10px;
+  background: rgba(245, 158, 11, 0.06);
+  border: 1px solid rgba(245, 158, 11, 0.18);
+}
+
+.climateOfflineLabel {
+  font-size: 12px;
+  color: #64748B;
+}
+
+/* Clock row wrapper */
+.clockRow {
+  display: flex;
+  align-items: baseline;
+  gap: 0;
+}
+
+/* Date sub-label below clock */
+.clockDate {
+  font-size: 11px;
+  color: #64748B;
+  text-align: right;
+}
+
+/* ProfileView — presence dot pushed to right */
+.presenceDotRight {
+  margin-left: auto;
+}
+
+/* ProfileView — system divider with extra top margin */
+.systemDividerTop {
+  margin-top: 12px;
+}
+
+/* ProfileView — home state system row icon */
+.systemRowIconHome {
+  background: rgba(16, 185, 129, 0.1) !important;
+  border-color: rgba(16, 185, 129, 0.25) !important;
+  color: #10B981 !important;
+}
+
+/* ProfileView — resident initials inside icon */
+.residentInitials {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+/* ProfileView — system row with top alignment */
+.systemRowAlignStart {
+  align-items: flex-start;
+}
+
+/* ProfileView — body section in last-command row */
+.systemRowBody {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ProfileView — last command text */
+.lastCommandText {
+  font-size: 12px;
+  word-break: break-all;
+  margin-bottom: 0;
+}
+
+/* ProfileView — last command row */
+.lastCommandRow {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.lastCommandTime {
+  font-size: 11px;
+  color: #64748B;
+}
+
+/* Toggle switch — loading state */
+.toggleSwitchLoading {
+  opacity: 0.5;
+  cursor: wait;
+}
+
+/* Room status — all-off label */
+.roomAllOff {
+  font-size: 11px;
+  color: #64748B;
+}
+
+/* ScenesView — full grid wrapper */
+.scenesViewGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 14px;
+}
+
+/* ScenesView scene card overrides */
+.sceneCardLarge {
+  padding: 20px 16px;
+  gap: 12px;
+}
+
+.sceneIconLarge {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+}
+
+.sceneNameLarge {
+  font-size: 13px;
+}
+
+/* Intelligence Hub section title — extra top margin */
+.sectionTitleHub {
+  margin-top: 36px;
+}
+
+/* Bottom nav label span */
+.bottomNavLabel {
+  font-size: 10px;
+  font-weight: 600;
+}
+
+/* ============================================
    Intelligence Hub layout
    ============================================ */
 
@@ -2192,4 +2382,8 @@
 
 .hubFullWidth {
   margin-bottom: 16px;
+}
+
+.hubFullWidthLast {
+  margin-bottom: 32px;
 }

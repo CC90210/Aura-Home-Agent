@@ -102,31 +102,61 @@ function DropCard({ drop, onActivate }: DropCardProps) {
 
   return (
     <div
-      className="relative rounded-xl border overflow-hidden group cursor-default"
       style={{
-        borderColor: `${dominantColor}30`,
+        position: 'relative',
+        borderRadius: 12,
+        border: `1px solid ${dominantColor}30`,
+        overflow: 'hidden',
+        cursor: 'default',
         background: 'linear-gradient(135deg, #0E0E1E 0%, #12122A 100%)',
       }}
     >
       {/* Color palette strip */}
-      <div className="flex h-2 w-full" aria-hidden="true">
+      <div style={{ display: 'flex', height: 8, width: '100%' }} aria-hidden="true">
         {drop.palette.map((color, i) => (
           <div
             key={i}
-            className="flex-1 transition-all duration-500 group-hover:h-3"
-            style={{ background: color }}
+            style={{
+              flex: 1,
+              background: color,
+              transition: 'height 0.5s ease',
+            }}
           />
         ))}
       </div>
 
       {/* Card body */}
-      <div className="p-4">
+      <div style={{ padding: 16 }}>
         {/* Name + who saved */}
-        <div className="flex items-start justify-between gap-2 mb-1">
-          <h3 className="text-[13px] font-bold text-slate-100 leading-tight">{drop.name}</h3>
-          <span
-            className="text-[9px] font-bold tracking-widest uppercase px-1.5 py-0.5 rounded-md flex-shrink-0"
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            justifyContent: 'space-between',
+            gap: 8,
+            marginBottom: 4,
+          }}
+        >
+          <h3
             style={{
+              fontSize: 13,
+              fontWeight: 700,
+              color: '#E2E8F0',
+              lineHeight: 1.3,
+              margin: 0,
+            }}
+          >
+            {drop.name}
+          </h3>
+          <span
+            style={{
+              fontSize: 9,
+              fontWeight: 700,
+              letterSpacing: '0.1em',
+              textTransform: 'uppercase',
+              padding: '2px 6px',
+              borderRadius: 6,
+              flexShrink: 0,
               background: `${dominantColor}20`,
               color: dominantColor,
               border: `1px solid ${dominantColor}30`,
@@ -136,15 +166,26 @@ function DropCard({ drop, onActivate }: DropCardProps) {
           </span>
         </div>
 
-        <p className="text-[11px] text-slate-500 mb-3 leading-relaxed">{drop.description}</p>
+        <p style={{ fontSize: 11, color: '#64748B', marginBottom: 12, lineHeight: 1.5, marginTop: 0 }}>
+          {drop.description}
+        </p>
 
         {/* Palette swatches */}
-        <div className="flex items-center gap-1.5 mb-4" aria-label="Color palette">
+        <div
+          style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 16 }}
+          aria-label="Color palette"
+        >
           {drop.palette.map((color, i) => (
             <div
               key={i}
-              className="w-4 h-4 rounded-full border border-white/10"
-              style={{ background: color, boxShadow: `0 0 4px ${color}55` }}
+              style={{
+                width: 16,
+                height: 16,
+                borderRadius: '50%',
+                border: '1px solid rgba(255,255,255,0.1)',
+                background: color,
+                boxShadow: `0 0 4px ${color}55`,
+              }}
               aria-hidden="true"
             />
           ))}
@@ -155,19 +196,39 @@ function DropCard({ drop, onActivate }: DropCardProps) {
           onClick={handleActivate}
           disabled={loading}
           aria-label={`Activate ${drop.name} scene`}
-          className={[
-            'w-full flex items-center justify-center gap-2 py-2 rounded-lg text-[12px] font-semibold',
-            'transition-all duration-200 border',
-            activated
-              ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400'
-              : 'bg-purple-600/15 border-purple-600/30 text-violet-300 hover:bg-purple-600/25 hover:border-purple-600/50',
-            loading ? 'opacity-60 cursor-wait' : '',
-          ].join(' ')}
+          style={{
+            width: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 8,
+            padding: '8px 0',
+            borderRadius: 8,
+            fontSize: 12,
+            fontWeight: 600,
+            border: activated
+              ? '1px solid rgba(16, 185, 129, 0.4)'
+              : '1px solid rgba(124, 58, 237, 0.3)',
+            background: activated
+              ? 'rgba(16, 185, 129, 0.2)'
+              : 'rgba(124, 58, 237, 0.15)',
+            color: activated ? '#34D399' : '#C4B5FD',
+            opacity: loading ? 0.6 : 1,
+            cursor: loading ? 'wait' : 'pointer',
+            transition: 'all 0.2s ease',
+          }}
         >
           {loading ? (
             <span
-              className="w-3 h-3 rounded-full border-2 border-violet-400/30 border-t-violet-400"
-              style={{ animation: 'spin 0.7s linear infinite' }}
+              style={{
+                width: 12,
+                height: 12,
+                borderRadius: '50%',
+                border: '2px solid rgba(167, 139, 250, 0.3)',
+                borderTopColor: '#A78BFA',
+                animation: 'spin 0.7s linear infinite',
+                display: 'block',
+              }}
               aria-hidden="true"
             />
           ) : activated ? (
@@ -190,22 +251,54 @@ function AddDropCard() {
   return (
     <button
       aria-label="Save current state as new AURA Drop"
-      className="relative rounded-xl border border-dashed border-purple-900/40 overflow-hidden
-                 flex flex-col items-center justify-center gap-3 p-6
-                 hover:border-purple-600/50 hover:bg-purple-900/10
-                 transition-all duration-200 group min-h-[180px]"
+      style={{
+        position: 'relative',
+        borderRadius: 12,
+        border: '1px dashed rgba(88, 28, 135, 0.4)',
+        overflow: 'hidden',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 12,
+        padding: 24,
+        minHeight: 180,
+        background: 'transparent',
+        cursor: 'pointer',
+        transition: 'border-color 0.2s ease, background 0.2s ease',
+      }}
+      onMouseEnter={(e) => {
+        const el = e.currentTarget as HTMLButtonElement;
+        el.style.borderColor = 'rgba(124, 58, 237, 0.5)';
+        el.style.background = 'rgba(88, 28, 135, 0.1)';
+      }}
+      onMouseLeave={(e) => {
+        const el = e.currentTarget as HTMLButtonElement;
+        el.style.borderColor = 'rgba(88, 28, 135, 0.4)';
+        el.style.background = 'transparent';
+      }}
     >
       <div
-        className="w-10 h-10 rounded-xl flex items-center justify-center border border-dashed border-purple-600/40
-                   group-hover:border-purple-500/60 group-hover:bg-purple-600/15 transition-all duration-200"
+        style={{
+          width: 40,
+          height: 40,
+          borderRadius: 12,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          border: '1px dashed rgba(124, 58, 237, 0.4)',
+          transition: 'all 0.2s ease',
+        }}
       >
-        <Plus size={18} className="text-purple-500 group-hover:text-violet-400 transition-colors" aria-hidden="true" />
+        <Plus size={18} style={{ color: '#8B5CF6' }} aria-hidden="true" />
       </div>
-      <div className="text-center">
-        <div className="text-[13px] font-semibold text-slate-400 group-hover:text-slate-300 transition-colors">
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ fontSize: 13, fontWeight: 600, color: '#94A3B8' }}>
           Save Current State
         </div>
-        <div className="text-[11px] text-slate-600 mt-0.5">Snapshot your vibe as a Drop</div>
+        <div style={{ fontSize: 11, color: '#475569', marginTop: 2 }}>
+          Snapshot your vibe as a Drop
+        </div>
       </div>
     </button>
   );
@@ -224,23 +317,69 @@ export default function AuraDropsGallery() {
   };
 
   return (
-    <div className="rounded-2xl border border-purple-900/30 bg-[#0E0E1E]/90 backdrop-blur-sm overflow-hidden">
+    <div
+      style={{
+        borderRadius: 16,
+        border: '1px solid rgba(88, 28, 135, 0.3)',
+        background: 'rgba(14, 14, 30, 0.9)',
+        backdropFilter: 'blur(8px)',
+        WebkitBackdropFilter: 'blur(8px)',
+        overflow: 'hidden',
+      }}
+    >
       {/* Header */}
-      <div className="flex items-center gap-3 px-5 py-4 border-b border-purple-900/20">
-        <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-violet-600/15 border border-violet-600/25">
-          <Layers size={14} className="text-violet-400" aria-hidden="true" />
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 12,
+          padding: '16px 20px',
+          borderBottom: '1px solid rgba(88, 28, 135, 0.2)',
+        }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: 32,
+            height: 32,
+            borderRadius: 8,
+            background: 'rgba(124, 58, 237, 0.15)',
+            border: '1px solid rgba(124, 58, 237, 0.25)',
+          }}
+        >
+          <Layers size={14} style={{ color: '#A78BFA' }} aria-hidden="true" />
         </div>
         <div>
-          <h2 className="text-sm font-semibold text-slate-100 tracking-wide">AURA Drops</h2>
-          <p className="text-[11px] text-slate-500 mt-0.5">Saved scene snapshots — one tap to activate</p>
+          <h2
+            style={{
+              fontSize: 14,
+              fontWeight: 600,
+              color: '#E2E8F0',
+              letterSpacing: '0.025em',
+              margin: 0,
+            }}
+          >
+            AURA Drops
+          </h2>
+          <p style={{ fontSize: 11, color: '#64748B', marginTop: 2, marginBottom: 0 }}>
+            Saved scene snapshots — one tap to activate
+          </p>
         </div>
-        <span className="ml-auto text-[11px] text-slate-500 font-mono">{drops.length} saved</span>
+        <span style={{ marginLeft: 'auto', fontSize: 11, color: '#64748B', fontFamily: 'monospace' }}>
+          {drops.length} saved
+        </span>
       </div>
 
       {/* Grid */}
       <div
-        className="p-4 grid gap-3"
-        style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))' }}
+        style={{
+          padding: 16,
+          display: 'grid',
+          gap: 12,
+          gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+        }}
       >
         {drops.map((drop) => (
           <DropCard key={drop.id} drop={drop} onActivate={handleActivate} />

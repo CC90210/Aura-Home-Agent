@@ -89,8 +89,14 @@ interface VisualizerBarsProps {
 function VisualizerBars({ isPlaying, accentColor }: VisualizerBarsProps) {
   return (
     <div
-      className="flex items-end gap-0.5 w-full overflow-hidden"
-      style={{ height: '80px' }}
+      style={{
+        display: 'flex',
+        alignItems: 'flex-end',
+        gap: 2,
+        width: '100%',
+        overflow: 'hidden',
+        height: 80,
+      }}
       aria-hidden="true"
     >
       {/* Inline keyframes injected once via a style tag in the component */}
@@ -165,50 +171,97 @@ export default function MusicVisualizer() {
 
   return (
     <div
-      className="rounded-2xl border overflow-hidden relative"
       style={{
-        borderColor: `${track.accentColor}30`,
+        borderRadius: 16,
+        border: `1px solid ${track.accentColor}30`,
+        overflow: 'hidden',
+        position: 'relative',
         background: `linear-gradient(135deg, #0E0E1E 0%, #12122A 60%, ${track.accentColor}18 100%)`,
       }}
     >
       {/* Ambient glow */}
       <div
-        className="absolute inset-0 pointer-events-none"
         style={{
+          position: 'absolute',
+          inset: 0,
+          pointerEvents: 'none',
           background: `radial-gradient(ellipse at 70% 30%, ${track.accentColor}12 0%, transparent 65%)`,
           transition: 'background 0.8s ease',
         }}
         aria-hidden="true"
       />
 
-      <div className="relative z-10">
+      <div style={{ position: 'relative', zIndex: 10 }}>
         {/* Header */}
-        <div className="flex items-center gap-3 px-5 py-4 border-b border-white/5">
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12,
+            padding: '16px 20px',
+            borderBottom: '1px solid rgba(255,255,255,0.05)',
+          }}
+        >
           <div
-            className="flex items-center justify-center w-8 h-8 rounded-lg border"
             style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: 32,
+              height: 32,
+              borderRadius: 8,
               background: `${track.accentColor}20`,
-              borderColor: `${track.accentColor}30`,
+              border: `1px solid ${track.accentColor}30`,
             }}
           >
             <Music2 size={14} style={{ color: track.accentColor }} aria-hidden="true" />
           </div>
           <div>
-            <h2 className="text-sm font-semibold text-slate-100 tracking-wide">Now Visualizing</h2>
-            <p className="text-[11px] text-slate-500 mt-0.5">Echo Dot &middot; Living Room</p>
+            <h2
+              style={{
+                fontSize: 14,
+                fontWeight: 600,
+                color: '#E2E8F0',
+                letterSpacing: '0.025em',
+                margin: 0,
+              }}
+            >
+              Now Visualizing
+            </h2>
+            <p
+              style={{
+                fontSize: 11,
+                color: '#64748B',
+                marginTop: 2,
+                marginBottom: 0,
+              }}
+            >
+              Echo Dot &middot; Living Room
+            </p>
           </div>
           {isPlaying && (
-            <div className="ml-auto flex items-center gap-1">
+            <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4 }}>
               <span
-                className="w-1.5 h-1.5 rounded-full"
                 style={{
+                  width: 6,
+                  height: 6,
+                  borderRadius: '50%',
                   background: track.accentColor,
                   boxShadow: `0 0 6px ${track.accentColor}`,
                   animation: 'pulse 1.5s ease-in-out infinite',
+                  display: 'block',
                 }}
                 aria-hidden="true"
               />
-              <span className="text-[10px] font-semibold uppercase tracking-widest" style={{ color: track.accentColor }}>
+              <span
+                style={{
+                  fontSize: 10,
+                  fontWeight: 600,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.1em',
+                  color: track.accentColor,
+                }}
+              >
                 Playing
               </span>
             </div>
@@ -216,41 +269,95 @@ export default function MusicVisualizer() {
         </div>
 
         {/* Main content */}
-        <div className="px-5 pt-5 pb-4">
+        <div style={{ padding: '20px 20px 16px' }}>
           {/* Track info + disc */}
-          <div className="flex items-center gap-4 mb-5">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20 }}>
             {/* Spinning disc */}
             <div
-              className="w-14 h-14 rounded-full flex-shrink-0 flex items-center justify-center border border-white/10"
               style={{
+                width: 56,
+                height: 56,
+                borderRadius: '50%',
+                flexShrink: 0,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                border: '1px solid rgba(255,255,255,0.1)',
                 background: `conic-gradient(from 0deg, ${track.accentColor}66, #0E0E1E, ${track.accentColor}44, #0E0E1E, ${track.accentColor}66)`,
                 animation: isPlaying ? 'spin 4s linear infinite' : 'none',
               }}
               aria-hidden="true"
             >
               <div
-                className="w-5 h-5 rounded-full border border-white/20"
-                style={{ background: '#0E0E1E' }}
+                style={{
+                  width: 20,
+                  height: 20,
+                  borderRadius: '50%',
+                  border: '1px solid rgba(255,255,255,0.2)',
+                  background: '#0E0E1E',
+                }}
               />
             </div>
 
-            <div className="min-w-0 flex-1">
-              <Disc3 size={10} style={{ color: track.accentColor }} className="mb-1" aria-hidden="true" />
-              <h3 className="text-[15px] font-bold text-slate-100 truncate leading-tight">{track.title}</h3>
-              <p className="text-[12px] text-slate-400 truncate mt-0.5">{track.artist}</p>
-              <p className="text-[10px] text-slate-600 truncate">{track.album}</p>
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <Disc3 size={10} style={{ color: track.accentColor, marginBottom: 4, display: 'block' }} aria-hidden="true" />
+              <h3
+                style={{
+                  fontSize: 15,
+                  fontWeight: 700,
+                  color: '#E2E8F0',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  lineHeight: 1.2,
+                  margin: 0,
+                }}
+              >
+                {track.title}
+              </h3>
+              <p
+                style={{
+                  fontSize: 12,
+                  color: '#94A3B8',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  marginTop: 2,
+                  marginBottom: 0,
+                }}
+              >
+                {track.artist}
+              </p>
+              <p
+                style={{
+                  fontSize: 10,
+                  color: '#475569',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  margin: 0,
+                }}
+              >
+                {track.album}
+              </p>
             </div>
           </div>
 
           {/* Visualizer */}
-          <div className="mb-4 px-1">
+          <div style={{ marginBottom: 16, padding: '0 4px' }}>
             <VisualizerBars isPlaying={isPlaying} accentColor={track.accentColor} />
           </div>
 
           {/* Progress bar */}
-          <div className="mb-3">
+          <div style={{ marginBottom: 12 }}>
             <div
-              className="h-1 rounded-full bg-white/5 overflow-hidden cursor-pointer"
+              style={{
+                height: 4,
+                borderRadius: 9999,
+                background: 'rgba(255,255,255,0.05)',
+                overflow: 'hidden',
+                cursor: 'pointer',
+              }}
               role="progressbar"
               aria-valuenow={progress}
               aria-valuemin={0}
@@ -258,26 +365,40 @@ export default function MusicVisualizer() {
               aria-label={`Playback progress: ${formatTime(progress)} of ${formatTime(track.duration)}`}
             >
               <div
-                className="h-full rounded-full transition-all duration-1000 ease-linear"
                 style={{
+                  height: '100%',
+                  borderRadius: 9999,
                   width: `${progressPercent}%`,
                   background: `linear-gradient(to right, ${track.accentColor}, ${track.accentColor}bb)`,
                   boxShadow: `0 0 6px ${track.accentColor}66`,
+                  transition: 'width 1s linear',
                 }}
               />
             </div>
-            <div className="flex justify-between mt-1.5">
-              <span className="text-[10px] text-slate-600 font-mono">{formatTime(progress)}</span>
-              <span className="text-[10px] text-slate-600 font-mono">{formatTime(track.duration)}</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6 }}>
+              <span style={{ fontSize: 10, color: '#475569', fontFamily: 'monospace' }}>{formatTime(progress)}</span>
+              <span style={{ fontSize: 10, color: '#475569', fontFamily: 'monospace' }}>{formatTime(track.duration)}</span>
             </div>
           </div>
 
           {/* Controls */}
-          <div className="flex items-center justify-center gap-5">
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 20 }}>
             <button
               onClick={handlePrev}
               aria-label="Previous track"
-              className="text-slate-500 hover:text-slate-200 transition-colors p-1.5"
+              style={{
+                color: '#64748B',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                padding: 6,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'color 0.2s ease',
+              }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = '#E2E8F0'; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = '#64748B'; }}
             >
               <SkipBack size={18} aria-hidden="true" />
             </button>
@@ -285,12 +406,19 @@ export default function MusicVisualizer() {
             <button
               onClick={() => setIsPlaying((p) => !p)}
               aria-label={isPlaying ? 'Pause' : 'Play'}
-              className="w-11 h-11 rounded-full flex items-center justify-center border transition-all duration-200"
               style={{
+                width: 44,
+                height: 44,
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                border: `1px solid ${track.accentColor}50`,
                 background: `${track.accentColor}25`,
-                borderColor: `${track.accentColor}50`,
                 color: track.accentColor,
                 boxShadow: isPlaying ? `0 0 16px ${track.accentColor}40` : 'none',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
               }}
             >
               {isPlaying ? (
@@ -303,7 +431,19 @@ export default function MusicVisualizer() {
             <button
               onClick={handleNext}
               aria-label="Next track"
-              className="text-slate-500 hover:text-slate-200 transition-colors p-1.5"
+              style={{
+                color: '#64748B',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                padding: 6,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'color 0.2s ease',
+              }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = '#E2E8F0'; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = '#64748B'; }}
             >
               <SkipForward size={18} aria-hidden="true" />
             </button>

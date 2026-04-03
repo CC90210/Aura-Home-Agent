@@ -386,7 +386,7 @@ function WhosHomeWidget({ residents, activeUser }: WhosHomeWidgetProps) {
 
   return (
     <div className={s.whosHomeCard} role="region" aria-label="Who is home">
-      <div style={{ flex: 1 }}>
+      <div className={s.whosHomeBody}>
         <div className={s.whosHomeTitle}>Who&apos;s Home</div>
         <div className={s.whosHomeResidents}>
           {sorted.map((r) => {
@@ -408,20 +408,7 @@ function WhosHomeWidget({ residents, activeUser }: WhosHomeWidgetProps) {
                   <div className={s.residentName}>
                     {r.name}
                     {isCurrentUser && (
-                      <span
-                        style={{
-                          marginLeft: 6,
-                          fontSize: 9,
-                          fontWeight: 700,
-                          letterSpacing: "0.06em",
-                          textTransform: "uppercase",
-                          color: "#7C3AED",
-                          background: "rgba(124,58,237,0.12)",
-                          border: "1px solid rgba(124,58,237,0.22)",
-                          borderRadius: 5,
-                          padding: "1px 5px",
-                        }}
-                      >
+                      <span className={s.youBadge}>
                         you
                       </span>
                     )}
@@ -855,33 +842,17 @@ function ClimateCard({ state, onSetTemperature }: ClimateCardProps) {
       </div>
 
       {state?.humidity != null && (
-        <div
-          style={{
-            display: "flex", alignItems: "center", gap: 8,
-            padding: "8px 12px", marginTop: 12, borderRadius: 10,
-            background: "rgba(26,26,62,0.5)",
-            border: "1px solid rgba(30,30,64,0.5)",
-          }}
-        >
+        <div className={s.climateHumidityRow}>
           <Droplets size={12} style={{ color: "#60A5FA", flexShrink: 0 }} aria-hidden="true" />
-          <span style={{ fontSize: 12, color: "#64748B" }}>Humidity</span>
-          <span style={{ fontSize: 12, fontWeight: 600, color: "#E2E8F0", marginLeft: "auto" }}>
-            {state.humidity}%
-          </span>
+          <span className={s.climateHumidityLabel}>Humidity</span>
+          <span className={s.climateHumidityValue}>{state.humidity}%</span>
         </div>
       )}
 
       {!state && (
-        <div
-          style={{
-            display: "flex", alignItems: "center", gap: 8,
-            padding: "8px 12px", marginTop: 12, borderRadius: 10,
-            background: "rgba(245,158,11,0.06)",
-            border: "1px solid rgba(245,158,11,0.18)",
-          }}
-        >
+        <div className={s.climateOfflineRow}>
           <Wind size={12} style={{ color: "#F59E0B", flexShrink: 0 }} aria-hidden="true" />
-          <span style={{ fontSize: 12, color: "#64748B" }}>No thermostat connected</span>
+          <span className={s.climateOfflineLabel}>No thermostat connected</span>
         </div>
       )}
     </div>
@@ -923,8 +894,7 @@ function DeviceRow({ device, onToggle }: { device: Device; onToggle: (device: De
           aria-label={`Toggle ${device.friendly_name}`}
           aria-checked={isOn}
           role="switch"
-          className={[s.toggleSwitch, isOn ? s.toggleSwitchOn : s.toggleSwitchOff].join(" ")}
-          style={loading ? { opacity: 0.5, cursor: "wait" } : undefined}
+          className={[s.toggleSwitch, isOn ? s.toggleSwitchOn : s.toggleSwitchOff, loading ? s.toggleSwitchLoading : ""].join(" ")}
         >
           <span className={[s.toggleThumb, isOn ? s.toggleThumbOn : s.toggleThumbOff].join(" ")} />
         </button>
@@ -966,7 +936,7 @@ function RoomExpandableCard({ room, onDeviceToggle }: { room: Room; onDeviceTogg
               {onlineCount} on
             </span>
           ) : (
-            <span style={{ fontSize: 11, color: "#64748B" }}>All off</span>
+            <span className={s.roomAllOff}>All off</span>
           )}
           <span className={s.roomChevron}>
             {expanded
@@ -1098,20 +1068,7 @@ function Sidebar({ activeTab, onTabChange, residents, activeUser, isOpen }: Side
                 {r.name}
               </span>
               {isCurrentUser && (
-                <span
-                  style={{
-                    marginLeft: "auto",
-                    fontSize: 9,
-                    fontWeight: 700,
-                    letterSpacing: "0.06em",
-                    textTransform: "uppercase",
-                    color: "#7C3AED",
-                    background: "rgba(124,58,237,0.12)",
-                    border: "1px solid rgba(124,58,237,0.25)",
-                    borderRadius: 6,
-                    padding: "2px 6px",
-                  }}
-                >
+                <span className={s.youBadgeSidebar}>
                   You
                 </span>
               )}
@@ -1264,14 +1221,13 @@ function HomeView({
         <div className={s.headerRight}>
           <div className={s.clockBlock}>
             <div
-              className={s.clockDisplay}
+              className={[s.clockDisplay, s.clockRow].join(" ")}
               aria-label={`Current time: ${time}:${seconds}`}
-              style={{ display: "flex", alignItems: "baseline", gap: 0 }}
             >
               {time}
               <span className={s.clockSeconds}>{seconds}</span>
             </div>
-            <div style={{ fontSize: 11, color: "#64748B", textAlign: "right" }}>{date}</div>
+            <div className={s.clockDate}>{date}</div>
           </div>
           <div className={[s.statusBadge, haConnected ? "" : s.statusBadgeOffline].join(" ")}>
             <span className={s.statusDot} aria-hidden="true" />
@@ -1359,7 +1315,7 @@ function HomeView({
       {/* ------------------------------------------------------------------ */}
       {/* Intelligence Hub                                                    */}
       {/* ------------------------------------------------------------------ */}
-      <div className={s.sectionTitle} style={{ marginTop: 36 }}>
+      <div className={[s.sectionTitle, s.sectionTitleHub].join(" ")}>
         <span className={s.sectionTitleBar} aria-hidden="true" />
         Intelligence Hub
       </div>
@@ -1381,7 +1337,7 @@ function HomeView({
       </div>
 
       {/* Row 4: System Health */}
-      <div className={s.hubFullWidth} style={{ marginBottom: 32 }}>
+      <div className={[s.hubFullWidth, s.hubFullWidthLast].join(" ")}>
         <SystemHealth />
       </div>
     </div>
@@ -1400,11 +1356,7 @@ function ScenesView({ scenes, onScenePress }: { scenes: Scene[]; onScenePress: (
         All Scenes
       </div>
       <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))",
-          gap: 14,
-        }}
+        className={s.scenesViewGrid}
         role="list"
         aria-label="All scenes"
       >
@@ -1416,14 +1368,13 @@ function ScenesView({ scenes, onScenePress }: { scenes: Scene[]; onScenePress: (
                 onClick={async () => { await onScenePress(scene); }}
                 aria-label={`Activate ${scene.name} scene`}
                 aria-pressed={scene.active}
-                className={[s.sceneCard, scene.active ? s.sceneCardActive : ""].join(" ")}
-                style={{ padding: "20px 16px", gap: 12 }}
+                className={[s.sceneCard, s.sceneCardLarge, scene.active ? s.sceneCardActive : ""].join(" ")}
               >
                 {scene.active && <span className={s.sceneActiveDot} aria-hidden="true" />}
-                <span className={s.sceneIconWrap} style={{ width: 52, height: 52, borderRadius: 14 }}>
+                <span className={[s.sceneIconWrap, s.sceneIconLarge].join(" ")}>
                   <Icon size={24} strokeWidth={scene.active ? 2.5 : 1.75} aria-hidden="true" />
                 </span>
-                <span className={s.sceneName} style={{ fontSize: 13 }}>{scene.name}</span>
+                <span className={[s.sceneName, s.sceneNameLarge].join(" ")}>{scene.name}</span>
                 <span className={s.sceneDesc}>{scene.description}</span>
               </button>
             </div>
@@ -1489,10 +1440,9 @@ function ProfileView({ residents, status }: { residents: ResidentPresence[]; sta
             <div key={r.name}>
               <div className={s.systemRow}>
                 <div
-                  className={s.systemRowIcon}
-                  style={r.home ? { background: "rgba(16,185,129,0.1)", border: "1px solid rgba(16,185,129,0.25)", color: "#10B981" } : undefined}
+                  className={[s.systemRowIcon, r.home ? s.systemRowIconHome : ""].join(" ")}
                 >
-                  <span style={{ fontSize: 13, fontWeight: 700 }}>{r.name.slice(0, 2).toUpperCase()}</span>
+                  <span className={s.residentInitials}>{r.name.slice(0, 2).toUpperCase()}</span>
                 </div>
                 <div>
                   <div className={s.systemRowLabel}>{r.name}</div>
@@ -1501,8 +1451,7 @@ function ProfileView({ residents, status }: { residents: ResidentPresence[]; sta
                   </div>
                 </div>
                 <span
-                  className={[s.presenceDot, r.home ? s.presenceOnline : s.presenceOffline].join(" ")}
-                  style={{ marginLeft: "auto" }}
+                  className={[s.presenceDot, s.presenceDotRight, r.home ? s.presenceOnline : s.presenceOffline].join(" ")}
                   aria-hidden="true"
                 />
               </div>
@@ -1569,23 +1518,23 @@ function ProfileView({ residents, status }: { residents: ResidentPresence[]; sta
             </div>
           )}
 
-          <div className={s.systemDivider} style={{ marginTop: 12 }} aria-hidden="true" />
+          <div className={[s.systemDivider, s.systemDividerTop].join(" ")} aria-hidden="true" />
 
           {/* Last command */}
-          <div className={s.systemRow} style={{ alignItems: "flex-start" }}>
+          <div className={[s.systemRow, s.systemRowAlignStart].join(" ")}>
             <div className={s.systemRowIcon}>
               <Terminal size={15} style={{ color: "#7C3AED" }} aria-hidden="true" />
             </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div className={s.systemRowSub} style={{ marginBottom: 2 }}>Last command</div>
-              <div className={s.systemRowLabel} style={{ fontSize: 12, wordBreak: "break-all" }}>
+            <div className={s.systemRowBody}>
+              <div className={s.systemRowSub}>Last command</div>
+              <div className={[s.systemRowLabel, s.lastCommandText].join(" ")}>
                 {status.last_command ?? "None yet"}
               </div>
             </div>
             {status.last_command_time && (
-              <div style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
+              <div className={s.lastCommandRow}>
                 <Clock3 size={10} style={{ color: "#64748B" }} aria-hidden="true" />
-                <span style={{ fontSize: 11, color: "#64748B" }}>{formatRelativeTime(status.last_command_time)}</span>
+                <span className={s.lastCommandTime}>{formatRelativeTime(status.last_command_time)}</span>
               </div>
             )}
           </div>
@@ -1814,7 +1763,7 @@ export default function DashboardPage() {
                 className={[s.bottomNavBtn, isActive ? s.bottomNavBtnActive : ""].join(" ")}
               >
                 <Icon size={20} strokeWidth={isActive ? 2.5 : 1.5} aria-hidden="true" />
-                <span style={{ fontSize: 10, fontWeight: 600 }}>{tab.label}</span>
+                <span className={s.bottomNavLabel}>{tab.label}</span>
                 {isActive && <span className={s.bottomNavDot} aria-hidden="true" />}
               </button>
             );

@@ -135,32 +135,95 @@ export default function VoiceActivityLog() {
   }, []);
 
   return (
-    <div className="rounded-2xl border border-purple-900/30 bg-[#0E0E1E]/90 backdrop-blur-sm overflow-hidden">
+    <div
+      style={{
+        borderRadius: 16,
+        border: '1px solid rgba(88, 28, 135, 0.3)',
+        background: 'rgba(14, 14, 30, 0.9)',
+        backdropFilter: 'blur(8px)',
+        WebkitBackdropFilter: 'blur(8px)',
+        overflow: 'hidden',
+      }}
+    >
       {/* Header */}
-      <div className="flex items-center gap-3 px-5 py-4 border-b border-purple-900/20">
-        <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-purple-600/15 border border-purple-600/25">
-          <Mic size={14} className="text-violet-400" aria-hidden="true" />
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 12,
+          padding: '16px 20px',
+          borderBottom: '1px solid rgba(88, 28, 135, 0.2)',
+        }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: 32,
+            height: 32,
+            borderRadius: 8,
+            background: 'rgba(124, 58, 237, 0.15)',
+            border: '1px solid rgba(124, 58, 237, 0.25)',
+          }}
+        >
+          <Mic size={14} style={{ color: '#A78BFA' }} aria-hidden="true" />
         </div>
         <div>
-          <h2 className="text-sm font-semibold text-slate-100 tracking-wide">Voice Activity</h2>
-          <p className="text-[11px] text-slate-500 mt-0.5">Recent commands &amp; responses</p>
+          <h2
+            style={{
+              fontSize: 14,
+              fontWeight: 600,
+              color: '#E2E8F0',
+              letterSpacing: '0.025em',
+              margin: 0,
+            }}
+          >
+            Voice Activity
+          </h2>
+          <p
+            style={{
+              fontSize: 11,
+              color: '#64748B',
+              marginTop: 2,
+              marginBottom: 0,
+            }}
+          >
+            Recent commands &amp; responses
+          </p>
         </div>
         {/* Live indicator */}
-        <div className="ml-auto flex items-center gap-1.5">
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
           <span
-            className="w-1.5 h-1.5 rounded-full bg-emerald-400"
-            style={{ boxShadow: '0 0 6px rgba(52,211,153,0.7)', animation: 'pulse 2s ease-in-out infinite' }}
+            style={{
+              width: 6,
+              height: 6,
+              borderRadius: '50%',
+              background: '#34D399',
+              boxShadow: '0 0 6px rgba(52,211,153,0.7)',
+              animation: 'pulse 2s ease-in-out infinite',
+              display: 'block',
+            }}
             aria-hidden="true"
           />
-          <span className="text-[10px] font-semibold text-emerald-400 tracking-widest uppercase">Live</span>
+          <span
+            style={{
+              fontSize: 10,
+              fontWeight: 600,
+              color: '#34D399',
+              letterSpacing: '0.1em',
+              textTransform: 'uppercase',
+            }}
+          >
+            Live
+          </span>
         </div>
       </div>
 
       {/* Feed */}
       <div
         ref={containerRef}
-        className="overflow-y-auto"
-        style={{ maxHeight: '420px' }}
+        style={{ overflowY: 'auto', maxHeight: 420 }}
         role="log"
         aria-label="Voice command log"
         aria-live="polite"
@@ -176,51 +239,79 @@ export default function VoiceActivityLog() {
                 opacity: isVisible ? 1 : 0,
                 transform: isVisible ? 'translateY(0)' : 'translateY(8px)',
                 transition: 'opacity 0.35s ease, transform 0.35s ease',
+                padding: '16px 20px',
+                borderBottom: index < entries.length - 1 ? '1px solid rgba(88, 28, 135, 0.15)' : 'none',
               }}
-              className={[
-                'px-5 py-4',
-                index < entries.length - 1 ? 'border-b border-purple-900/15' : '',
-              ].join(' ')}
               aria-label={`${entry.speaker} said: ${entry.command}`}
             >
               {/* Row: speaker badge + timestamp */}
-              <div className="flex items-center gap-2 mb-2">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
                 <span
-                  className={[
-                    'text-[10px] font-bold tracking-widest uppercase px-2 py-0.5 rounded-md',
-                    isCc
-                      ? 'bg-purple-600/20 text-violet-400 border border-purple-600/30'
-                      : 'bg-blue-600/20 text-blue-400 border border-blue-600/30',
-                  ].join(' ')}
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 700,
+                    letterSpacing: '0.1em',
+                    textTransform: 'uppercase',
+                    padding: '2px 8px',
+                    borderRadius: 6,
+                    background: isCc ? 'rgba(124, 58, 237, 0.2)' : 'rgba(37, 99, 235, 0.2)',
+                    color: isCc ? '#A78BFA' : '#60A5FA',
+                    border: isCc ? '1px solid rgba(124, 58, 237, 0.3)' : '1px solid rgba(37, 99, 235, 0.3)',
+                  }}
                 >
                   {entry.speaker}
                 </span>
-                <div className="flex items-center gap-1 text-slate-600">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4, color: '#475569' }}>
                   <Clock size={10} aria-hidden="true" />
-                  <span className="text-[10px]">{formatTimestamp(entry.timestamp)}</span>
+                  <span style={{ fontSize: 10 }}>{formatTimestamp(entry.timestamp)}</span>
                 </div>
               </div>
 
               {/* Command bubble */}
-              <div className="mb-2 ml-0">
-                <div className="inline-block max-w-full px-3 py-2 rounded-xl rounded-tl-sm bg-[#1A1A32] border border-purple-900/25 text-[13px] text-slate-300">
+              <div style={{ marginBottom: 8 }}>
+                <div
+                  style={{
+                    display: 'inline-block',
+                    maxWidth: '100%',
+                    padding: '8px 12px',
+                    borderRadius: '12px 12px 12px 4px',
+                    background: '#1A1A32',
+                    border: '1px solid rgba(88, 28, 135, 0.25)',
+                    fontSize: 13,
+                    color: '#CBD5E1',
+                  }}
+                >
                   &ldquo;{entry.command}&rdquo;
                 </div>
               </div>
 
               {/* AURA response */}
-              <div className="ml-3 mb-1">
-                <div className="flex items-start gap-2">
-                  <div className="flex-shrink-0 mt-0.5">
+              <div style={{ marginLeft: 12, marginBottom: 4 }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                  <div style={{ flexShrink: 0, marginTop: 2 }}>
                     <div
-                      className="w-4 h-4 rounded-full flex items-center justify-center"
-                      style={{ background: 'linear-gradient(135deg, #7C3AED, #2563EB)' }}
+                      style={{
+                        width: 16,
+                        height: 16,
+                        borderRadius: '50%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        background: 'linear-gradient(135deg, #7C3AED, #2563EB)',
+                      }}
                       aria-hidden="true"
                     >
-                      <Zap size={8} className="text-white" />
+                      <Zap size={8} style={{ color: '#fff' }} />
                     </div>
                   </div>
-                  <div className="text-[12px] text-slate-400 italic leading-relaxed">
+                  <div
+                    style={{
+                      fontSize: 12,
+                      color: '#94A3B8',
+                      fontStyle: 'italic',
+                      lineHeight: 1.6,
+                    }}
+                  >
                     {entry.response}
                   </div>
                 </div>
@@ -228,8 +319,21 @@ export default function VoiceActivityLog() {
 
               {/* Action chip */}
               {entry.actionTaken && (
-                <div className="ml-6 mt-1.5">
-                  <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-emerald-900/20 text-emerald-500 border border-emerald-900/30 font-mono">
+                <div style={{ marginLeft: 24, marginTop: 6 }}>
+                  <span
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      fontSize: 10,
+                      padding: '2px 8px',
+                      borderRadius: 9999,
+                      background: 'rgba(6, 78, 59, 0.2)',
+                      color: '#10B981',
+                      border: '1px solid rgba(6, 78, 59, 0.3)',
+                      fontFamily: 'monospace',
+                    }}
+                  >
                     <span aria-hidden="true">&#x2713;</span>
                     {entry.actionTaken}
                   </span>
