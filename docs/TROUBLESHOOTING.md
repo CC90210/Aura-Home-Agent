@@ -165,8 +165,8 @@ The error message will usually point directly at the problem.
 The service runs Python inside a virtualenv. Check it exists and has the required packages:
 
 ```bash
-ls /config/aura/clap-trigger/venv/bin/python3
-/config/aura/clap-trigger/venv/bin/pip list | grep -E "pyaudio|numpy|requests"
+ls /config/aura/.venv/bin/python3
+/config/aura/.venv/bin/pip list | grep -E "pyaudio|numpy|requests"
 ```
 
 If the venv is missing or packages are absent, re-run the setup script:
@@ -252,12 +252,12 @@ You should see `snd_usb_audio` in the list. If not, the module needs to be loade
 
 ## Voice Agent Won't Start
 
-**Symptoms:** `systemctl status voice_agent` shows "failed" or the service exits immediately after starting.
+**Symptoms:** `systemctl status aura_voice` shows "failed" or the service exits immediately after starting.
 
 **Step 1: Read the service log.**
 
 ```bash
-journalctl -u voice_agent -n 50
+journalctl -u aura_voice -n 50
 ```
 
 The first error line will usually identify the cause directly.
@@ -287,7 +287,7 @@ If the directory is empty or contains only partial files, delete it and let the 
 
 ```bash
 rm -rf ~/.cache/huggingface/hub/
-systemctl restart voice_agent
+systemctl restart aura_voice
 ```
 
 Watch the log during restart — you will see download progress. This requires the Pi to have internet access.
@@ -314,7 +314,7 @@ pip install -r /config/aura/voice-agent/requirements.txt
 
 ```bash
 cd /config/aura/voice-agent
-python wake_word_listener.py --test
+python wake_word.py
 ```
 
 In test mode the script logs the detection score for every audio chunk. Speak "Hey Aura" several times and watch the score output. A score above the threshold (default 0.5) should trigger detection.
@@ -425,7 +425,7 @@ If TTS is routing through a Sonos or other HA-managed speaker, check that the `m
 
 ```bash
 cd /config/aura/voice-agent
-python tts_responder.py --test "AURA test."
+python tts.py
 ```
 
 If this produces no audio and no error, add `--verbose` to see the full API response and any audio routing errors.
@@ -446,7 +446,7 @@ NEXT_PUBLIC_HA_URL=http://homeassistant.local:8123
 If you are accessing the dashboard from a different machine or the `.local` address does not resolve, use the Pi's IP address instead. Test reachability directly: open `http://homeassistant.local:8123` in the same browser — if that loads, the URL is correct.
 
 **Step 2: Check the HA token.**
-Confirm `NEXT_PUBLIC_HA_TOKEN` in `dashboard/.env.local` matches a valid long-lived access token. In HA, go to your profile → Security → Long-Lived Access Tokens. The token listed must match. If in doubt, create a new token and update `.env.local`, then restart the dev server.
+Confirm `HA_TOKEN` in `dashboard/.env.local` matches a valid long-lived access token. In HA, go to your profile → Security → Long-Lived Access Tokens. The token listed must match. If in doubt, create a new token and update `.env.local`, then restart the dev server.
 
 **Step 3: Check CORS settings in HA.**
 By default, Home Assistant only allows requests from trusted origins. If the dashboard is running on a different port or domain than HA expects, the browser will block the request with a CORS error.
@@ -484,22 +484,22 @@ For production builds, any `.env.local` change requires a full rebuild (`npm run
 **Symptoms:** The learning engine service is running but the SQLite database stays empty, event counts do not increase, or the service crashes shortly after starting.
 
 **Step 1: Check the database path.**
-Confirm the `LEARNING_DB_PATH` in `.env` points to a writable location:
+Confirm `AURA_DB_PATH` in `.env` points to a writable location:
 
 ```bash
-grep LEARNING_DB_PATH /config/aura/.env
+grep AURA_DB_PATH /config/aura/.env
 ```
 
-The path is relative to `/config/aura/`. The directory containing the database file must exist and be writable by the user running the service. Check:
+The path should point at the shared data directory used by the learning and voice modules. The directory containing the database file must exist and be writable by the user running the service. Check:
 
 ```bash
-ls -la /config/aura/learning/
+ls -la /config/aura/data/
 ```
 
-If the `learning/` directory is missing, create it:
+If the `data/` directory is missing, create it:
 
 ```bash
-mkdir -p /config/aura/learning
+mkdir -p /config/aura/data
 ```
 
 **Step 2: Check the HA event listener is connected.**
@@ -515,14 +515,14 @@ You should see a line like "Connected to Home Assistant WebSocket API" and "Subs
 If the database file was created by a different user or process, the learning engine may not be able to write to it:
 
 ```bash
-ls -la /config/aura/learning/aura_learning.db
+ls -la /config/aura/data/patterns.db
 ```
 
 The file should be owned by the same user running the systemd service (root on HA OS). To fix ownership:
 
 ```bash
-chown root:root /config/aura/learning/aura_learning.db
-chmod 600 /config/aura/learning/aura_learning.db
+chown root:root /config/aura/data/patterns.db
+chmod 600 /config/aura/data/patterns.db
 ```
 
 **Step 4: Manually trigger a state change and watch the log.**

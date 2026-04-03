@@ -36,7 +36,10 @@ from typing import Optional
 import yaml
 
 # Reuse DB and config infrastructure from pattern_engine
-from .pattern_engine import _Database, _load_config
+try:
+    from .pattern_engine import _Database, _load_config
+except ImportError:
+    from pattern_engine import _Database, _load_config
 
 # ---------------------------------------------------------------------------
 # Logging

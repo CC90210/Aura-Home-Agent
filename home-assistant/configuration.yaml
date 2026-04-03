@@ -37,9 +37,15 @@ input_boolean:
   podcast_mode_active:
     name: "Podcast Mode Active"
     icon: mdi:microphone
+  recording_mode_active:
+    name: "Recording Mode Active"
+    icon: mdi:record-rec
   music_mode_active:
     name: "Music Mode Active"
     icon: mdi:music
+  movie_mode_active:
+    name: "Movie Mode Active"
+    icon: mdi:movie-open
   focus_mode_active:
     name: "Focus Mode Active"
     icon: mdi:head-lightbulb

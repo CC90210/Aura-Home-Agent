@@ -40,6 +40,7 @@ from __future__ import annotations
 
 import hashlib
 import logging
+import os
 import time
 from pathlib import Path
 from typing import Literal
@@ -279,7 +280,7 @@ class VoiceSecurityGuard:
             )
             return
 
-        raw_pin = security.get("voice_pin")
+        raw_pin = os.getenv("AURA_VOICE_PIN") or security.get("voice_pin")
         if raw_pin is None:
             log.warning(
                 "No voice_pin set in config.yaml security section — "
@@ -288,6 +289,12 @@ class VoiceSecurityGuard:
             return
 
         pin_str = str(raw_pin).strip()
+        if pin_str.lower() in {"change_me", "changeme", "unset"}:
+            log.warning(
+                "voice_pin is still set to a placeholder value — "
+                "sensitive actions will be blocked until a real PIN is configured."
+            )
+            return
         if len(pin_str) < 4:
             log.error(
                 "voice_pin is too short (minimum 4 characters) — "

@@ -37,12 +37,14 @@ import math
 import os
 import signal
 import sys
+import threading
 import time
 from pathlib import Path
 from typing import Any
 
 import numpy as np
 import pyaudio
+import requests
 import yaml
 from dotenv import load_dotenv
 
@@ -54,6 +56,7 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = SCRIPT_DIR.parent
 CONFIG_PATH = SCRIPT_DIR / "config.yaml"
 ENV_PATH = PROJECT_ROOT / ".env"
+LEARNING_CONFIG_PATH = PROJECT_ROOT / "learning" / "config.yaml"
 
 # ---------------------------------------------------------------------------
 # Learning-module path setup — the learning package lives one level up.
@@ -65,6 +68,7 @@ sys.path.insert(0, str(PROJECT_ROOT))
 sys.path.insert(0, str(SCRIPT_DIR))
 
 from person_recognition import PersonRecognizer  # noqa: E402 — after path setup
+from personality import AuraPersonality  # noqa: E402 — after path setup
 
 try:
     from learning.pattern_engine import ContextAwareness  # noqa: E402
@@ -73,24 +77,29 @@ try:
 except ImportError:
     _LEARNING_AVAILABLE = False
 
-# Feature modules — all optional, graceful degradation if any are missing
-# or if their dependencies (anthropic, requests) are not installed yet.
-try:
-    from mirror_mode import MirrorMode
-    from aura_drops import AuraDrops
-    from pulse_check import PulseCheck
-    from ghost_dj import GhostDJ
-    from vibe_sync import VibeSync
-    from deja_vu import DejaVu
-    from content_radar import ContentRadar
-    from social_sonar import SocialSonar
-    from phantom_presence import PhantomPresence
-    from energy_oracle import EnergyOracle
-    _FEATURES_AVAILABLE = True
-except ImportError as _features_import_error:
-    _FEATURES_AVAILABLE = False
-    # Logged after the logging config is set up (see bottom of this block).
-    _features_import_error_msg = str(_features_import_error)
+_FEATURE_IMPORT_ERRORS: dict[str, str] = {}
+
+
+def _optional_feature_import(module_name: str, class_name: str) -> Any | None:
+    """Return an optional feature class without disabling unrelated features."""
+    try:
+        module = __import__(module_name, fromlist=[class_name])
+        return getattr(module, class_name)
+    except Exception as exc:  # noqa: BLE001
+        _FEATURE_IMPORT_ERRORS[module_name] = str(exc)
+        return None
+
+
+MirrorMode = _optional_feature_import("mirror_mode", "MirrorMode")
+AuraDrops = _optional_feature_import("aura_drops", "AuraDrops")
+PulseCheck = _optional_feature_import("pulse_check", "PulseCheck")
+GhostDJ = _optional_feature_import("ghost_dj", "GhostDJ")
+VibeSync = _optional_feature_import("vibe_sync", "VibeSync")
+DejaVu = _optional_feature_import("deja_vu", "DejaVu")
+ContentRadar = _optional_feature_import("content_radar", "ContentRadar")
+SocialSonar = _optional_feature_import("social_sonar", "SocialSonar")
+PhantomPresence = _optional_feature_import("phantom_presence", "PhantomPresence")
+EnergyOracle = _optional_feature_import("energy_oracle", "EnergyOracle")
 
 # ---------------------------------------------------------------------------
 # Logging — same format as clap_listener.py for consistency across services.
@@ -105,8 +114,13 @@ logging.basicConfig(
 )
 log = logging.getLogger("aura.voice")
 
-if not _FEATURES_AVAILABLE:
-    log.warning("Feature modules not fully available — some features disabled: %s", _features_import_error_msg)  # type: ignore[name-defined]
+if _FEATURE_IMPORT_ERRORS:
+    for _module_name, _error in sorted(_FEATURE_IMPORT_ERRORS.items()):
+        log.warning(
+            "Optional feature module %s unavailable — related feature disabled: %s",
+            _module_name,
+            _error,
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -264,6 +278,25 @@ def play_processing_tone(config: dict[str, Any]) -> None:
         log.warning("Processing tone failed: %s", exc)
 
 
+class _ThreadSafeFeatureProxy:
+    """Wrap a feature instance so cross-thread calls share the same lock."""
+
+    def __init__(self, instance: Any, lock: threading.RLock) -> None:
+        self._instance = instance
+        self._lock = lock
+
+    def __getattr__(self, name: str) -> Any:
+        attr = getattr(self._instance, name)
+        if not callable(attr):
+            return attr
+
+        def _wrapped(*args: Any, **kwargs: Any) -> Any:
+            with self._lock:
+                return attr(*args, **kwargs)
+
+        return _wrapped
+
+
 # ---------------------------------------------------------------------------
 # Main pipeline
 # ---------------------------------------------------------------------------
@@ -303,6 +336,8 @@ class AuraVoiceAgent:
 
         # Learning / personality components — optional, degrade gracefully if
         # the learning package is not installed or its config is missing.
+        self._learning_config: dict[str, Any] = {}
+        self._personality: AuraPersonality | None = None
         self._recognizer: PersonRecognizer | None = None
         self._context: ContextAwareness | None = None  # type: ignore[assignment]
         self._habit_tracker: HabitTracker | None = None  # type: ignore[assignment]
@@ -322,6 +357,8 @@ class AuraVoiceAgent:
         self._phantom_presence: Any = None
         self._energy_oracle: Any = None
         self._dispatcher: Any = None
+        self._feature_lock = threading.RLock()
+        self._tts_lock = threading.RLock()
 
     # ------------------------------------------------------------------
     # Lifecycle
@@ -339,6 +376,11 @@ class AuraVoiceAgent:
         """Signal the main loop to exit on the next iteration."""
         log.info("AURA Voice Agent shutting down…")
         self._running = False
+        if self._dispatcher is not None:
+            try:
+                self._dispatcher.stop()
+            except Exception:  # noqa: BLE001
+                pass
         if self._detector is not None:
             try:
                 self._detector.close()
@@ -348,6 +390,81 @@ class AuraVoiceAgent:
     # ------------------------------------------------------------------
     # Component initialisation
     # ------------------------------------------------------------------
+
+    def _load_learning_config(self) -> dict[str, Any]:
+        """Best-effort load of learning/config.yaml for shared runtime settings."""
+        if not LEARNING_CONFIG_PATH.exists():
+            log.warning(
+                "learning/config.yaml not found at %s — learning features may be limited.",
+                LEARNING_CONFIG_PATH,
+            )
+            return {}
+
+        try:
+            with LEARNING_CONFIG_PATH.open("r", encoding="utf-8") as fh:
+                raw = yaml.safe_load(fh) or {}
+        except Exception as exc:  # noqa: BLE001
+            log.warning("Failed to load learning config from %s: %s", LEARNING_CONFIG_PATH, exc)
+            return {}
+
+        if not isinstance(raw, dict):
+            log.warning("learning/config.yaml is not a mapping — ignoring.")
+            return {}
+        return raw
+
+    def _resolve_shared_db_path(self) -> Path:
+        """Return the shared learning DB path used by adaptive modules."""
+        configured = self._learning_config.get("database", {}).get("path")
+        if configured:
+            return Path(str(configured))
+        return PROJECT_ROOT / "data" / "patterns.db"
+
+    def _proxy_feature(self, feature: Any) -> Any:
+        """Expose a shared feature instance through the common feature lock."""
+        return _ThreadSafeFeatureProxy(feature, self._feature_lock)
+
+    def _build_intent_features(self) -> dict[str, Any]:
+        """Collect all live feature modules for IntentHandler."""
+        features: dict[str, Any] = {}
+        if self._mirror_mode:
+            features["mirror_mode"] = self._proxy_feature(self._mirror_mode)
+        if self._drops:
+            features["aura_drops"] = self._proxy_feature(self._drops)
+        if self._pulse_check:
+            features["pulse_check"] = self._proxy_feature(self._pulse_check)
+        if self._ghost_dj:
+            features["ghost_dj"] = self._proxy_feature(self._ghost_dj)
+        if self._vibe_sync:
+            features["vibe_sync"] = self._proxy_feature(self._vibe_sync)
+        if self._deja_vu:
+            features["deja_vu"] = self._proxy_feature(self._deja_vu)
+        if self._content_radar:
+            features["content_radar"] = self._proxy_feature(self._content_radar)
+        if self._social_sonar:
+            features["social_sonar"] = self._proxy_feature(self._social_sonar)
+        if self._phantom_presence:
+            features["phantom_presence"] = self._proxy_feature(self._phantom_presence)
+        if self._energy_oracle:
+            features["energy_oracle"] = self._proxy_feature(self._energy_oracle)
+        return features
+
+    def _normalise_person_id(self, value: Any) -> str | None:
+        """Map a display name or person id to the configured canonical person id."""
+        if value is None:
+            return None
+
+        raw = str(value).strip()
+        if not raw:
+            return None
+
+        lowered = raw.lower()
+        for person_cfg in self._learning_config.get("persons", []):
+            person_id = str(person_cfg.get("id", "")).strip().lower()
+            display_name = str(person_cfg.get("display_name", "")).strip().lower()
+            if lowered in {person_id, display_name}:
+                return person_id or None
+
+        return lowered.replace(" ", "_")
 
     def _init_components(self) -> None:
         """Import and construct all pipeline components."""
@@ -379,13 +496,23 @@ class AuraVoiceAgent:
             self._tts = None
 
         # ── Optional learning / personality layer ───────────────────────
-        learning_cfg_path = PROJECT_ROOT / "learning" / "config.yaml"
+        self._learning_config = self._load_learning_config()
+        recognizer_config = dict(self._config)
+        if self._learning_config.get("persons"):
+            recognizer_config["persons"] = list(self._learning_config["persons"])
+
+        try:
+            self._personality = AuraPersonality()
+            log.info("AuraPersonality initialised.")
+        except Exception as exc:  # noqa: BLE001
+            log.warning("AuraPersonality unavailable — greeting/pulse features limited: %s", exc)
+            self._personality = None
 
         try:
             self._recognizer = PersonRecognizer(
                 ha_url=self._secrets["ha_url"],
                 ha_token=self._secrets["ha_token"],
-                config=self._config,
+                config=recognizer_config,
             )
             log.info("PersonRecognizer initialised.")
         except Exception as exc:  # noqa: BLE001
@@ -394,14 +521,14 @@ class AuraVoiceAgent:
 
         if _LEARNING_AVAILABLE:
             try:
-                self._context = ContextAwareness(config_path=learning_cfg_path)
+                self._context = ContextAwareness(config_path=LEARNING_CONFIG_PATH)
                 log.info("ContextAwareness initialised.")
             except Exception as exc:  # noqa: BLE001
                 log.warning("ContextAwareness unavailable — context detection disabled: %s", exc)
                 self._context = None
 
             try:
-                self._habit_tracker = HabitTracker(config_path=learning_cfg_path)
+                self._habit_tracker = HabitTracker(config_path=LEARNING_CONFIG_PATH)
                 log.info("HabitTracker initialised.")
             except Exception as exc:  # noqa: BLE001
                 log.warning("HabitTracker unavailable — habit data disabled: %s", exc)
@@ -419,30 +546,12 @@ class AuraVoiceAgent:
         # ── Intent handler (needs features dict) ─────────────────────────
         # Built after features so we can pass the live instances in.
         log.info("Initialising intent handler…")
-        features: dict[str, Any] = {}
-        if self._mirror_mode:
-            features["mirror_mode"] = self._mirror_mode
-        if self._drops:
-            features["aura_drops"] = self._drops
-        if self._vibe_sync:
-            features["vibe_sync"] = self._vibe_sync
-        if self._deja_vu:
-            features["deja_vu"] = self._deja_vu
-        if self._pulse_check:
-            features["pulse_check"] = self._pulse_check
-        if self._ghost_dj:
-            features["ghost_dj"] = self._ghost_dj
-        if self._content_radar:
-            features["content_radar"] = self._content_radar
-        if self._energy_oracle:
-            features["energy_oracle"] = self._energy_oracle
-
         self._intent = IntentHandler(
             ha_url=self._secrets["ha_url"],
             ha_token=self._secrets["ha_token"],
             anthropic_api_key=self._secrets["anthropic_api_key"],
             config=self._config,
-            features=features,
+            features=self._build_intent_features(),
         )
 
         log.info("All components initialised.")
@@ -458,37 +567,42 @@ class AuraVoiceAgent:
         feature (missing dependency, bad config, etc.) cannot prevent the
         others from starting.
         """
-        if not _FEATURES_AVAILABLE:
-            log.warning("Skipping feature initialisation — feature modules not available.")
-            return
-
         ha_url: str = self._secrets["ha_url"]
         ha_token: str = self._secrets["ha_token"]
         api_key: str = self._secrets["anthropic_api_key"]
+        shared_db_path = self._resolve_shared_db_path()
+        shared_data_dir = shared_db_path.parent
 
         try:
+            if MirrorMode is None:
+                raise RuntimeError("mirror_mode import failed")
             self._mirror_mode = MirrorMode(ha_url, ha_token, api_key)
             log.info("MirrorMode initialised.")
         except Exception as exc:  # noqa: BLE001
             log.warning("MirrorMode init failed: %s", exc)
 
         try:
-            drops_db = Path(PROJECT_ROOT) / "data" / "drops.db"
+            if AuraDrops is None:
+                raise RuntimeError("aura_drops import failed")
+            drops_db = shared_data_dir / "drops.db"
             self._drops = AuraDrops(ha_url, ha_token, drops_db)
             log.info("AuraDrops initialised.")
         except Exception as exc:  # noqa: BLE001
             log.warning("AuraDrops init failed: %s", exc)
 
         try:
-            if self._habit_tracker is not None:
-                personality = (
-                    self._intent._personality  # noqa: SLF001
-                    if self._intent and hasattr(self._intent, "_personality")
-                    else None
-                )
+            if PulseCheck is None:
+                raise RuntimeError("pulse_check import failed")
+            if self._habit_tracker is not None and self._personality is not None:
+                personality = self._personality
                 if personality is not None:
                     self._pulse_check = PulseCheck(
-                        ha_url, ha_token, self._habit_tracker, personality, api_key
+                        ha_url,
+                        ha_token,
+                        self._habit_tracker,
+                        personality,
+                        api_key,
+                        data_dir=shared_data_dir,
                     )
                     log.info("PulseCheck initialised.")
                 else:
@@ -497,6 +611,8 @@ class AuraVoiceAgent:
             log.warning("PulseCheck init failed: %s", exc)
 
         try:
+            if GhostDJ is None:
+                raise RuntimeError("ghost_dj import failed")
             if self._context is not None:
                 self._ghost_dj = GhostDJ(
                     ha_url, ha_token,
@@ -511,12 +627,16 @@ class AuraVoiceAgent:
             log.warning("GhostDJ init failed: %s", exc)
 
         try:
+            if VibeSync is None:
+                raise RuntimeError("vibe_sync import failed")
             self._vibe_sync = VibeSync(ha_url, ha_token, anthropic_api_key=api_key)
             log.info("VibeSync initialised.")
         except Exception as exc:  # noqa: BLE001
             log.warning("VibeSync init failed: %s", exc)
 
         try:
+            if DejaVu is None:
+                raise RuntimeError("deja_vu import failed")
             if self._context is not None and hasattr(self._context, "_engine"):
                 self._deja_vu = DejaVu(
                     self._context._engine,  # noqa: SLF001
@@ -528,9 +648,11 @@ class AuraVoiceAgent:
             log.warning("DejaVu init failed: %s", exc)
 
         try:
+            if ContentRadar is None:
+                raise RuntimeError("content_radar import failed")
             self._content_radar = ContentRadar(
                 ha_url, ha_token,
-                str(Path(PROJECT_ROOT) / "data" / "patterns.db"),
+                str(shared_db_path),
                 api_key,
             )
             log.info("ContentRadar initialised.")
@@ -538,12 +660,16 @@ class AuraVoiceAgent:
             log.warning("ContentRadar init failed: %s", exc)
 
         try:
+            if SocialSonar is None:
+                raise RuntimeError("social_sonar import failed")
             self._social_sonar = SocialSonar(ha_url, ha_token)
             log.info("SocialSonar initialised.")
         except Exception as exc:  # noqa: BLE001
             log.warning("SocialSonar init failed: %s", exc)
 
         try:
+            if PhantomPresence is None:
+                raise RuntimeError("phantom_presence import failed")
             if self._context is not None and hasattr(self._context, "_engine"):
                 self._phantom_presence = PhantomPresence(self._context._engine)  # noqa: SLF001
                 log.info("PhantomPresence initialised.")
@@ -551,6 +677,8 @@ class AuraVoiceAgent:
             log.warning("PhantomPresence init failed: %s", exc)
 
         try:
+            if EnergyOracle is None:
+                raise RuntimeError("energy_oracle import failed")
             if (
                 self._context is not None
                 and hasattr(self._context, "_engine")
@@ -583,7 +711,7 @@ class AuraVoiceAgent:
         if self._pulse_check:
             def _handle_pulse_check(payload: dict) -> None:
                 for person_key in ["conaugh", "adon"]:
-                    if payload.get(f"{person_key}_home") == "true":
+                    if self._coerce_bool(payload.get(f"{person_key}_home")):
                         if self._pulse_check.should_check_in(person_key):
                             text = self._pulse_check.generate_check_in(person_key)
                             if text:
@@ -612,15 +740,17 @@ class AuraVoiceAgent:
                 detection = self._social_sonar.detect_social_context()
                 if (
                     detection.get("likely_guests")
-                    and detection.get("confidence", 0) > 0.6
+                    and detection.get("confidence", 0) >= 0.6
                 ):
                     self._social_sonar.apply_social_mode()
+                else:
+                    self._social_sonar.reset()
             self._dispatcher.register("aura_social_sonar", _handle_social_sonar)
 
         # ── Weekly energy brief ──────────────────────────────────────────
         if self._energy_oracle:
             def _handle_weekly_report(_payload: dict) -> None:
-                for person in ["conaugh", "adon"]:
+                for person in self._get_persons_home() or ["conaugh", "adon"]:
                     text = self._energy_oracle.generate_weekly_brief(person)
                     if text:
                         self._speak(text)
@@ -633,23 +763,48 @@ class AuraVoiceAgent:
             if message:
                 self._speak(message)
         self._dispatcher.register("aura_voice_prompt", _handle_voice_prompt)
+        self._dispatcher.register("aura_window_prompt", _handle_voice_prompt)
+
+        def _handle_greet_person(payload: dict) -> None:
+            person = self._normalise_person_id(payload.get("person"))
+            time_of_day = payload.get("time_of_day")
+            if self._personality is not None:
+                greeting = self._personality.get_greeting(
+                    person,
+                    time_of_day=time_of_day,
+                    returning_home=True,
+                )
+            else:
+                greeting = f"Welcome back, {person or 'there'}."
+            self._speak(greeting)
+
+        self._dispatcher.register("aura_greet_person", _handle_greet_person)
+
+        def _handle_goodnight(payload: dict) -> None:
+            self._speak("Good night. Shutting everything down.")
+            self._trigger_ha_webhook("aura_goodnight", payload)
+
+        self._dispatcher.register("aura_goodnight", _handle_goodnight)
+
+        def _handle_device_health_check(payload: dict) -> None:
+            self._publish_device_health_report(payload)
+
+        self._dispatcher.register("aura_device_health_check", _handle_device_health_check)
 
         # ── Learning evolution cycle ─────────────────────────────────────
         if self._context is not None and hasattr(self._context, "_engine"):
             _engine_ref = self._context._engine  # noqa: SLF001 — captured for closure
 
             def _handle_learning_evolve(_payload: dict) -> None:
-                from learning.pattern_engine import RoutineOptimizer
-                optimizer = RoutineOptimizer(_engine_ref)
-                suggestions = optimizer.evolve()
-                log.info("Learning evolution complete: %d suggestions", len(suggestions))
+                suggestions = _engine_ref.evolve()
+                log.info("Learning evolution complete: %d suggestion(s)", suggestions)
             self._dispatcher.register("aura_learning_evolve", _handle_learning_evolve)
 
         # ── Habit auto-detection ─────────────────────────────────────────
         if self._habit_tracker:
             def _handle_habit_detect(_payload: dict) -> None:
-                for person in ["conaugh", "adon"]:
-                    self._habit_tracker.auto_detect_habits(person)
+                detected = self._habit_tracker.auto_detect_habits()
+                log.info("Habit auto-detection complete: %s", detected)
             self._dispatcher.register("aura_habit_detect", _handle_habit_detect)
 
         self._dispatcher.start()
@@ -750,6 +905,17 @@ class AuraVoiceAgent:
             except Exception:  # noqa: BLE001
                 pass
 
+        if self._deja_vu:
+            with self._feature_lock:
+                feedback_reply = self._deja_vu.handle_voice_feedback(
+                    user_text,
+                    person or "unknown",
+                )
+            if feedback_reply:
+                self._log_event(user_text, person)
+                self._speak(feedback_reply)
+                return
+
         response_text = self._intent.process(
             user_text,
             person=person,
@@ -758,9 +924,11 @@ class AuraVoiceAgent:
         )
 
         # Log the interaction for pattern learning
-        if self._recognizer and person:
-            if hasattr(self._recognizer, "_personality"):
-                self._recognizer._personality.log_speech_pattern(person, user_text)  # noqa: SLF001
+        if self._personality is not None and person:
+            try:
+                self._personality.log_speech_pattern(person, user_text)
+            except Exception as exc:  # noqa: BLE001
+                log.debug("Speech-pattern logging skipped: %s", exc)
 
         self._log_event(user_text, person)
 
@@ -769,10 +937,102 @@ class AuraVoiceAgent:
 
     def _speak(self, text: str) -> None:
         """Speak ``text`` if TTS is available; otherwise log the response."""
-        if self._tts is not None:
-            self._tts.speak(text)
+        if not text or not text.strip():
+            return
+
+        with self._tts_lock:
+            if self._tts is not None:
+                self._tts.speak(text)
+            else:
+                log.info("[TTS disabled] Response: %r", text)
+
+    @staticmethod
+    def _coerce_bool(value: Any) -> bool:
+        """Normalise JSON/template booleans from webhook payloads."""
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, str):
+            return value.strip().lower() in {"1", "true", "yes", "on"}
+        if isinstance(value, (int, float)):
+            return bool(value)
+        return False
+
+    def _get_persons_home(self) -> list[str]:
+        """Return the currently-home person ids from ContextAwareness."""
+        if self._context is None:
+            return []
+        try:
+            ctx = self._context.get_current_context()
+            return list(ctx.persons_home)
+        except Exception as exc:  # noqa: BLE001
+            log.debug("Could not resolve home persons: %s", exc)
+            return []
+
+    def _trigger_ha_webhook(self, webhook_id: str, payload: dict[str, Any]) -> bool:
+        """Forward a webhook payload to Home Assistant's internal webhook API."""
+        url = f"{self._secrets['ha_url']}/api/webhook/{webhook_id}"
+        try:
+            response = requests.post(url, json=payload, timeout=5)
+            response.raise_for_status()
+            return True
+        except requests.RequestException as exc:
+            log.warning("Failed to forward HA webhook %s: %s", webhook_id, exc)
+            return False
+
+    def _call_ha_service(
+        self,
+        domain: str,
+        service: str,
+        data: dict[str, Any],
+    ) -> bool:
+        """Call a Home Assistant service using the shared agent credentials."""
+        url = f"{self._secrets['ha_url']}/api/services/{domain}/{service}"
+        headers = {
+            "Authorization": f"Bearer {self._secrets['ha_token']}",
+            "Content-Type": "application/json",
+        }
+        try:
+            response = requests.post(url, headers=headers, json=data, timeout=5)
+            response.raise_for_status()
+            return True
+        except requests.RequestException as exc:
+            log.warning("HA service %s.%s failed: %s", domain, service, exc)
+            return False
+
+    def _publish_device_health_report(self, payload: dict[str, Any]) -> None:
+        """Create a persistent HA notification summarising device health."""
+        devices = payload.get("devices", {})
+        issues: list[str] = []
+        total_devices = 0
+
+        if isinstance(devices, dict):
+            for group_devices in devices.values():
+                if not isinstance(group_devices, dict):
+                    continue
+                for device_name, state in group_devices.items():
+                    total_devices += 1
+                    state_str = str(state).strip().lower()
+                    if state_str in {"", "unknown", "unavailable", "offline", "none"}:
+                        issues.append(f"{device_name}: {state}")
+
+        check_time = payload.get("check_time", "just now")
+        if issues:
+            message = (
+                f"Health check at {check_time} found {len(issues)} issue(s): "
+                + ", ".join(issues[:10])
+            )
         else:
-            log.info("[TTS disabled] Response: %r", text)
+            message = f"Health check at {check_time} completed successfully for {total_devices} device(s)."
+
+        self._call_ha_service(
+            "persistent_notification",
+            "create",
+            {
+                "title": "AURA Device Health Check",
+                "message": message,
+                "notification_id": "aura_device_health_check",
+            },
+        )
 
     def _log_event(self, user_text: str, person: str | None) -> None:
         """

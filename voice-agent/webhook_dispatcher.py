@@ -25,6 +25,7 @@ from typing import Callable
 log = logging.getLogger("aura.webhook")
 
 DEFAULT_PORT = 5123
+DEFAULT_HOST = "127.0.0.1"
 
 
 class WebhookHandler(BaseHTTPRequestHandler):
@@ -86,8 +87,9 @@ class WebhookDispatcher:
         TCP port to listen on.  Default: 5123.
     """
 
-    def __init__(self, port: int = DEFAULT_PORT) -> None:
+    def __init__(self, port: int = DEFAULT_PORT, host: str = DEFAULT_HOST) -> None:
         self._port = port
+        self._host = host
         self._routes: dict[str, Callable[[dict], None]] = {}
         self._server: HTTPServer | None = None
         self._thread: threading.Thread | None = None
@@ -101,7 +103,7 @@ class WebhookDispatcher:
         """Start the HTTP server in a background daemon thread (non-blocking)."""
         # Push the populated route table into the handler class before binding.
         WebhookHandler._routes = self._routes  # noqa: SLF001 — intentional class-level mutation
-        self._server = HTTPServer(("0.0.0.0", self._port), WebhookHandler)
+        self._server = HTTPServer((self._host, self._port), WebhookHandler)
         self._thread = threading.Thread(
             target=self._server.serve_forever,
             daemon=True,
@@ -109,7 +111,8 @@ class WebhookDispatcher:
         )
         self._thread.start()
         log.info(
-            "Webhook dispatcher listening on port %d (%d routes registered)",
+            "Webhook dispatcher listening on %s:%d (%d routes registered)",
+            self._host,
             self._port,
             len(self._routes),
         )

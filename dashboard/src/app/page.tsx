@@ -244,12 +244,6 @@ export default function DashboardPage() {
       prev.map((s) => ({ ...s, active: s.id === pressedScene.id }))
     );
 
-    const haUrl = process.env.NEXT_PUBLIC_HA_URL;
-    if (!haUrl) {
-      // HA not configured — silently succeed (scaffold mode)
-      return;
-    }
-
     const res = await fetch(`/api/scene`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },

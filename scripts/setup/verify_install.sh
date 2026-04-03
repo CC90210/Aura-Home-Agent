@@ -220,7 +220,7 @@ echo "[ Checking voice agent (optional) ]"
 # --- Python packages ---
 if [[ -d "${VENV_DIR}" && -x "${VENV_DIR}/bin/python3" ]]; then
   PYTHON="${VENV_DIR}/bin/python3"
-  VOICE_PACKAGES=(openwakeword faster_whisper anthropic elevenlabs)
+  VOICE_PACKAGES=(openwakeword faster_whisper anthropic pydub)
   for pkg in "${VOICE_PACKAGES[@]}"; do
     if "${PYTHON}" -c "import ${pkg}" &>/dev/null; then
       pass "  Voice agent Python package '${pkg}' is importable"

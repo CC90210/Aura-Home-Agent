@@ -23,10 +23,10 @@ condition:
   - condition: and
     conditions:
       - condition: state
-        entity_id: device_tracker.conaugh_iphone
+        entity_id: person.conaugh
         state: "home"
       - condition: state
-        entity_id: device_tracker.adon_iphone
+        entity_id: person.adon
         state: "home"
 
 action:

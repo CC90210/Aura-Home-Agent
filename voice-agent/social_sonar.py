@@ -56,6 +56,7 @@ from __future__ import annotations
 
 import logging
 import math
+import threading
 import time
 from typing import Any, Optional
 
@@ -76,6 +77,7 @@ log = logging.getLogger("aura.social_sonar")
 
 _RMS_RING: list[float] = []
 _RMS_RING_MAX = 50  # ~5 seconds at 1 sample per 100ms
+_RMS_LOCK = threading.Lock()
 
 
 def push_audio_rms(rms: float) -> None:
@@ -91,9 +93,10 @@ def push_audio_rms(rms: float) -> None:
     rms:
         Root-mean-square amplitude of the most recent audio chunk.
     """
-    _RMS_RING.append(rms)
-    if len(_RMS_RING) > _RMS_RING_MAX:
-        _RMS_RING.pop(0)
+    with _RMS_LOCK:
+        _RMS_RING.append(rms)
+        if len(_RMS_RING) > _RMS_RING_MAX:
+            _RMS_RING.pop(0)
 
 
 # ---------------------------------------------------------------------------
@@ -192,14 +195,17 @@ class SocialSonar:
 
         # Signal 3: Elevated sustained audio (weight 0.3)
         audio_level = self._monitor_audio_level()
-        if audio_level is not None and self._is_elevated_audio(audio_level):
+        audio_detected = (
+            audio_level is not None and self._is_elevated_audio(audio_level)
+        )
+        if audio_detected:
             indicators.append("elevated_audio")
             score += 0.3
             log.debug(
                 "Social signal: elevated audio (rms=%.1f) (+0.3)", audio_level
             )
 
-        likely_guests = score >= 0.6
+        likely_guests = audio_detected and score >= 0.6
         confidence = round(min(score, 1.0), 2)
 
         log.info(
@@ -299,7 +305,11 @@ class SocialSonar:
 
         # If we started music, stop it
         if snapshot.get("music_was_off"):
-            self._call_service("media_player", "media_pause", "media_player.sonos")
+            self._call_service(
+                "media_player",
+                "media_pause",
+                "media_player.living_room_speaker",
+            )
 
         self._social_mode_active = False
         self._pre_adjustment_state = None
@@ -322,13 +332,16 @@ class SocialSonar:
         float | None
             Rolling average RMS, or None if no data is available.
         """
-        if not _RMS_RING:
+        with _RMS_LOCK:
+            samples = list(_RMS_RING)
+
+        if not samples:
             log.debug("Audio ring buffer is empty — no audio data available.")
             return None
 
-        avg = sum(_RMS_RING) / len(_RMS_RING)
+        avg = sum(samples) / len(samples)
         log.debug(
-            "Audio ring buffer: %d samples, avg RMS = %.1f", len(_RMS_RING), avg
+            "Audio ring buffer: %d samples, avg RMS = %.1f", len(samples), avg
         )
         return avg
 
@@ -343,16 +356,19 @@ class SocialSonar:
         if rms < _ELEVATED_RMS_THRESHOLD:
             return False
 
-        if len(_RMS_RING) < 10:
+        with _RMS_LOCK:
+            samples = list(_RMS_RING)
+
+        if len(samples) < 10:
             # Not enough samples to assess variance — accept at face value
             return True
 
         # Coefficient of variation: std / mean.  Speech is > ~0.3 (variable);
         # a TV at fixed volume is typically < 0.15 (steady).
-        mean = sum(_RMS_RING) / len(_RMS_RING)
+        mean = sum(samples) / len(samples)
         if mean == 0:
             return False
-        variance = sum((x - mean) ** 2 for x in _RMS_RING) / len(_RMS_RING)
+        variance = sum((x - mean) ** 2 for x in samples) / len(samples)
         std = math.sqrt(variance)
         cv = std / mean
 
@@ -366,8 +382,8 @@ class SocialSonar:
     def _check_both_residents_home(self) -> bool:
         """Return True if both Conaugh and Adon are currently marked home."""
         entities = [
-            "device_tracker.conaugh_iphone",
-            "device_tracker.adon_iphone",
+            "person.conaugh",
+            "person.adon",
         ]
         for entity_id in entities:
             state = self._get_state(entity_id)
@@ -418,7 +434,7 @@ class SocialSonar:
         Start the ambient playlist if no media is currently playing.
         Returns True if music was started.
         """
-        media_state = self._get_state("media_player.sonos")
+        media_state = self._get_state("media_player.living_room_speaker")
         if media_state == "playing":
             log.debug("Music already playing — not starting ambient playlist.")
             return False
@@ -426,7 +442,7 @@ class SocialSonar:
         ok = self._call_service(
             "media_player",
             "play_media",
-            "media_player.sonos",
+            "media_player.living_room_speaker",
             data={
                 "media_content_id": _AMBIENT_PLAYLIST_URI,
                 "media_content_type": "music",
@@ -436,7 +452,7 @@ class SocialSonar:
             self._call_service(
                 "media_player",
                 "volume_set",
-                "media_player.sonos",
+                "media_player.living_room_speaker",
                 data={"volume_level": _AMBIENT_VOLUME / 100.0},
             )
         return ok
@@ -473,7 +489,7 @@ class SocialSonar:
         thermostat_attrs = self._get_entity_attributes("climate.thermostat")
         prev_temp = thermostat_attrs.get("temperature")
 
-        media_state = self._get_state("media_player.sonos")
+        media_state = self._get_state("media_player.living_room_speaker")
         music_was_off = media_state != "playing"
 
         self._pre_adjustment_state = {

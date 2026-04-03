@@ -227,7 +227,7 @@
     light.tv_backlight_leds:
       state: "off"
 
-- id: "aura_music_dj_mode"
+- id: "aura_music_mode"
   name: "Music / DJ Mode"
   entities:
     light.living_room_leds:

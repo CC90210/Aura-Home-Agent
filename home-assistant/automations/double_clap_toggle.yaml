@@ -43,6 +43,7 @@ action:
           - service: input_boolean.turn_on
             target:
               entity_id: input_boolean.welcome_home_active
+            continue_on_error: true
 
       # --- BRANCH 2: Scene is currently ON → turn it OFF ---
       - conditions:
@@ -62,6 +63,7 @@ action:
           - service: input_boolean.turn_off
             target:
               entity_id: input_boolean.welcome_home_active
+            continue_on_error: true
 
 mode: single
 max_exceeded: silent

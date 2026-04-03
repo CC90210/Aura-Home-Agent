@@ -124,7 +124,8 @@ protocols:
 #   The PIN is stored as a SHA-256 hash in memory — the raw value here is
 #   read at startup and immediately discarded after hashing.
 #
-#   IMPORTANT: Change this from the default before going live.
+#   IMPORTANT: Set AURA_VOICE_PIN in .env (recommended) or replace CHANGE_ME
+#   here before going live.
 #   To generate a good PIN, use any random 4-6 digit number.
 #   Do not reuse a PIN you use for banking or other security systems.
 #
@@ -135,7 +136,7 @@ protocols:
 #   They must be performed through the HA web UI or physical access.
 #
 security:
-  voice_pin: "1234"
+  voice_pin: "CHANGE_ME"
 
   sensitive_actions:
     - lock.unlock

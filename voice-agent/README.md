@@ -8,10 +8,10 @@ Voice agent with local wake word detection and spoken TTS responses. Implementat
 
 **Text-to-speech responses** using the ElevenLabs API (https://elevenlabs.io). AURA will respond through the connected speakers with a consistent voice, providing confirmation of commands and status updates.
 
-## Files Planned
+## Files
 
-- `wake_word_listener.py` — Runs as a systemd service. Listens continuously for the wake phrase, then captures the following voice command and sends it to the AURA agent for processing.
-- `tts_responder.py` — Accepts a text string and plays it as synthesized speech through the room's speaker via the ElevenLabs API and the Sonos or HA media player entity.
+- `wake_word.py` — Runs inside the voice agent service. Listens continuously for the wake phrase before the command recording stage begins.
+- `tts.py` — Accepts text and plays synthesized speech through the configured speaker via the ElevenLabs API.
 
 ## Dependencies (when implemented)
 

@@ -445,15 +445,18 @@ echo ""
 echo "[ 8/10  Voice agent PIN ]"
 
 if [[ -f "${VOICE_CONFIG}" ]]; then
-  # Extract the voice_pin value if present
-  VOICE_PIN=$(grep -E "^\s*voice_pin\s*:" "${VOICE_CONFIG}" 2>/dev/null | \
-              sed -E 's/.*voice_pin\s*:\s*["\x27]?([^"'\''[:space:]]*)["\x27]?.*/\1/' || true)
+  # Prefer the environment override if present, otherwise read config.yaml
+  VOICE_PIN="${AURA_VOICE_PIN:-}"
+  if [[ -z "${VOICE_PIN}" ]]; then
+    VOICE_PIN=$(grep -E "^\s*voice_pin\s*:" "${VOICE_CONFIG}" 2>/dev/null | \
+                sed -E 's/.*voice_pin\s*:\s*["\x27]?([^"'\''[:space:]]*)["\x27]?.*/\1/' || true)
+  fi
 
   if [[ -z "${VOICE_PIN}" ]]; then
     warn "voice_pin is not configured in voice-agent/config.yaml"
     detail "Add 'voice_pin: <your_pin>' to voice-agent/config.yaml to restrict"
     detail "voice-activated commands to residents who know the PIN."
-  elif [[ "${VOICE_PIN}" == "1234" || "${VOICE_PIN}" == "0000" || "${VOICE_PIN}" == "1111" ]]; then
+  elif [[ "${VOICE_PIN}" == "1234" || "${VOICE_PIN}" == "0000" || "${VOICE_PIN}" == "1111" || "${VOICE_PIN}" == "CHANGE_ME" ]]; then
     fail "voice_pin is set to a trivially guessable default value ('${VOICE_PIN}')"
     detail "Change voice_pin in voice-agent/config.yaml to a non-obvious value."
   else

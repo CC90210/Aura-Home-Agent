@@ -208,7 +208,7 @@ class TTSEngine:
             log.error(
                 "pydub is not installed — cannot decode MP3 audio.  "
                 "Install it with: pip install pydub  "
-                "(also requires ffmpeg: sudo apt-get install ffmpeg)"
+                "(also requires ffmpeg: apk add ffmpeg)"
             )
 
     def _play_via_pyaudio(self, segment: Any) -> None:

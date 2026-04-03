@@ -241,7 +241,7 @@ The voice security module (`voice-agent/security.py`) requires a spoken PIN befo
 - `alarm_control_panel.alarm_disarm` — disarming the alarm
 - `camera.disable_motion_detection` — disabling cameras
 
-Configure your PIN in `voice-agent/config.yaml` under `security.voice_pin`. **Change the default PIN (1234) before going live.**
+Configure your PIN with `AURA_VOICE_PIN` in `.env` (recommended) or `voice-agent/config.yaml` under `security.voice_pin`. **Do not leave it at `CHANGE_ME` or any default value before going live.**
 
 After 3 failed PIN attempts, the voice agent locks out PIN verification for 5 minutes.
 
@@ -358,5 +358,5 @@ Run through this checklist every 90 days:
 - [ ] Backup stored offsite
 
 **Voice Agent:**
-- [ ] Voice PIN is set and not the default (1234)
+- [ ] Voice PIN is set via `AURA_VOICE_PIN` or `voice-agent/config.yaml` and is not `CHANGE_ME`
 - [ ] voice-agent/security.py is integrated into the intent pipeline

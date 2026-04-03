@@ -24,6 +24,13 @@ import pyaudio
 
 log = logging.getLogger("aura.wake_word")
 
+try:
+    from social_sonar import push_audio_rms
+except ImportError:
+    def push_audio_rms(_rms: float) -> None:
+        """Fallback when social_sonar is unavailable."""
+        return None
+
 
 class WakeWordDetector:
     """
@@ -99,9 +106,10 @@ class WakeWordDetector:
                 continue
 
             # OpenWakeWord expects float32 audio in range [-1.0, 1.0]
-            audio_float = (
-                np.frombuffer(raw, dtype=np.int16).astype(np.float32) / 32768.0
-            )
+            audio_int16 = np.frombuffer(raw, dtype=np.int16).astype(np.float32)
+            if len(audio_int16) > 0:
+                push_audio_rms(float(np.sqrt(np.mean(audio_int16 ** 2))))
+            audio_float = audio_int16 / 32768.0
 
             try:
                 prediction = self._model.predict(audio_float)

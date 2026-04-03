@@ -396,6 +396,16 @@ class IntentHandler:
         except Exception as exc:  # noqa: BLE001
             log.error("Unexpected error executing %s.%s: %s", domain, service, exc)
 
+    def _set_feature_toggle(self, entity_id: str, enabled: bool) -> None:
+        """Keep HA input_booleans aligned with voice-enabled feature state."""
+        self._execute_action(
+            {
+                "domain": "input_boolean",
+                "service": "turn_on" if enabled else "turn_off",
+                "entity_id": entity_id,
+            }
+        )
+
     def _execute_feature_command(self, action: dict[str, Any]) -> None:
         """
         Route a feature-specific action returned by Claude to the correct
@@ -464,19 +474,28 @@ class IntentHandler:
 
             elif feature_name == "vibe_sync":
                 if feature_action == "enable":
+                    result = instance.enable()
+                    self._set_feature_toggle("input_boolean.vibe_sync_enabled", True)
                     instance.poll_and_adjust()
-                    log.info("VibeSync polled and adjusted.")
+                    log.info("VibeSync enabled: %s", result)
                 elif feature_action == "disable":
-                    log.info("VibeSync disable requested (no-op — managed via HA input_boolean).")
+                    result = instance.disable()
+                    self._set_feature_toggle("input_boolean.vibe_sync_enabled", False)
+                    log.info("VibeSync disabled: %s", result)
                 else:
                     log.warning("Unknown vibe_sync action: %r", feature_action)
 
             elif feature_name == "deja_vu":
                 if feature_action == "enable":
-                    instance.maybe_predict_and_activate()
-                    log.info("DejaVu prediction run triggered.")
+                    result = instance.enable()
+                    self._set_feature_toggle("input_boolean.deja_vu_enabled", True)
+                    person = action.get("person", "conaugh")
+                    prediction = instance.maybe_predict_and_activate(person)
+                    log.info("DejaVu enabled: %s prediction=%r", result, prediction)
                 elif feature_action == "disable":
-                    log.info("DejaVu disable requested (no-op — managed via HA input_boolean).")
+                    result = instance.disable()
+                    self._set_feature_toggle("input_boolean.deja_vu_enabled", False)
+                    log.info("DejaVu disabled: %s", result)
                 else:
                     log.warning("Unknown deja_vu action: %r", feature_action)
 
@@ -490,7 +509,10 @@ class IntentHandler:
 
             elif feature_name == "ghost_dj":
                 if feature_action == "suggest":
-                    suggestion = instance.suggest_music({})
+                    suggestion = instance.suggest_music(
+                        action.get("context", {}),
+                        action.get("person"),
+                    )
                     if suggestion:
                         instance.apply_music(suggestion)
                         log.info("GhostDJ suggestion applied.")
@@ -502,10 +524,41 @@ class IntentHandler:
             elif feature_name == "content_radar":
                 if feature_action == "stats":
                     person = action.get("person", "conaugh")
-                    stats = instance.get_session_stats(person)
+                    stats = instance.get_content_stats(person)
                     log.info("ContentRadar stats for %s: %s", person, stats)
                 else:
                     log.warning("Unknown content_radar action: %r", feature_action)
+
+            elif feature_name == "social_sonar":
+                if feature_action == "detect":
+                    detection = instance.detect_social_context()
+                    if detection.get("likely_guests"):
+                        result = instance.apply_social_mode()
+                    else:
+                        instance.reset()
+                        result = "Social mode reset."
+                    log.info("SocialSonar result: %s detection=%s", result, detection)
+                elif feature_action == "reset":
+                    instance.reset()
+                    log.info("SocialSonar reset requested.")
+                else:
+                    log.warning("Unknown social_sonar action: %r", feature_action)
+
+            elif feature_name == "phantom_presence":
+                if feature_action == "generate":
+                    hours = int(action.get("hours", 6))
+                    schedule = instance.generate_simulation_schedule(hours=hours)
+                    script_yaml = instance.create_ha_script(schedule)
+                    log.info(
+                        "PhantomPresence generated %d scheduled action(s); script size=%d chars",
+                        len(schedule),
+                        len(script_yaml),
+                    )
+                elif feature_action == "summary":
+                    summary = instance.get_typical_evening()
+                    log.info("PhantomPresence summary: %s", summary)
+                else:
+                    log.warning("Unknown phantom_presence action: %r", feature_action)
 
             elif feature_name == "energy_oracle":
                 if feature_action == "brief":
@@ -768,6 +821,16 @@ class IntentHandler:
                 feature_examples.append(
                     '  {"feature": "content_radar", "action": "stats", "person": "<person>"}'
                     " — content creation session statistics"
+                )
+            if "social_sonar" in available_features:
+                feature_examples.append(
+                    '  {"feature": "social_sonar", "action": "detect"}'
+                    " â€” detect guests and subtly adjust the environment"
+                )
+            if "phantom_presence" in available_features:
+                feature_examples.append(
+                    '  {"feature": "phantom_presence", "action": "generate", "hours": 6}'
+                    " â€” generate an away-mode simulation schedule"
                 )
             if "energy_oracle" in available_features:
                 feature_examples.append(

@@ -59,9 +59,10 @@ action:
       hvac_mode: heat
     continue_on_error: true
 
-  # Step 5 — Arm cameras / security system to home mode
-  # If using an alarm panel, swap for alarm_control_panel.alarm_arm_home
-  - service: camera.enable_motion_detection
+  # Step 5 — Ensure cameras are powered on for overnight monitoring.
+  # Use the generic homeassistant.turn_on service so the automation stays
+  # valid even if the camera integration does not expose motion-specific services.
+  - service: homeassistant.turn_on
     target:
       entity_id:
         - camera.front_door
@@ -84,7 +85,9 @@ action:
         - input_boolean.gaming_mode_active
         - input_boolean.streaming_mode_active
         - input_boolean.podcast_mode_active
+        - input_boolean.recording_mode_active
         - input_boolean.music_mode_active
+        - input_boolean.movie_mode_active
         - input_boolean.focus_mode_active
         - input_boolean.guest_mode_active
         - input_boolean.workout_mode_active

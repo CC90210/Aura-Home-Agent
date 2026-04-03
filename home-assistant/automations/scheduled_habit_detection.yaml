@@ -1,0 +1,25 @@
+alias: "AURA - Scheduled: Habit Auto-Detection"
+description: >
+  Runs every day at 12:10 AM and calls the aura_habit_detect webhook so the
+  HabitTracker can backfill yesterday's automatic habit outcomes into the
+  shared learning database. This keeps streaks and weekly reports accurate
+  without waiting for a manual CLI run.
+
+trigger:
+  - platform: time
+    at: "00:10:00"
+
+condition: []
+
+action:
+  - service: rest_command.aura_webhook
+    data:
+      webhook_id: aura_habit_detect
+      payload: >
+        {
+          "trigger": "scheduled_daily"
+        }
+    continue_on_error: true
+
+mode: single
+max_exceeded: silent

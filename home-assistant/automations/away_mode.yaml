@@ -88,8 +88,9 @@ action:
       entity_id: lock.front_door
     continue_on_error: true
 
-  # Arm cameras to away mode — full motion detection active
-  - service: camera.enable_motion_detection
+  # Ensure cameras are powered on while away. Use a generic HA service so
+  # the automation remains valid across camera integrations.
+  - service: homeassistant.turn_on
     target:
       entity_id:
         - camera.front_door
@@ -112,7 +113,9 @@ action:
         - input_boolean.gaming_mode_active
         - input_boolean.streaming_mode_active
         - input_boolean.podcast_mode_active
+        - input_boolean.recording_mode_active
         - input_boolean.music_mode_active
+        - input_boolean.movie_mode_active
         - input_boolean.focus_mode_active
         - input_boolean.guest_mode_active
         - input_boolean.workout_mode_active

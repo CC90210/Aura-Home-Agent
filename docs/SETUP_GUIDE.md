@@ -252,7 +252,7 @@ After adding devices, verify their entity IDs match what the AURA automations ex
 - `light.living_room_leds`
 - `light.bedroom_leds`
 - `switch.living_room_plug`
-- `media_player.sonos_living_room`
+- `media_player.living_room_speaker`
 
 If the auto-generated IDs differ, either rename them in HA (click the entity, click the gear icon, edit the entity ID) or update the automation YAML files to match. Renaming in HA is cleaner.
 
@@ -542,7 +542,8 @@ The dependencies are lightweight — primarily data processing libraries. `sqlit
 In your `.env` file, confirm:
 
 ```
-LEARNING_DB_PATH=learning/aura_learning.db
+AURA_DB_PATH=/config/aura/data/patterns.db
+AURA_VOICE_PIN=<a non-obvious 4-6 digit PIN>
 ```
 
 This path is relative to `/config/aura/`. The learning engine will create the SQLite file automatically on first run — you do not need to create it manually.
@@ -558,7 +559,7 @@ apk add sqlite
 Then query the database:
 
 ```bash
-sqlite3 /config/aura/learning/aura_learning.db "SELECT COUNT(*) FROM events;"
+sqlite3 /config/aura/data/patterns.db "SELECT COUNT(*) FROM events;"
 ```
 
 A non-zero count confirms events are being logged. If the count stays at zero, check that the voice agent is running and that HA webhooks are configured correctly. See TROUBLESHOOTING.md — Pattern Learning Not Working.
@@ -583,17 +584,17 @@ npm install
 Copy the dashboard environment template:
 
 ```bash
-cp .env.local.example .env.local
+cp .env.example .env.local
 ```
 
 Open `.env.local` and fill in:
 
 ```
 NEXT_PUBLIC_HA_URL=http://homeassistant.local:8123
-NEXT_PUBLIC_HA_TOKEN=<your long-lived access token from Step 4>
+HA_TOKEN=<your long-lived access token from Step 4>
 ```
 
-The `NEXT_PUBLIC_` prefix is required — Next.js only exposes variables with this prefix to the browser. Do not put secrets here that should stay server-side only; the HA token will be visible in the browser bundle, which is acceptable for a local home network dashboard but not for a public-facing deployment.
+Only `NEXT_PUBLIC_HA_URL` should be public. Keep `HA_TOKEN` server-side in the dashboard environment so it never ships to the browser bundle.
 
 **15.3 Run Locally**
 
@@ -622,7 +623,7 @@ npm install -g vercel
 vercel
 ```
 
-Follow the prompts. When Vercel asks for environment variables, add `NEXT_PUBLIC_HA_URL` and `NEXT_PUBLIC_HA_TOKEN`. Note: for Vercel to reach your Home Assistant instance, your Pi must be accessible from the internet — either via Nabu Casa cloud (the official HA remote access service at nabu.casa) or through a VPN/tunnel. The simplest path is Nabu Casa: Settings → Home Assistant Cloud → sign up, then use the `https://your-instance.ui.nabu.casa` URL as `NEXT_PUBLIC_HA_URL`.
+Follow the prompts. When Vercel asks for environment variables, add `NEXT_PUBLIC_HA_URL`, `HA_TOKEN`, and `DASHBOARD_AUTH_TOKEN`. Note: for Vercel to reach your Home Assistant instance, your Pi must be accessible from the internet — either via Nabu Casa cloud (the official HA remote access service at nabu.casa) or through a VPN/tunnel. The simplest path is Nabu Casa: Settings → Home Assistant Cloud → sign up, then use the `https://your-instance.ui.nabu.casa` URL as `NEXT_PUBLIC_HA_URL`.
 
 ---
 

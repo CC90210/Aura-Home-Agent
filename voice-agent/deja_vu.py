@@ -102,18 +102,18 @@ _SCENE_BOOLEAN_MAP: dict[str, str] = {
 
 # HA scene entity IDs.  These are called when a prediction is activated.
 _SCENE_ENTITY_MAP: dict[str, str] = {
-    "focus_mode":     "scene.focus_mode",
-    "studio_mode":    "scene.studio_mode",
-    "movie_mode":     "scene.movie_mode",
-    "gaming_mode":    "scene.gaming_mode",
-    "streaming_mode": "scene.streaming_mode",
-    "podcast_mode":   "scene.podcast_mode",
-    "party_mode":     "scene.party_mode",
-    "workout_mode":   "scene.workout_mode",
-    "guest_mode":     "scene.guest_mode",
-    "away_mode":      "scene.away_mode",
-    "music_mode":     "scene.music_mode",
-    "welcome_home":   "scene.welcome_home",
+    "focus_mode":     "scene.aura_focus_mode",
+    "studio_mode":    "scene.aura_studio_mode",
+    "movie_mode":     "scene.aura_movie_mode",
+    "gaming_mode":    "scene.aura_gaming_mode",
+    "streaming_mode": "scene.aura_streaming_mode",
+    "podcast_mode":   "scene.aura_podcast_mode",
+    "party_mode":     "scene.aura_party_mode",
+    "workout_mode":   "scene.aura_workout_mode",
+    "guest_mode":     "scene.aura_guest_mode",
+    "away_mode":      "scene.aura_away_mode",
+    "music_mode":     "scene.aura_music_mode",
+    "welcome_home":   "scene.aura_welcome_home",
 }
 
 # Subtle announcement templates per scene.
@@ -138,7 +138,7 @@ _SCENE_ANNOUNCEMENTS: dict[str, str] = {
 _SCENE_EVENT_TYPE: str = "scene_activated"
 
 # The entity_id prefix used when recording scene activations to the DB.
-_SCENE_ENTITY_PREFIX: str = "scene."
+_SCENE_ENTITY_PREFIX: str = "scene.aura_"
 
 
 # ---------------------------------------------------------------------------
