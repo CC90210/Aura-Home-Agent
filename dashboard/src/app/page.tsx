@@ -1158,7 +1158,7 @@ function HomeView({
 
   const quickActions = [
     { label: "Control Lights", sub: "Adjust all rooms", iconBg: "rgba(245,158,11,0.15)", iconColor: "#F59E0B", icon: <Zap size={18} aria-hidden="true" /> },
-    { label: "Play Music",     sub: "Spotify + Sonos",  iconBg: "rgba(124,58,237,0.15)", iconColor: "#A78BFA", icon: <Music2 size={18} aria-hidden="true" /> },
+    { label: "Play Music",     sub: "Spotify + Echo",   iconBg: "rgba(124,58,237,0.15)", iconColor: "#A78BFA", icon: <Music2 size={18} aria-hidden="true" /> },
     { label: "Set Climate",    sub: "Temperature control", iconBg: "rgba(96,165,250,0.15)", iconColor: "#60A5FA", icon: <Thermometer size={18} aria-hidden="true" /> },
     { label: "Lock Down",      sub: "Secure all locks",  iconBg: "rgba(16,185,129,0.15)", iconColor: "#10B981", icon: <Server size={18} aria-hidden="true" /> },
   ];

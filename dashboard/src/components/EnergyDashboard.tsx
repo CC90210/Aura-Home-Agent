@@ -22,7 +22,7 @@ interface DeviceEnergy {
 // ---------------------------------------------------------------------------
 
 const DEVICES: DeviceEnergy[] = [
-  { name: 'Sonos Speaker',    entity_id: 'switch.sonos',         watts: 18,  dailyKwh: 0.43,  weeklyKwh: 2.8,  color: '#A78BFA', trend: 'stable' },
+  { name: 'Echo Dot (x3)',     entity_id: 'media_player.living_room_speaker', watts: 15, dailyKwh: 0.36,  weeklyKwh: 2.5,  color: '#A78BFA', trend: 'stable' },
   { name: 'Gaming PC',        entity_id: 'switch.gaming_pc',     watts: 320, dailyKwh: 4.80,  weeklyKwh: 22.1, color: '#F59E0B', trend: 'up'     },
   { name: 'Living Room LEDs', entity_id: 'light.living_room',    watts: 22,  dailyKwh: 0.35,  weeklyKwh: 1.9,  color: '#60A5FA', trend: 'down'   },
   { name: 'Studio Key Light', entity_id: 'switch.key_light',     watts: 45,  dailyKwh: 0.68,  weeklyKwh: 3.1,  color: '#34D399', trend: 'stable' },

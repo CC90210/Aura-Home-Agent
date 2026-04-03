@@ -50,8 +50,8 @@ const MOCK_LOG: VoiceEntry[] = [
     timestamp: new Date(Date.now() - 45 * 60 * 1000).toISOString(),
     speaker: 'CC',
     command: 'Play lo-fi playlist',
-    response: "Lo-fi hip hop on Sonos, volume at 35%. Get into the zone.",
-    actionTaken: 'media_player.sonos → playing',
+    response: "Lo-fi hip hop on the Echo, volume at 35%. Get into the zone.",
+    actionTaken: 'media_player.living_room_speaker → playing',
   },
   {
     id: '5',

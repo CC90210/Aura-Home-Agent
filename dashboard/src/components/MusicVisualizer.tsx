@@ -195,7 +195,7 @@ export default function MusicVisualizer() {
           </div>
           <div>
             <h2 className="text-sm font-semibold text-slate-100 tracking-wide">Now Visualizing</h2>
-            <p className="text-[11px] text-slate-500 mt-0.5">Sonos Era 100 &middot; Living Room</p>
+            <p className="text-[11px] text-slate-500 mt-0.5">Echo Dot &middot; Living Room</p>
           </div>
           {isPlaying && (
             <div className="ml-auto flex items-center gap-1">
