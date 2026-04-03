@@ -283,6 +283,7 @@ class IntentHandler:
             response_text = "Done."
 
         # Step 5: Execute actions
+        self._security_feedback = None  # Reset before action loop
         if actions:
             log.info("Executing %d action(s)…", len(actions))
             for action in actions:
@@ -292,6 +293,12 @@ class IntentHandler:
                     self._execute_action(action)
         else:
             log.debug("No actions in Claude response.")
+
+        # If a security check blocked an action, override Claude's response
+        # so the user hears WHY the action didn't happen
+        if self._security_feedback:
+            response_text = self._security_feedback
+            log.info("Response overridden by security feedback: %r", response_text)
 
         elapsed = time.monotonic() - t0
         log.info("Intent processed in %.2f s — response: %r", elapsed, response_text[:80])
@@ -365,9 +372,11 @@ class IntentHandler:
             status, message = self._security.check_action(domain, service)
             if status == "blocked":
                 log.warning("BLOCKED by security policy: %s.%s — %s", domain, service, message)
+                self._security_feedback = message
                 return
             if status == "pin_required":
-                log.warning("PIN required for %s.%s — action skipped (voice PIN flow not yet wired)", domain, service)
+                log.warning("PIN required for %s.%s — %s", domain, service, message)
+                self._security_feedback = message
                 return
 
         url = f"{self._ha_url}/api/services/{domain}/{service}"

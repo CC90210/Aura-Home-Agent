@@ -682,16 +682,14 @@ class AuraVoiceAgent:
             if (
                 self._context is not None
                 and hasattr(self._context, "_engine")
-                and self._habit_tracker is not None
-                and self._content_radar is not None
             ):
                 self._energy_oracle = EnergyOracle(
                     ha_url,
                     ha_token,
                     api_key,
                     self._context._engine,  # noqa: SLF001
-                    self._habit_tracker,
-                    self._content_radar,
+                    self._habit_tracker,  # may be None — EnergyOracle handles gracefully
+                    self._content_radar,  # may be None — EnergyOracle handles gracefully
                 )
                 log.info("EnergyOracle initialised.")
         except Exception as exc:  # noqa: BLE001
