@@ -177,11 +177,14 @@ const PLACEHOLDER_ROOMS: Room[] = [
     icon: "Sofa",
     temperature: null,
     devices: [
-      { entity_id: "light.living_room_leds",         domain: "light",        friendly_name: "LED Strip",    state: "off", attributes: {} },
-      { entity_id: "light.desk_accent",              domain: "light",        friendly_name: "Floor Lamp",   state: "off", attributes: {} },
-      { entity_id: "light.overhead",                 domain: "light",        friendly_name: "Smart Bulbs",  state: "off", attributes: {} },
-      { entity_id: "switch.coffee_maker",            domain: "switch",       friendly_name: "Coffee Maker", state: "off", attributes: {} },
-      { entity_id: "media_player.living_room_speaker", domain: "media_player", friendly_name: "Echo Dot",   state: "idle", attributes: {} },
+      { entity_id: "light.living_room_leds",           domain: "light",        friendly_name: "LED Strip",       state: "off", attributes: {} },
+      { entity_id: "light.tv_backlight_leds",          domain: "light",        friendly_name: "Neon Rope (TV)",  state: "off", attributes: {} },
+      { entity_id: "light.desk_accent",                domain: "light",        friendly_name: "Floor Lamp",      state: "off", attributes: {} },
+      { entity_id: "light.overhead",                   domain: "light",        friendly_name: "Smart Bulbs",     state: "off", attributes: {} },
+      { entity_id: "switch.coffee_maker",              domain: "switch",       friendly_name: "Coffee Maker",    state: "off", attributes: {} },
+      { entity_id: "switch.smart_plug_3",              domain: "switch",       friendly_name: "Smart Plug 3",    state: "off", attributes: {} },
+      { entity_id: "switch.smart_plug_4",              domain: "switch",       friendly_name: "Smart Plug 4",    state: "off", attributes: {} },
+      { entity_id: "media_player.living_room_speaker", domain: "media_player", friendly_name: "Echo Dot",        state: "idle", attributes: {} },
     ],
   },
   {
@@ -189,8 +192,9 @@ const PLACEHOLDER_ROOMS: Room[] = [
     icon: "BedDouble",
     temperature: null,
     devices: [
-      { entity_id: "light.tv_backlight_leds",     domain: "light",        friendly_name: "Neon Rope Light", state: "off",  attributes: {} },
-      { entity_id: "media_player.bedroom_speaker", domain: "media_player", friendly_name: "Echo Dot",       state: "idle", attributes: {} },
+      { entity_id: "light.bedroom_leds",               domain: "light",        friendly_name: "LED Strip",       state: "off",  attributes: {} },
+      { entity_id: "switch.air_purifier",              domain: "switch",       friendly_name: "Air Purifier",    state: "off",  attributes: {} },
+      { entity_id: "media_player.bedroom_speaker",     domain: "media_player", friendly_name: "Echo Dot",        state: "idle", attributes: {} },
     ],
   },
   {
@@ -198,8 +202,7 @@ const PLACEHOLDER_ROOMS: Room[] = [
     icon: "Monitor",
     temperature: null,
     devices: [
-      { entity_id: "switch.air_purifier",         domain: "switch",       friendly_name: "Air Purifier", state: "off",  attributes: {} },
-      { entity_id: "media_player.studio_speaker",  domain: "media_player", friendly_name: "Echo Dot",     state: "idle", attributes: {} },
+      { entity_id: "media_player.studio_speaker",      domain: "media_player", friendly_name: "Echo Dot",        state: "idle", attributes: {} },
     ],
   },
 ];
@@ -366,10 +369,10 @@ function WeatherWidget() {
   const w = weather;
 
   return (
-    <div className={s.weatherCard} role="region" aria-label="Current weather">
+    <div className={s.weatherCard} role="region" aria-label="Outdoor weather">
       <div className={s.weatherIcon} aria-hidden="true">{w.emoji}</div>
       <div className={s.weatherInfo}>
-        <div className={s.weatherLocation}>{w.location}</div>
+        <div className={s.weatherLocation}>Outdoor &middot; {w.location}</div>
         <div className={s.weatherCondition}>{w.condition}</div>
         <div className={s.weatherMeta}>
           <span className={s.weatherMetaItem}>
@@ -824,7 +827,7 @@ function ClimateCard({ state, onSetTemperature }: ClimateCardProps) {
     <div className={s.climateCard}>
       <div className={s.climateHeader}>
         <Thermometer size={14} style={{ color: "#F59E0B" }} aria-hidden="true" />
-        <span className={s.climateTitle}>Climate</span>
+        <span className={s.climateTitle}>Indoor Climate</span>
         {state && (
           <span className={s.climateMode}>{MODE_LABELS[state.mode] ?? state.mode}</span>
         )}
@@ -1307,10 +1310,10 @@ function HomeView({
         <HabitsCard habits={habits} onToggle={onHabitToggle} />
       </div>
 
-      {/* Climate */}
+      {/* Indoor Climate */}
       <div className={s.sectionTitle}>
         <span className={s.sectionTitleBar} aria-hidden="true" />
-        Climate
+        Indoor Climate
       </div>
       <ClimateCard state={climate} onSetTemperature={onSetTemperature} />
     </div>
