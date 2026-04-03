@@ -117,7 +117,7 @@ group:
 # REST commands for webhooks (used by automations to trigger voice prompts)
 rest_command:
   aura_webhook:
-    url: "http://localhost:5123/{{ webhook_id }}"
+    url: "http://127.0.0.1:5123/{{ webhook_id }}"
     method: POST
     headers:
       Content-Type: "application/json"

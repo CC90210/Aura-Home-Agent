@@ -49,7 +49,9 @@ _HERE = Path(__file__).resolve().parent
 _PERSONALITY_YAML = _HERE / "personality.yaml"
 
 # Path to the speech pattern log (JSONL, one entry per logged phrase).
-_SPEECH_PATTERN_LOG = _HERE / "data" / "speech_patterns.jsonl"
+# Written to the project-level data/ directory (one level above voice-agent/)
+# so the file is shared across all components and survives voice-agent redeploys.
+_SPEECH_PATTERN_LOG = _HERE.parent / "data" / "speech_patterns.jsonl"
 
 # Valid context keys (matches the keys in personality.yaml ``contexts``).
 VALID_CONTEXTS = frozenset(
@@ -356,6 +358,17 @@ class AuraPersonality:
             log.debug("Speech pattern logged for %s: %r", person, phrase)
         except OSError as exc:
             log.warning("Could not write speech pattern log: %s", exc)
+            return
+
+        # Keep the log bounded at 500 entries to prevent unbounded disk growth.
+        try:
+            lines = _SPEECH_PATTERN_LOG.read_text(encoding="utf-8").strip().split("\n")
+            if len(lines) > 500:
+                _SPEECH_PATTERN_LOG.write_text(
+                    "\n".join(lines[-500:]) + "\n", encoding="utf-8"
+                )
+        except Exception:  # noqa: BLE001 — truncation failure is non-fatal
+            pass
 
     # ------------------------------------------------------------------
     # Internal helpers — system prompt construction

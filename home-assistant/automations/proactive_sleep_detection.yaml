@@ -91,6 +91,12 @@ action:
             entity_id: input_boolean.sleep_prompt_issued
             state: "on"
 
+          # Don't fire if goodnight is already active (e.g. triggered manually
+          # between the 11:30 prompt and the 11:40 follow-up check).
+          - condition: state
+            entity_id: input_boolean.goodnight_active
+            state: "off"
+
           # Lights still haven't been manually adjusted since the prompt
           - condition: template
             value_template: >

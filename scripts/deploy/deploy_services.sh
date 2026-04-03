@@ -41,25 +41,26 @@ DEPLOY_ENV=false
 RUN_PIP=false
 SERVICE_FILTER=""  # empty = deploy all
 
-for arg in "$@"; do
-  case "${arg}" in
+while [[ $# -gt 0 ]]; do
+  case "$1" in
     --restart)
       RESTART_SERVICES=true
+      shift
       ;;
     --env)
       DEPLOY_ENV=true
+      shift
       ;;
     --pip)
       RUN_PIP=true
+      shift
       ;;
     --service)
-      # Next arg is the service name — handled below
-      ;;
-    voice|clap|learning)
-      SERVICE_FILTER="${arg}"
+      SERVICE_FILTER="$2"
+      shift 2
       ;;
     *)
-      echo "Unknown argument: ${arg}"
+      echo "Unknown argument: $1"
       echo "Usage: $0 [--restart] [--env] [--pip] [--service voice|clap|learning]"
       exit 1
       ;;

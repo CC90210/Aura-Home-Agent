@@ -42,7 +42,12 @@ class WebhookHandler(BaseHTTPRequestHandler):
         try:
             payload: dict = json.loads(body) if body else {}
         except json.JSONDecodeError:
-            payload = {}
+            log.warning("Received malformed JSON body from %s", self.client_address)
+            self.send_response(400)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(b'{"error": "invalid JSON"}')
+            return
 
         # Strip leading slash to get the webhook ID.
         webhook_id = self.path.strip("/")

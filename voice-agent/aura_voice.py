@@ -386,6 +386,15 @@ class AuraVoiceAgent:
         self._phantom_presence: Any = None
         self._energy_oracle: Any = None
         self._dispatcher: Any = None
+        # Lock ordering (MUST be respected everywhere to avoid deadlock):
+        #   1. _feature_lock  — acquired first, wraps all optional feature calls
+        #   2. _tts_lock      — acquired second (inside _speak), wraps TTS output
+        #
+        # Both are RLocks so reentrant calls within the same thread are safe.
+        # No code path acquires _tts_lock first then _feature_lock — _speak() only
+        # acquires _tts_lock, and feature proxy calls only acquire _feature_lock.
+        # If a feature method internally calls _speak(), the call stack is:
+        #   _feature_lock held → _speak() → _tts_lock acquired → safe.
         self._feature_lock = threading.RLock()
         self._tts_lock = threading.RLock()
 
