@@ -4,10 +4,10 @@ import { useState } from 'react';
 import { Zap, TrendingUp, TrendingDown } from 'lucide-react';
 
 // ---------------------------------------------------------------------------
-// Types
+// Types — exported so callers can pass real device data in the future
 // ---------------------------------------------------------------------------
 
-interface DeviceEnergy {
+export interface DeviceEnergy {
   name: string;
   entity_id: string;
   watts: number;
@@ -17,24 +17,11 @@ interface DeviceEnergy {
   trend: 'up' | 'down' | 'stable';
 }
 
-// ---------------------------------------------------------------------------
-// Mock data
-// ---------------------------------------------------------------------------
-
-const DEVICES: DeviceEnergy[] = [
-  { name: 'Echo Dot (x3)',     entity_id: 'media_player.living_room_speaker', watts: 15,   dailyKwh: 0.36, weeklyKwh: 2.5,  color: '#A78BFA', trend: 'stable' },
-  { name: 'Gaming PC',         entity_id: 'switch.gaming_pc',                 watts: 320,  dailyKwh: 4.80, weeklyKwh: 22.1, color: '#F59E0B', trend: 'up'     },
-  { name: 'Living Room LEDs',  entity_id: 'light.living_room',                watts: 22,   dailyKwh: 0.35, weeklyKwh: 1.9,  color: '#60A5FA', trend: 'down'   },
-  { name: 'Studio Key Light',  entity_id: 'switch.key_light',                 watts: 45,   dailyKwh: 0.68, weeklyKwh: 3.1,  color: '#34D399', trend: 'stable' },
-  { name: 'Air Purifier',      entity_id: 'switch.air_purifier',              watts: 28,   dailyKwh: 0.67, weeklyKwh: 4.5,  color: '#F87171', trend: 'up'     },
-  { name: 'Coffee Maker',      entity_id: 'switch.coffee_maker',              watts: 1200, dailyKwh: 0.24, weeklyKwh: 1.6,  color: '#FB923C', trend: 'stable' },
-];
-
-// Totals
-const DAILY_KWH_TOTAL  = DEVICES.reduce((s, d) => s + d.dailyKwh,  0);
-const WEEKLY_KWH_TOTAL = DEVICES.reduce((s, d) => s + d.weeklyKwh, 0);
-const DAILY_LIMIT      = 12;  // kWh goal
-const WEEKLY_LIMIT     = 80;  // kWh goal
+export interface EnergyDashboardProps {
+  devices?: DeviceEnergy[];
+  dailyLimitKwh?: number;
+  weeklyLimitKwh?: number;
+}
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -57,14 +44,15 @@ interface RingProps {
   strokeWidth: number;
   label: string;
   sublabel: string;
+  isEmpty?: boolean;
 }
 
-function CircularRing({ value, max, size, strokeWidth, label, sublabel }: RingProps) {
-  const ratio      = Math.min(value / max, 1);
+function CircularRing({ value, max, size, strokeWidth, label, sublabel, isEmpty = false }: RingProps) {
+  const ratio      = isEmpty ? 0 : Math.min(value / max, 1);
   const radius     = (size - strokeWidth) / 2;
   const circ       = 2 * Math.PI * radius;
   const dashOffset = circ * (1 - ratio);
-  const ringColor  = colorFromRatio(ratio);
+  const ringColor  = isEmpty ? '#1E293B' : colorFromRatio(ratio);
   const cx         = size / 2;
   const cy         = size / 2;
 
@@ -90,7 +78,7 @@ function CircularRing({ value, max, size, strokeWidth, label, sublabel }: RingPr
             strokeDashoffset={dashOffset}
             style={{
               transition: 'stroke-dashoffset 1s ease, stroke 0.5s ease',
-              filter: `drop-shadow(0 0 6px ${ringColor}88)`,
+              filter: isEmpty ? 'none' : `drop-shadow(0 0 6px ${ringColor}88)`,
             }}
           />
         </svg>
@@ -106,8 +94,8 @@ function CircularRing({ value, max, size, strokeWidth, label, sublabel }: RingPr
             gap: 1,
           }}
         >
-          <span style={{ fontSize: 18, fontWeight: 700, color: ringColor }}>
-            {value.toFixed(1)}
+          <span style={{ fontSize: 18, fontWeight: 700, color: isEmpty ? '#334155' : ringColor }}>
+            {isEmpty ? '--' : value.toFixed(1)}
           </span>
           <span
             style={{
@@ -226,15 +214,27 @@ function DeviceBar({ device, maxKwh, view }: DeviceBarProps) {
 // Component
 // ---------------------------------------------------------------------------
 
-export default function EnergyDashboard() {
+export default function EnergyDashboard({
+  devices = [],
+  dailyLimitKwh = 12,
+  weeklyLimitKwh = 80,
+}: EnergyDashboardProps) {
   const [view, setView] = useState<'daily' | 'weekly'>('daily');
 
-  const maxKwh = view === 'daily'
-    ? Math.max(...DEVICES.map((d) => d.dailyKwh))
-    : Math.max(...DEVICES.map((d) => d.weeklyKwh));
+  const hasDevices = devices.length > 0;
 
-  const totalKwh = view === 'daily' ? DAILY_KWH_TOTAL : WEEKLY_KWH_TOTAL;
-  const limit    = view === 'daily' ? DAILY_LIMIT     : WEEKLY_LIMIT;
+  const dailyTotal  = devices.reduce((s, d) => s + d.dailyKwh,  0);
+  const weeklyTotal = devices.reduce((s, d) => s + d.weeklyKwh, 0);
+  const totalKwh    = view === 'daily' ? dailyTotal  : weeklyTotal;
+  const limit       = view === 'daily' ? dailyLimitKwh : weeklyLimitKwh;
+
+  const maxKwh = hasDevices
+    ? Math.max(...devices.map((d) => view === 'daily' ? d.dailyKwh : d.weeklyKwh))
+    : 1; // avoid division by zero
+
+  const sortedDevices = [...devices].sort((a, b) =>
+    view === 'daily' ? b.dailyKwh - a.dailyKwh : b.weeklyKwh - a.weeklyKwh
+  );
 
   return (
     <div
@@ -324,7 +324,7 @@ export default function EnergyDashboard() {
         </div>
       </div>
 
-      {/* Rings */}
+      {/* Rings — always show, use isEmpty flag when no data */}
       <div
         style={{
           display: 'flex',
@@ -335,26 +335,27 @@ export default function EnergyDashboard() {
         }}
       >
         <CircularRing
-          value={DAILY_KWH_TOTAL}
-          max={DAILY_LIMIT}
+          value={dailyTotal}
+          max={dailyLimitKwh}
           size={110}
           strokeWidth={8}
           label="Today"
-          sublabel={`of ${DAILY_LIMIT} kWh`}
+          sublabel={`of ${dailyLimitKwh} kWh`}
+          isEmpty={!hasDevices}
         />
         <div
           style={{ height: 64, width: 1, background: 'rgba(88, 28, 135, 0.25)' }}
           aria-hidden="true"
         />
         <CircularRing
-          value={WEEKLY_KWH_TOTAL}
-          max={WEEKLY_LIMIT}
+          value={weeklyTotal}
+          max={weeklyLimitKwh}
           size={110}
           strokeWidth={8}
           label="This Week"
-          sublabel={`of ${WEEKLY_LIMIT} kWh`}
+          sublabel={`of ${weeklyLimitKwh} kWh`}
+          isEmpty={!hasDevices}
         />
-        {/* % of goal — hidden on smallest screens via a media query workaround: always show on md+ */}
         <div
           style={{ height: 64, width: 1, background: 'rgba(88, 28, 135, 0.25)' }}
           aria-hidden="true"
@@ -364,10 +365,10 @@ export default function EnergyDashboard() {
             style={{
               fontSize: 22,
               fontWeight: 700,
-              color: colorFromRatio(totalKwh / limit),
+              color: hasDevices ? colorFromRatio(totalKwh / limit) : '#334155',
             }}
           >
-            {Math.round((totalKwh / limit) * 100)}%
+            {hasDevices ? `${Math.round((totalKwh / limit) * 100)}%` : '--'}
           </span>
           <span
             style={{
@@ -382,7 +383,7 @@ export default function EnergyDashboard() {
         </div>
       </div>
 
-      {/* Device bars */}
+      {/* Device list or empty state */}
       <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
         <div
           style={{
@@ -407,11 +408,31 @@ export default function EnergyDashboard() {
             kWh / {view === 'daily' ? 'day' : 'week'}
           </span>
         </div>
-        {DEVICES.sort((a, b) =>
-          view === 'daily' ? b.dailyKwh - a.dailyKwh : b.weeklyKwh - a.weeklyKwh
-        ).map((device) => (
-          <DeviceBar key={device.entity_id} device={device} maxKwh={maxKwh} view={view} />
-        ))}
+
+        {hasDevices ? (
+          sortedDevices.map((device) => (
+            <DeviceBar key={device.entity_id} device={device} maxKwh={maxKwh} view={view} />
+          ))
+        ) : (
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '24px 0',
+              gap: 8,
+            }}
+          >
+            <Zap size={22} style={{ color: '#334155' }} aria-hidden="true" />
+            <p style={{ fontSize: 13, color: '#475569', margin: 0, textAlign: 'center' }}>
+              No devices reporting
+            </p>
+            <p style={{ fontSize: 11, color: '#334155', margin: 0, textAlign: 'center' }}>
+              Connect smart plugs to see power usage
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

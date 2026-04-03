@@ -1,26 +1,22 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import { Server, Cpu, MemoryStick, Clock, Mic, Brain, Wifi, AlertTriangle, CheckCircle2, XCircle } from 'lucide-react';
 
 // ---------------------------------------------------------------------------
-// Types
+// Types — exported so callers can pass real data from /api/health
 // ---------------------------------------------------------------------------
 
-type HealthStatus = 'healthy' | 'warning' | 'error' | 'offline';
+export type HealthStatus = 'healthy' | 'warning' | 'error' | 'offline';
 
-interface ServiceHealth {
+export interface ServiceHealth {
   id: string;
   name: string;
   status: HealthStatus;
   detail: string;
   uptime: string | null;
-  /** Lucide icon component */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  icon: React.ComponentType<any>;
 }
 
-interface SystemMetrics {
+export interface SystemMetrics {
   cpuTemp: number;    // Celsius
   cpuUsage: number;   // 0-100
   memUsed: number;    // GB
@@ -28,65 +24,27 @@ interface SystemMetrics {
   diskUsed: number;   // GB
   diskTotal: number;  // GB
   uptime: string;     // human-readable
-  piOnline: boolean;
+}
+
+export interface SystemHealthProps {
+  metrics?: SystemMetrics;
+  services?: ServiceHealth[];
+  lastRefresh?: string;
 }
 
 // ---------------------------------------------------------------------------
-// Mock data
+// Default offline service definitions (names and icons only — no fake data)
 // ---------------------------------------------------------------------------
 
-const INITIAL_METRICS: SystemMetrics = {
-  cpuTemp:   54,
-  cpuUsage:  23,
-  memUsed:   2.1,
-  memTotal:  8,
-  diskUsed:  14.2,
-  diskTotal: 64,
-  uptime:    '4d 11h 22m',
-  piOnline:  true,
-};
-
-const MOCK_SERVICES: ServiceHealth[] = [
-  {
-    id: 'voice-agent',
-    name: 'Voice Agent',
-    status: 'healthy',
-    detail: '"Hey Aura" listening',
-    uptime: '4d 11h',
-    icon: Mic,
-  },
-  {
-    id: 'clap-detector',
-    name: 'Clap Detector',
-    status: 'healthy',
-    detail: 'USB mic active',
-    uptime: '4d 11h',
-    icon: Wifi,
-  },
-  {
-    id: 'learning-engine',
-    name: 'Learning Engine',
-    status: 'warning',
-    detail: 'Pattern sync pending',
-    uptime: '3d 07h',
-    icon: Brain,
-  },
-  {
-    id: 'ha-mcp',
-    name: 'HA MCP Bridge',
-    status: 'healthy',
-    detail: '70+ tools connected',
-    uptime: '4d 11h',
-    icon: Server,
-  },
-  {
-    id: 'ha-core',
-    name: 'Home Assistant',
-    status: 'healthy',
-    detail: 'v2026.3.4 · 14 entities',
-    uptime: '4d 11h',
-    icon: Wifi,
-  },
+const DEFAULT_SERVICES: (Omit<ServiceHealth, 'status' | 'detail' | 'uptime'> & {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  icon: React.ComponentType<any>;
+})[] = [
+  { id: 'voice-agent',    name: 'Voice Agent',    icon: Mic    },
+  { id: 'clap-detector',  name: 'Clap Detector',  icon: Wifi   },
+  { id: 'learning-engine',name: 'Learning Engine', icon: Brain  },
+  { id: 'ha-mcp',         name: 'HA MCP Bridge',  icon: Server },
+  { id: 'ha-core',        name: 'Home Assistant', icon: Wifi   },
 ];
 
 // ---------------------------------------------------------------------------
@@ -118,14 +76,17 @@ function usageColor(pct: number): string {
 
 interface MetricBarProps {
   label: string;
-  value: number;
+  value: number | null; // null = no data
   max: number;
   unit: string;
   color: string;
 }
 
 function MetricBar({ label, value, max, unit, color }: MetricBarProps) {
-  const pct = Math.min((value / max) * 100, 100);
+  const pct = value !== null ? Math.min((value / max) * 100, 100) : 0;
+  const displayValue = value !== null ? `${value.toFixed(1)}${unit}` : '--';
+  const displayColor = value !== null ? color : '#334155';
+
   return (
     <div>
       <div
@@ -137,8 +98,8 @@ function MetricBar({ label, value, max, unit, color }: MetricBarProps) {
         }}
       >
         <span style={{ fontSize: 11, color: '#64748B' }}>{label}</span>
-        <span style={{ fontSize: 11, fontFamily: 'monospace', color }}>
-          {value.toFixed(1)}{unit}
+        <span style={{ fontSize: 11, fontFamily: 'monospace', color: displayColor }}>
+          {displayValue}
         </span>
       </div>
       <div
@@ -149,17 +110,17 @@ function MetricBar({ label, value, max, unit, color }: MetricBarProps) {
           overflow: 'hidden',
         }}
         role="progressbar"
-        aria-valuenow={value}
+        aria-valuenow={value ?? 0}
         aria-valuemax={max}
-        aria-label={`${label}: ${value}${unit}`}
+        aria-label={`${label}: ${displayValue}`}
       >
         <div
           style={{
             height: '100%',
             borderRadius: 9999,
             width: `${pct}%`,
-            background: color,
-            boxShadow: `0 0 4px ${color}66`,
+            background: value !== null ? color : 'transparent',
+            boxShadow: value !== null ? `0 0 4px ${color}66` : 'none',
             transition: 'width 0.8s ease, background 0.3s ease',
           }}
         />
@@ -224,32 +185,37 @@ function StatusIcon({ status }: { status: HealthStatus }) {
 // Component
 // ---------------------------------------------------------------------------
 
-export default function SystemHealth() {
-  const [metrics, setMetrics]         = useState<SystemMetrics>(INITIAL_METRICS);
-  const [services]                    = useState<ServiceHealth[]>(MOCK_SERVICES);
-  const [lastRefresh, setLastRefresh] = useState<string>('just now');
+export default function SystemHealth({
+  metrics,
+  services,
+  lastRefresh,
+}: SystemHealthProps = {}) {
+  const isConnected = metrics !== undefined;
 
-  // Simulate live metric fluctuation
-  useEffect(() => {
-    const id = setInterval(() => {
-      setMetrics((prev) => ({
-        ...prev,
-        cpuTemp:  Math.max(42, Math.min(78, prev.cpuTemp  + (Math.random() * 4 - 2))),
-        cpuUsage: Math.max(8,  Math.min(95, prev.cpuUsage + (Math.random() * 10 - 5))),
-        memUsed:  Math.max(1.5, Math.min(6.5, prev.memUsed + (Math.random() * 0.1 - 0.05))),
-      }));
-      setLastRefresh('just now');
-    }, 5000);
-    return () => clearInterval(id);
-  }, []);
-
-  const healthyCount = services.filter((s) => s.status === 'healthy').length;
-  const overallHealth: HealthStatus =
-    services.some((s) => s.status === 'error')  ? 'error'   :
-    services.some((s) => s.status === 'warning') ? 'warning' :
-    metrics.piOnline                             ? 'healthy' : 'offline';
+  // Determine overall status
+  const overallHealth: HealthStatus = !isConnected
+    ? 'offline'
+    : services?.some((s) => s.status === 'error')   ? 'error'
+    : services?.some((s) => s.status === 'warning')  ? 'warning'
+    : 'healthy';
 
   const { color: overallColor } = STATUS_CONFIG[overallHealth];
+
+  // Build the service rows — use real data if available, otherwise show defaults as offline
+  const serviceRows: (ServiceHealth & {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    icon: React.ComponentType<any>;
+  })[] = DEFAULT_SERVICES.map((def) => {
+    const real = services?.find((s) => s.id === def.id);
+    return {
+      ...def,
+      status:  real?.status  ?? 'offline',
+      detail:  real?.detail  ?? (isConnected ? 'Not running' : 'Pi offline'),
+      uptime:  real?.uptime  ?? null,
+    };
+  });
+
+  const healthyCount = serviceRows.filter((s) => s.status === 'healthy').length;
 
   return (
     <div
@@ -299,7 +265,8 @@ export default function SystemHealth() {
             System Health
           </h2>
           <p style={{ fontSize: 11, color: '#64748B', marginTop: 2, marginBottom: 0 }}>
-            Raspberry Pi 5 &middot; Updated {lastRefresh}
+            Raspberry Pi 5
+            {lastRefresh && isConnected ? ` \u00b7 Updated ${lastRefresh}` : ''}
           </p>
         </div>
 
@@ -321,7 +288,7 @@ export default function SystemHealth() {
           role="status"
           aria-label={`Overall system status: ${STATUS_CONFIG[overallHealth].label}`}
         >
-          <StatusDot status={overallHealth} animated />
+          <StatusDot status={overallHealth} animated={isConnected} />
           {STATUS_CONFIG[overallHealth].label}
         </div>
       </div>
@@ -350,43 +317,48 @@ export default function SystemHealth() {
               Hardware
             </span>
           </div>
+
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12, paddingLeft: 4 }}>
             <MetricBar
               label="CPU Temp"
-              value={Math.round(metrics.cpuTemp)}
+              value={metrics ? Math.round(metrics.cpuTemp) : null}
               max={85}
               unit="°C"
-              color={tempColor(metrics.cpuTemp)}
+              color={metrics ? tempColor(metrics.cpuTemp) : '#334155'}
             />
             <MetricBar
               label="CPU Usage"
-              value={Math.round(metrics.cpuUsage)}
+              value={metrics ? Math.round(metrics.cpuUsage) : null}
               max={100}
               unit="%"
-              color={usageColor(metrics.cpuUsage)}
+              color={metrics ? usageColor(metrics.cpuUsage) : '#334155'}
             />
             <MetricBar
-              label={`Memory  (${metrics.memUsed.toFixed(1)} / ${metrics.memTotal} GB)`}
-              value={metrics.memUsed}
-              max={metrics.memTotal}
+              label={metrics
+                ? `Memory  (${metrics.memUsed.toFixed(1)} / ${metrics.memTotal} GB)`
+                : 'Memory'}
+              value={metrics ? metrics.memUsed : null}
+              max={metrics?.memTotal ?? 8}
               unit=" GB"
-              color={usageColor((metrics.memUsed / metrics.memTotal) * 100)}
+              color={metrics ? usageColor((metrics.memUsed / metrics.memTotal) * 100) : '#334155'}
             />
             <MetricBar
-              label={`Disk  (${metrics.diskUsed} / ${metrics.diskTotal} GB)`}
-              value={metrics.diskUsed}
-              max={metrics.diskTotal}
+              label={metrics
+                ? `Disk  (${metrics.diskUsed} / ${metrics.diskTotal} GB)`
+                : 'Disk'}
+              value={metrics ? metrics.diskUsed : null}
+              max={metrics?.diskTotal ?? 64}
               unit=" GB"
-              color={usageColor((metrics.diskUsed / metrics.diskTotal) * 100)}
+              color={metrics ? usageColor((metrics.diskUsed / metrics.diskTotal) * 100) : '#334155'}
             />
           </div>
 
-          {/* Uptime */}
+          {/* Uptime row */}
           <div style={{ marginTop: 12, paddingLeft: 4, display: 'flex', alignItems: 'center', gap: 8 }}>
             <Clock size={11} style={{ color: '#475569' }} aria-hidden="true" />
             <span style={{ fontSize: 11, color: '#475569' }}>Uptime:</span>
-            <span style={{ fontSize: 11, fontFamily: 'monospace', color: '#94A3B8' }}>
-              {metrics.uptime}
+            <span style={{ fontSize: 11, fontFamily: 'monospace', color: metrics ? '#94A3B8' : '#334155' }}>
+              {metrics?.uptime ?? '--'}
             </span>
           </div>
         </div>
@@ -410,12 +382,18 @@ export default function SystemHealth() {
               Services
             </span>
             <span style={{ marginLeft: 'auto', fontSize: 11, color: '#475569' }}>
-              <span style={{ color: '#10B981' }}>{healthyCount}</span>/{services.length} running
+              {isConnected ? (
+                <>
+                  <span style={{ color: '#10B981' }}>{healthyCount}</span>/{serviceRows.length} running
+                </>
+              ) : (
+                <span style={{ color: '#334155' }}>Connect Pi to see status</span>
+              )}
             </span>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            {services.map((svc, idx) => {
+            {serviceRows.map((svc, idx) => {
               const ServiceIcon = svc.icon;
               const { color } = STATUS_CONFIG[svc.status];
               return (
@@ -485,6 +463,21 @@ export default function SystemHealth() {
               );
             })}
           </div>
+
+          {/* Connection hint */}
+          {!isConnected && (
+            <p
+              style={{
+                fontSize: 11,
+                color: '#334155',
+                marginTop: 16,
+                marginBottom: 0,
+                textAlign: 'center',
+              }}
+            >
+              Connect your Raspberry Pi to see live metrics
+            </p>
+          )}
         </div>
       </div>
     </div>

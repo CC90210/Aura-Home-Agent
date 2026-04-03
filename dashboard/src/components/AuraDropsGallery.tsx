@@ -4,10 +4,10 @@ import { useState } from 'react';
 import { Plus, Play, Layers } from 'lucide-react';
 
 // ---------------------------------------------------------------------------
-// Types
+// Types — exported so callers can pass real drop data in the future
 // ---------------------------------------------------------------------------
 
-interface AuraDrop {
+export interface AuraDrop {
   id: string;
   name: string;
   description: string;
@@ -21,57 +21,10 @@ interface AuraDrop {
   savedBy: 'CC' | 'Adon';
 }
 
-// ---------------------------------------------------------------------------
-// Mock data
-// ---------------------------------------------------------------------------
-
-const MOCK_DROPS: AuraDrop[] = [
-  {
-    id: 'drop-1',
-    name: 'Midnight Grind',
-    description: 'Deep purple LEDs, lo-fi, max focus',
-    palette: ['#2D1B69', '#7C3AED', '#1E1B4B', '#0A0A14'],
-    webhook_id: 'aura_drop_midnight_grind',
-    savedAt: '2026-03-28T23:14:00Z',
-    savedBy: 'CC',
-  },
-  {
-    id: 'drop-2',
-    name: 'Golden Hour',
-    description: 'Warm amber, Spotify mood playlist, 70%',
-    palette: ['#92400E', '#F59E0B', '#FCD34D', '#FFFBEB'],
-    webhook_id: 'aura_drop_golden_hour',
-    savedAt: '2026-03-30T18:45:00Z',
-    savedBy: 'Adon',
-  },
-  {
-    id: 'drop-3',
-    name: 'Blue Archive',
-    description: 'Cool blue light, chill beats, 55% brightness',
-    palette: ['#1E3A5F', '#2563EB', '#60A5FA', '#BFDBFE'],
-    webhook_id: 'aura_drop_blue_archive',
-    savedAt: '2026-04-01T09:30:00Z',
-    savedBy: 'CC',
-  },
-  {
-    id: 'drop-4',
-    name: 'Crimson Studio',
-    description: 'Red accents, key light 100%, stream ready',
-    palette: ['#450A0A', '#DC2626', '#F87171', '#FEE2E2'],
-    webhook_id: 'aura_drop_crimson_studio',
-    savedAt: '2026-04-02T20:11:00Z',
-    savedBy: 'CC',
-  },
-  {
-    id: 'drop-5',
-    name: 'Emerald Rest',
-    description: 'Soft green, white noise, wind-down mode',
-    palette: ['#064E3B', '#059669', '#34D399', '#D1FAE5'],
-    webhook_id: 'aura_drop_emerald_rest',
-    savedAt: '2026-04-03T22:00:00Z',
-    savedBy: 'Adon',
-  },
-];
+export interface AuraDropsGalleryProps {
+  drops?: AuraDrop[];
+  onActivate?: (drop: AuraDrop) => Promise<void>;
+}
 
 // ---------------------------------------------------------------------------
 // Sub-components
@@ -308,13 +261,13 @@ function AddDropCard() {
 // Component
 // ---------------------------------------------------------------------------
 
-export default function AuraDropsGallery() {
-  const [drops] = useState<AuraDrop[]>(MOCK_DROPS);
-
-  const handleActivate = async (drop: AuraDrop): Promise<void> => {
-    // In production: POST /api/scene with { webhook_id: drop.webhook_id }
+export default function AuraDropsGallery({ drops = [], onActivate }: AuraDropsGalleryProps) {
+  const defaultActivate = async (_drop: AuraDrop): Promise<void> => {
+    // Caller should pass a real onActivate handler that POSTs to /api/scene
     await new Promise<void>((resolve) => setTimeout(resolve, 600));
   };
+
+  const handleActivate = onActivate ?? defaultActivate;
 
   return (
     <div
@@ -364,7 +317,7 @@ export default function AuraDropsGallery() {
             AURA Drops
           </h2>
           <p style={{ fontSize: 11, color: '#64748B', marginTop: 2, marginBottom: 0 }}>
-            Saved scene snapshots — one tap to activate
+            Saved scene snapshots
           </p>
         </div>
         <span style={{ marginLeft: 'auto', fontSize: 11, color: '#64748B', fontFamily: 'monospace' }}>
@@ -384,7 +337,24 @@ export default function AuraDropsGallery() {
         {drops.map((drop) => (
           <DropCard key={drop.id} drop={drop} onActivate={handleActivate} />
         ))}
+
+        {/* Always show the add card */}
         <AddDropCard />
+
+        {/* Empty state hint — only shown when no drops exist yet */}
+        {drops.length === 0 && (
+          <div
+            style={{
+              gridColumn: '1 / -1',
+              textAlign: 'center',
+              padding: '8px 0 12px',
+            }}
+          >
+            <p style={{ fontSize: 12, color: '#334155', margin: 0 }}>
+              No drops saved yet. Say &ldquo;Hey Aura, save this vibe&rdquo; to create your first drop.
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );
