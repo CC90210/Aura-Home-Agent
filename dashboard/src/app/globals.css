@@ -96,11 +96,124 @@ body {
 .status-offline { background-color: #EF4444; box-shadow: 0 0 6px rgba(239,  68,  68, 0.8); }
 .status-unknown { background-color: #F59E0B; box-shadow: 0 0 6px rgba(245, 158,  11, 0.8); }
 
+/* ── Bottom navigation ──────────────────────────────────────── */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  background: rgba(10, 10, 20, 0.90);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-top: 1px solid rgba(124, 58, 237, 0.15);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* ── Horizontal scroll, hidden scrollbar ───────────────────── */
+.scroll-hide::-webkit-scrollbar { display: none; }
+.scroll-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* ── Scene card gradients (Scenes tab full cards) ───────────── */
+.scene-gradient-sunset    { background: linear-gradient(135deg, #1a0a2e 0%, #2d1b4e 50%, #4a1942 100%); }
+.scene-gradient-morning   { background: linear-gradient(135deg, #1a1a0a 0%, #2d2b1b 50%, #4a3a19 100%); }
+.scene-gradient-studio    { background: linear-gradient(135deg, #0a1a2e 0%, #1b2d4e 50%, #194299 100%); }
+.scene-gradient-movie     { background: linear-gradient(135deg, #100a1e 0%, #1e0b2e 50%, #1a0a30 100%); }
+.scene-gradient-party     { background: linear-gradient(135deg, #2e0a2e 0%, #4e1b3e 50%, #7a1950 100%); }
+.scene-gradient-focus     { background: linear-gradient(135deg, #0a1e1a 0%, #1b3e2d 50%, #195a3a 100%); }
+.scene-gradient-gaming    { background: linear-gradient(135deg, #0a0a2e 0%, #1b1b4e 50%, #2a1990 100%); }
+.scene-gradient-streaming { background: linear-gradient(135deg, #2e0a0a 0%, #4e1b1b 50%, #901930 100%); }
+.scene-gradient-music     { background: linear-gradient(135deg, #1a0a2e 0%, #3a1b4e 50%, #5a1990 100%); }
+
+/* ── Toggle switch ──────────────────────────────────────────── */
+.toggle-switch {
+  width: 44px;
+  height: 24px;
+  border-radius: 12px;
+  position: relative;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  flex-shrink: 0;
+}
+.toggle-switch::after {
+  content: '';
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: white;
+  top: 2px;
+  left: 2px;
+  transition: transform 0.2s;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.40);
+}
+.toggle-switch[data-on="true"]  { background-color: #7C3AED; box-shadow: 0 0 10px rgba(124, 58, 237, 0.35); }
+.toggle-switch[data-on="true"]::after  { transform: translateX(20px); }
+.toggle-switch[data-on="false"] { background-color: #1E1E40; }
+
+/* ── Equalizer animation bars (Now Playing) ─────────────────── */
+@keyframes eq-bounce-1 {
+  0%, 100% { height: 6px; }
+  50%       { height: 16px; }
+}
+@keyframes eq-bounce-2 {
+  0%, 100% { height: 10px; }
+  50%       { height: 6px; }
+}
+@keyframes eq-bounce-3 {
+  0%, 100% { height: 14px; }
+  50%       { height: 8px; }
+}
+@keyframes eq-bounce-4 {
+  0%, 100% { height: 8px; }
+  50%       { height: 16px; }
+}
+@keyframes eq-bounce-5 {
+  0%, 100% { height: 5px; }
+  50%       { height: 12px; }
+}
+
+.eq-bar-1 { animation: eq-bounce-1 0.9s ease-in-out infinite; }
+.eq-bar-2 { animation: eq-bounce-2 0.7s ease-in-out infinite 0.1s; }
+.eq-bar-3 { animation: eq-bounce-3 1.1s ease-in-out infinite 0.2s; }
+.eq-bar-4 { animation: eq-bounce-4 0.8s ease-in-out infinite 0.05s; }
+.eq-bar-5 { animation: eq-bounce-5 1.0s ease-in-out infinite 0.15s; }
+
+/* ── Progress ring animation ────────────────────────────────── */
+@keyframes progress-ring-fill {
+  from { stroke-dashoffset: 251; }
+}
+
+/* ── Tab transition ─────────────────────────────────────────── */
+@keyframes tab-enter {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.tab-enter {
+  animation: tab-enter 0.25s ease-out both;
+}
+
 /* ── Keyframe definitions ───────────────────────────────────── */
 
 @keyframes glow-pulse {
   0%, 100% { box-shadow: 0 0 8px  rgba(124, 58, 237, 0.30); }
   50%       { box-shadow: 0 0 22px rgba(124, 58, 237, 0.65); }
+}
+
+@keyframes wordmark-glow {
+  0%, 100% {
+    text-shadow: 0 0 20px rgba(159, 103, 255, 0.60),
+                 0 0 60px rgba(124, 58, 237, 0.30);
+  }
+  50% {
+    text-shadow: 0 0 35px rgba(159, 103, 255, 0.90),
+                 0 0 90px rgba(124, 58, 237, 0.50);
+  }
+}
+
+.wordmark-glow {
+  animation: wordmark-glow 3s ease-in-out infinite;
 }
 
 @keyframes fade-in {
@@ -126,4 +239,19 @@ body {
 @keyframes spin {
   from { transform: rotate(0deg); }
   to   { transform: rotate(360deg); }
+}
+
+@keyframes login-glow-pulse {
+  0%, 100% {
+    box-shadow: 0 0 24px rgba(124, 58, 237, 0.25),
+                0 0 60px rgba(124, 58, 237, 0.10);
+  }
+  50% {
+    box-shadow: 0 0 40px rgba(124, 58, 237, 0.55),
+                0 0 100px rgba(124, 58, 237, 0.25);
+  }
+}
+
+.login-icon-glow {
+  animation: login-glow-pulse 2.5s ease-in-out infinite;
 }
