@@ -281,6 +281,22 @@ class HabitTracker:
         Returns a dict mapping person ID to list of auto-detected habit names.
         """
         check_date = target_date or (date.today() - timedelta(days=1))
+
+        # Guard: do not mark habits as missed if the system has been running
+        # for less than 24 hours — there is not enough event history yet, and
+        # writing "missed" records on Day 1 corrupts streaks permanently.
+        oldest_rows = self._db.execute("SELECT MIN(timestamp) FROM events")
+        if oldest_rows and oldest_rows[0][0]:
+            oldest_time = datetime.fromisoformat(oldest_rows[0][0])
+            # Ensure the datetime is timezone-aware for comparison
+            if oldest_time.tzinfo is None:
+                oldest_time = oldest_time.replace(tzinfo=timezone.utc)
+            if datetime.now(timezone.utc) - oldest_time < timedelta(hours=24):
+                log.info(
+                    "System running < 24 hours — skipping auto-detection to avoid false misses"
+                )
+                return {}
+
         detected: dict[str, list[str]] = {p["id"]: [] for p in self._persons}
 
         for habit_cfg in self._tracked_habits:

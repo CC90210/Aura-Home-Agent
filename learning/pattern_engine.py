@@ -466,9 +466,40 @@ class PatternEngine:
         Trigger the Darwinian optimisation cycle.  Delegates to
         ``RoutineOptimizer`` and returns the number of new suggestions
         generated.
+
+        Also runs ``cleanup_old_events`` at the end of each cycle to prevent
+        unbounded database growth.
         """
         optimizer = RoutineOptimizer(self._config, self._db)
-        return optimizer.evolve()
+        result = optimizer.evolve()
+        self.cleanup_old_events()
+        return result
+
+    def cleanup_old_events(self, days: int = 90) -> int:
+        """
+        Delete events older than ``days`` days and reclaim disk space.
+
+        Parameters
+        ----------
+        days:
+            Retention window in days.  Events older than this are deleted.
+            Defaults to 90 days.
+
+        Returns
+        -------
+        int
+            Number of rows deleted.
+        """
+        with self._db.transaction() as conn:
+            cursor = conn.execute(
+                "DELETE FROM events WHERE timestamp < datetime('now', ?)",
+                (f"-{days} days",),
+            )
+            deleted = cursor.rowcount
+            conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+        if deleted:
+            log.info("Cleaned up %d events older than %d days", deleted, days)
+        return deleted
 
     # ------------------------------------------------------------------
     # Internal helpers

@@ -76,6 +76,7 @@ _CONTROLLABLE_DOMAINS = frozenset(
         "script",
         "input_boolean",
         "automation",
+        "camera",
     }
 )
 
@@ -284,6 +285,7 @@ class IntentHandler:
 
         # Step 5: Execute actions
         self._security_feedback = None  # Reset before action loop
+        self._feature_response = None   # Reset before action loop
         if actions:
             log.info("Executing %d action(s)…", len(actions))
             for action in actions:
@@ -293,6 +295,12 @@ class IntentHandler:
                     self._execute_action(action)
         else:
             log.debug("No actions in Claude response.")
+
+        # If a feature command generated its own response text (e.g. pulse_check
+        # check-in, energy oracle brief), use it as the spoken response.
+        if self._feature_response:
+            response_text = self._feature_response
+            log.info("Response overridden by feature output")
 
         # If a security check blocked an action, override Claude's response
         # so the user hears WHY the action didn't happen
@@ -365,6 +373,26 @@ class IntentHandler:
 
         if not domain or not service:
             log.warning("Skipping malformed action (missing domain or service): %s", action)
+            return
+
+        # Webhook dispatch — fires HA webhooks that trigger automations.
+        # This bypasses the security check intentionally: the webhooks trigger
+        # HA automations that have their own safety conditions, and we do not
+        # want the voice security layer blocking protocol activations.
+        if domain == "webhook":
+            webhook_id = action.get("webhook_id", "")
+            if webhook_id:
+                try:
+                    requests.post(
+                        f"http://localhost:5123/{webhook_id}",
+                        json={},
+                        timeout=5,
+                    )
+                    log.info("Webhook fired: %s", webhook_id)
+                except Exception as exc:  # noqa: BLE001
+                    log.error("Failed to fire webhook %s: %s", webhook_id, exc)
+            else:
+                log.warning("Webhook action missing webhook_id: %s", action)
             return
 
         # Security check — block or require PIN for sensitive actions
@@ -464,7 +492,9 @@ class IntentHandler:
         try:
             if feature_name == "mirror_mode":
                 mood: str = action.get("mood", "ambient")
-                instance.activate(mood)
+                result = instance.activate(mood)
+                if isinstance(result, str) and result:
+                    self._feature_response = result
 
             elif feature_name == "aura_drops":
                 name: str = action.get("name", "")
@@ -472,12 +502,18 @@ class IntentHandler:
                 if feature_action == "save":
                     result = instance.save_drop(name, person)
                     log.info("AuraDrops save result: %s", result)
+                    if isinstance(result, str) and result:
+                        self._feature_response = result
                 elif feature_action == "activate":
                     result = instance.activate_drop(name)
                     log.info("AuraDrops activate result: %s", result)
+                    if isinstance(result, str) and result:
+                        self._feature_response = result
                 elif feature_action == "list":
                     result = instance.list_drops_summary()
                     log.info("AuraDrops list: %s", result)
+                    if isinstance(result, str) and result:
+                        self._feature_response = result
                 else:
                     log.warning("Unknown aura_drops action: %r", feature_action)
 
@@ -513,6 +549,8 @@ class IntentHandler:
                     person = action.get("person", "conaugh")
                     text = instance.generate_check_in(person)
                     log.info("PulseCheck check-in generated for %s: %r", person, text[:80])
+                    if text:
+                        self._feature_response = text
                 else:
                     log.warning("Unknown pulse_check action: %r", feature_action)
 
@@ -535,6 +573,8 @@ class IntentHandler:
                     person = action.get("person", "conaugh")
                     stats = instance.get_content_stats(person)
                     log.info("ContentRadar stats for %s: %s", person, stats)
+                    if isinstance(stats, str) and stats:
+                        self._feature_response = stats
                 else:
                     log.warning("Unknown content_radar action: %r", feature_action)
 
@@ -574,6 +614,8 @@ class IntentHandler:
                     person = action.get("person", "conaugh")
                     brief = instance.generate_weekly_brief(person)
                     log.info("EnergyOracle brief for %s: %r", person, (brief or "")[:80])
+                    if brief:
+                        self._feature_response = brief
                 else:
                     log.warning("Unknown energy_oracle action: %r", feature_action)
 
@@ -609,6 +651,7 @@ class IntentHandler:
             messages=[
                 {"role": "user", "content": user_text},
             ],
+            timeout=30.0,
         )
 
         elapsed = time.monotonic() - t0
@@ -755,8 +798,30 @@ class IntentHandler:
                 current_state = state.get("state", "unknown")
                 attrs = state.get("attributes", {})
                 friendly_name = attrs.get("friendly_name", entity_id)
+                domain = entity_id.split(".")[0]
+
+                # Build an attribute suffix so Claude can answer live questions
+                # like "what's the temperature?" or "what's playing?" accurately.
+                attr_parts: list[str] = []
+                if domain == "climate":
+                    if "current_temperature" in attrs:
+                        attr_parts.append(f"current_temperature: {attrs['current_temperature']}")
+                    if "hvac_mode" in attrs:
+                        attr_parts.append(f"hvac_mode: {attrs['hvac_mode']}")
+                elif domain == "media_player":
+                    if "volume_level" in attrs:
+                        attr_parts.append(f"volume_level: {attrs['volume_level']}")
+                    if "media_title" in attrs:
+                        attr_parts.append(f"media_title: {attrs['media_title']}")
+                elif domain == "light":
+                    if "brightness" in attrs:
+                        attr_parts.append(f"brightness: {attrs['brightness']}")
+                    if "color_mode" in attrs:
+                        attr_parts.append(f"color_mode: {attrs['color_mode']}")
+
+                attr_suffix = f" [{', '.join(attr_parts)}]" if attr_parts else ""
                 entity_lines.append(
-                    f"  - {entity_id} ({friendly_name}): {current_state}"
+                    f"  - {entity_id} ({friendly_name}): {current_state}{attr_suffix}"
                 )
             entities_block = "\n".join(entity_lines)
         else:
@@ -772,6 +837,15 @@ class IntentHandler:
             actions_str = ", ".join(actions_list)
             protocol_lines.append(
                 f'  - "{name}": {description} — [{actions_str}]'
+            )
+        if protocol_lines:
+            protocol_lines.append(
+                "\nTo activate any protocol, include this action in the actions array:\n"
+                '  {"domain": "webhook", "service": "fire", "webhook_id": "aura_<protocol_name>"}\n'
+                'For example, to activate close_down:\n'
+                '  {"domain": "webhook", "service": "fire", "webhook_id": "aura_close_down"}\n'
+                'For open_up:\n'
+                '  {"domain": "webhook", "service": "fire", "webhook_id": "aura_open_up"}'
             )
         protocols_block = (
             "\n".join(protocol_lines) if protocol_lines else "  (none configured)"
@@ -878,6 +952,7 @@ RULES:
 - For script runs, use domain "script" and service "turn_on".
 - If you are unsure how to execute a command, say so in "response" and leave "actions" empty. Never guess.
 - Never hallucinate entity IDs. If it is not in the device states list, it does not exist.
+- The CAPABILITIES section describes what AURA supports in general. The DEVICE STATES list is the ground truth for what is physically connected RIGHT NOW. If a capability references a device type that is not in the device states (e.g., capabilities mention thermostat but no climate entity exists), tell the user: "AURA supports thermostat control, but there's no thermostat connected to the system yet."
 - Temperatures for climate entities are in Celsius.
 - Be honest and direct if you cannot do something. Say "I don't have access to that" or "That device isn't connected yet." Never pretend or make up actions.
 - If the user asks "what can you do", "help", "what are your capabilities", or similar,

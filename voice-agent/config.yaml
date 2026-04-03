@@ -23,6 +23,13 @@ audio:
   silence_threshold: 500      # RMS amplitude below which audio is "silence"
   silence_duration: 1.5       # Seconds of silence required to end recording
 
+  # Input device index for PyAudio.
+  # Set to null for system default, or specify a device index.
+  # IMPORTANT: If both clap detection and voice agent run simultaneously,
+  # either use two separate USB mics (each with its own device index)
+  # or configure ALSA dsnoop to share one mic. See docs/SETUP_GUIDE.md.
+  input_device_index: null
+
 stt:
   # Whisper model size: tiny, base, small, medium
   # "base" is the best balance of speed and accuracy on Pi 5 (8GB).

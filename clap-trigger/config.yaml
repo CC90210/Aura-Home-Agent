@@ -7,6 +7,11 @@ audio:
   channels: 1
   format: paInt16
 
+  # Input device index for PyAudio.
+  # Set to null for system default, or specify a device index.
+  # IMPORTANT: See voice-agent/config.yaml for mic sharing notes.
+  input_device_index: null
+
 detection:
   # Amplitude threshold for clap detection (0-32767 for 16-bit audio)
   # Lower = more sensitive, higher = fewer false positives
