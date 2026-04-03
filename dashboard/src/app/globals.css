@@ -12,7 +12,7 @@ html,
 body {
   margin: 0;
   padding: 0;
-  background: #0A0A14;
+  background: #06060F;
   color: #E2E8F0;
   font-family: 'Inter', -apple-system, system-ui, sans-serif;
   -webkit-tap-highlight-color: transparent;
@@ -32,10 +32,12 @@ body {
 ::-webkit-scrollbar-thumb { background: #2D2D50; border-radius: 4px; }
 ::-webkit-scrollbar-thumb:hover { background: #7C3AED; }
 
-/* Keyframe animations referenced by both login and dashboard.module.css */
+/* ============================================
+   Global keyframe animations
+   ============================================ */
 
 @keyframes slide-up {
-  from { opacity: 0; transform: translateY(10px); }
+  from { opacity: 0; transform: translateY(16px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
@@ -71,7 +73,30 @@ body {
   }
 }
 
-/* Login page animation classes (used via className since login page is still partially Tailwind) */
+/* Ambient background orb drift — used in layout.tsx */
+@keyframes orb-drift-1 {
+  0%, 100% { transform: translateX(-50%) translateY(0) scale(1); }
+  33%       { transform: translateX(-52%) translateY(-30px) scale(1.05); }
+  66%       { transform: translateX(-48%) translateY(20px) scale(0.97); }
+}
+
+@keyframes orb-drift-2 {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50%       { transform: translateY(-40px) scale(1.08); }
+}
+
+@keyframes orb-drift-3 {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50%       { transform: translateY(30px) scale(0.95); }
+}
+
+/* Grid shimmer used in layout background */
+@keyframes grid-pulse {
+  0%, 100% { opacity: 0.4; }
+  50%       { opacity: 0.7; }
+}
+
+/* Login page animation classes */
 .wordmark-glow {
   animation: wordmark-glow 3s ease-in-out infinite;
 }
@@ -79,3 +104,9 @@ body {
 .login-icon-glow {
   animation: login-glow-pulse 2.5s ease-in-out infinite;
 }
+
+/* Ambient orb animation utility classes (used by layout.tsx inline) */
+.orb-1 { animation: orb-drift-1 18s ease-in-out infinite; }
+.orb-2 { animation: orb-drift-2 22s ease-in-out infinite; }
+.orb-3 { animation: orb-drift-3 16s ease-in-out infinite 2s; }
+.grid-layer { animation: grid-pulse 8s ease-in-out infinite; }

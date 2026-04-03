@@ -149,7 +149,7 @@ class IntentHandler:
 
         import anthropic  # type: ignore[import-untyped]
 
-        self._client = anthropic.Anthropic(api_key=anthropic_api_key)
+        self._client = anthropic.Anthropic(api_key=anthropic_api_key, timeout=30.0)
 
         # Initialise the personality engine.  A missing personality.yaml is
         # non-fatal — the pipeline degrades to a minimal static prompt.
@@ -573,7 +573,22 @@ class IntentHandler:
                     person = action.get("person", "conaugh")
                     stats = instance.get_content_stats(person)
                     log.info("ContentRadar stats for %s: %s", person, stats)
-                    if isinstance(stats, str) and stats:
+                    if isinstance(stats, dict) and stats:
+                        # Build a TTS-friendly summary from the stats dict
+                        sessions = stats.get("total_sessions", 0)
+                        days_since = stats.get("days_since_last_session", 0)
+                        avg_len = stats.get("average_session_length", 0.0)
+                        mode = stats.get("most_used_mode") or "studio"
+                        stats_text = (
+                            f"You've had {sessions} content session"
+                            f"{'s' if sessions != 1 else ''} in the last 30 days. "
+                            f"Last session was {days_since} day"
+                            f"{'s' if days_since != 1 else ''} ago. "
+                            f"Average session length is {avg_len:.0f} minutes. "
+                            f"Most used mode: {mode}."
+                        )
+                        self._feature_response = stats_text
+                    elif isinstance(stats, str) and stats:
                         self._feature_response = stats
                 else:
                     log.warning("Unknown content_radar action: %r", feature_action)
@@ -651,7 +666,6 @@ class IntentHandler:
             messages=[
                 {"role": "user", "content": user_text},
             ],
-            timeout=30.0,
         )
 
         elapsed = time.monotonic() - t0

@@ -3,11 +3,37 @@
    All styles are self-contained. Zero Tailwind dependency.
    ============================================ */
 
+/* === Card entrance animation === */
+@keyframes card-enter {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse-dot {
+  0%, 100% { box-shadow: 0 0 4px currentColor; }
+  50%       { box-shadow: 0 0 10px currentColor, 0 0 20px currentColor; }
+}
+
+@keyframes scene-glow {
+  0%, 100% { box-shadow: 0 0 16px rgba(124, 58, 237, 0.25), 0 0 32px rgba(124, 58, 237, 0.10); }
+  50%       { box-shadow: 0 0 28px rgba(124, 58, 237, 0.50), 0 0 56px rgba(124, 58, 237, 0.20); }
+}
+
+@keyframes shimmer {
+  from { background-position: -200% center; }
+  to   { background-position: 200% center; }
+}
+
+@keyframes weather-float {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-4px); }
+}
+
 /* === Layout === */
 .container {
   display: flex;
   min-height: 100dvh;
-  background: #0A0A14;
+  background: transparent;
   color: #E2E8F0;
   font-family: 'Inter', -apple-system, system-ui, sans-serif;
 }
@@ -15,8 +41,10 @@
 /* === Sidebar === */
 .sidebar {
   width: 240px;
-  background: #0E0E1E;
-  border-right: 1px solid rgba(124, 58, 237, 0.12);
+  background: rgba(10, 10, 24, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-right: 1px solid rgba(124, 58, 237, 0.14);
   display: flex;
   flex-direction: column;
   padding: 24px 0;
@@ -25,7 +53,7 @@
   left: 0;
   bottom: 0;
   z-index: 40;
-  transition: transform 0.3s ease;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .sidebarOpen {
@@ -138,6 +166,8 @@
 .presenceOnline {
   background: #10B981;
   box-shadow: 0 0 6px rgba(16, 185, 129, 0.6);
+  animation: pulse-dot 2.5s ease-in-out infinite;
+  color: #10B981;
 }
 
 .presenceOffline {
@@ -153,7 +183,7 @@
 .main {
   flex: 1;
   margin-left: 240px;
-  padding: 36px 40px;
+  padding: 36px 40px 120px;
   min-height: 100dvh;
   overflow-y: auto;
   max-width: calc(100vw - 240px);
@@ -245,18 +275,31 @@
 }
 
 .statCard {
-  background: #12122A;
-  border: 1px solid rgba(124, 58, 237, 0.1);
+  background: rgba(14, 14, 32, 0.70);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(124, 58, 237, 0.12);
   border-radius: 16px;
   padding: 18px;
   position: relative;
   overflow: hidden;
-  transition: border-color 0.2s, transform 0.2s;
+  transition: border-color 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
+  animation: card-enter 0.4s ease-out both;
+}
+
+.statCard::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(255,255,255,0.025) 0%, transparent 60%);
+  pointer-events: none;
 }
 
 .statCard:hover {
-  border-color: rgba(124, 58, 237, 0.25);
-  transform: translateY(-2px);
+  border-color: rgba(124, 58, 237, 0.30);
+  transform: translateY(-3px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(124, 58, 237, 0.08);
 }
 
 .statIcon {
@@ -324,12 +367,14 @@
 }
 
 .sceneCard {
-  background: #12122A;
-  border: 1px solid rgba(124, 58, 237, 0.1);
-  border-radius: 14px;
-  padding: 16px 12px;
+  background: rgba(14, 14, 32, 0.70);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(124, 58, 237, 0.12);
+  border-radius: 16px;
+  padding: 18px 14px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -339,39 +384,63 @@
   overflow: hidden;
   font: inherit;
   color: inherit;
+  animation: card-enter 0.4s ease-out both;
+}
+
+.sceneCard::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(255,255,255,0.03) 0%, transparent 50%);
+  pointer-events: none;
+  transition: opacity 0.22s;
 }
 
 .sceneCard:hover {
-  border-color: rgba(124, 58, 237, 0.3);
-  background: #1A1A3E;
-  transform: translateY(-2px);
+  border-color: rgba(124, 58, 237, 0.35);
+  background: rgba(26, 20, 60, 0.80);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.30);
+}
+
+.sceneCard:hover::before {
+  opacity: 1.5;
 }
 
 .sceneCard:active {
-  transform: scale(0.96);
+  transform: scale(0.95);
 }
 
 .sceneCardActive {
-  border-color: rgba(124, 58, 237, 0.6) !important;
-  background: linear-gradient(135deg, rgba(124, 58, 237, 0.2) 0%, rgba(59, 130, 246, 0.1) 100%) !important;
-  box-shadow: 0 0 20px rgba(124, 58, 237, 0.3);
+  border-color: rgba(124, 58, 237, 0.65) !important;
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.22) 0%, rgba(59, 130, 246, 0.12) 100%) !important;
+  animation: scene-glow 2.5s ease-in-out infinite;
 }
 
 .sceneIconWrap {
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
+  width: 46px;
+  height: 46px;
+  border-radius: 13px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(124, 58, 237, 0.1);
+  background: rgba(124, 58, 237, 0.12);
+  border: 1px solid rgba(124, 58, 237, 0.18);
   color: #A78BFA;
-  transition: background 0.2s;
+  transition: all 0.22s ease;
   flex-shrink: 0;
 }
 
+.sceneCard:hover .sceneIconWrap {
+  background: rgba(124, 58, 237, 0.20);
+  border-color: rgba(124, 58, 237, 0.35);
+}
+
 .sceneCardActive .sceneIconWrap {
-  background: rgba(124, 58, 237, 0.25);
+  background: rgba(124, 58, 237, 0.30);
+  border-color: rgba(167, 139, 250, 0.50);
+  box-shadow: 0 0 16px rgba(124, 58, 237, 0.40);
 }
 
 .sceneName {
@@ -408,32 +477,6 @@
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: 10px;
   margin-bottom: 28px;
-}
-
-.quickAction {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 14px 16px;
-  background: #12122A;
-  border: 1px solid rgba(124, 58, 237, 0.08);
-  border-radius: 12px;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  color: #E2E8F0;
-  font-size: 13px;
-  font-weight: 500;
-  font: inherit;
-  text-align: left;
-}
-
-.quickAction:hover {
-  background: #1A1A3E;
-  border-color: rgba(124, 58, 237, 0.2);
-}
-
-.quickAction:active {
-  transform: scale(0.98);
 }
 
 .quickActionIcon {
@@ -477,11 +520,30 @@
 }
 
 .infoCard {
-  background: #12122A;
-  border: 1px solid rgba(124, 58, 237, 0.1);
+  background: rgba(14, 14, 32, 0.72);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(124, 58, 237, 0.12);
   border-radius: 16px;
   padding: 20px;
   overflow: hidden;
+  position: relative;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+  animation: card-enter 0.5s ease-out both;
+}
+
+.infoCard::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(255,255,255,0.025) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+.infoCard:hover {
+  border-color: rgba(124, 58, 237, 0.22);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.28);
 }
 
 /* === Now Playing Card === */
@@ -762,10 +824,23 @@
 
 /* === Climate Card === */
 .climateCard {
-  background: #12122A;
-  border: 1px solid rgba(124, 58, 237, 0.1);
+  background: rgba(14, 14, 32, 0.72);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(124, 58, 237, 0.12);
   border-radius: 16px;
   padding: 20px;
+  position: relative;
+  animation: card-enter 0.5s ease-out both;
+}
+
+.climateCard::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(255,255,255,0.025) 0%, transparent 60%);
+  pointer-events: none;
 }
 
 .climateHeader {
@@ -881,10 +956,19 @@
 }
 
 .roomCard {
-  background: #12122A;
-  border: 1px solid rgba(124, 58, 237, 0.1);
-  border-radius: 14px;
+  background: rgba(14, 14, 32, 0.72);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(124, 58, 237, 0.12);
+  border-radius: 16px;
   overflow: hidden;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+  animation: card-enter 0.4s ease-out both;
+}
+
+.roomCard:hover {
+  border-color: rgba(124, 58, 237, 0.22);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.25);
 }
 
 .roomCardHeader {
@@ -1086,10 +1170,23 @@
 }
 
 .systemCard {
-  background: #12122A;
-  border: 1px solid rgba(124, 58, 237, 0.1);
+  background: rgba(14, 14, 32, 0.72);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(124, 58, 237, 0.12);
   border-radius: 16px;
   padding: 20px;
+  position: relative;
+  animation: card-enter 0.4s ease-out both;
+}
+
+.systemCard::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(255,255,255,0.020) 0%, transparent 60%);
+  pointer-events: none;
 }
 
 .systemRow {
@@ -1470,5 +1567,374 @@
 
   .scenesGrid {
     grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* ============================================
+   Weather Widget
+   ============================================ */
+
+.weatherCard {
+  background: rgba(14, 14, 32, 0.70);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(124, 58, 237, 0.12);
+  border-radius: 16px;
+  padding: 18px 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+  animation: card-enter 0.4s ease-out both;
+  margin-bottom: 28px;
+}
+
+.weatherCard::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(255,255,255,0.025) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+.weatherCard:hover {
+  border-color: rgba(124, 58, 237, 0.22);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.28);
+}
+
+.weatherIcon {
+  font-size: 40px;
+  line-height: 1;
+  flex-shrink: 0;
+  animation: weather-float 4s ease-in-out infinite;
+}
+
+.weatherTemp {
+  font-size: 32px;
+  font-weight: 800;
+  color: #E2E8F0;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.weatherTempUnit {
+  font-size: 16px;
+  font-weight: 500;
+  color: #64748B;
+  vertical-align: top;
+  line-height: 1.4;
+}
+
+.weatherInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.weatherCondition {
+  font-size: 14px;
+  font-weight: 600;
+  color: #E2E8F0;
+  margin-bottom: 2px;
+}
+
+.weatherMeta {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.weatherMetaItem {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: #64748B;
+  font-weight: 500;
+}
+
+.weatherTempDisplay {
+  display: flex;
+  align-items: flex-start;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.weatherLocation {
+  font-size: 11px;
+  color: #475569;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+/* ============================================
+   Who's Home — standalone widget
+   ============================================ */
+
+.whosHomeCard {
+  background: rgba(14, 14, 32, 0.70);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(124, 58, 237, 0.12);
+  border-radius: 16px;
+  padding: 18px 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.25s ease;
+  animation: card-enter 0.4s ease-out both;
+  flex: 1;
+}
+
+.whosHomeCard::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(255,255,255,0.020) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+.whosHomeTitle {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #475569;
+  margin-bottom: 12px;
+}
+
+.whosHomeResidents {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+}
+
+.residentRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.residentAvatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 800;
+  flex-shrink: 0;
+  letter-spacing: 0.04em;
+  transition: all 0.2s;
+}
+
+.residentAvatarHome {
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.30);
+  color: #10B981;
+}
+
+.residentAvatarAway {
+  background: rgba(30, 30, 64, 0.60);
+  border: 1px solid rgba(30, 30, 64, 0.80);
+  color: #475569;
+}
+
+.residentInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.residentName {
+  font-size: 13px;
+  font-weight: 600;
+  color: #E2E8F0;
+}
+
+.residentStatus {
+  font-size: 11px;
+  color: #64748B;
+  margin-top: 1px;
+}
+
+.residentStatusHome {
+  color: #10B981;
+}
+
+/* ============================================
+   Top info row — weather + who's home
+   ============================================ */
+
+.topInfoRow {
+  display: grid;
+  grid-template-columns: 1fr 260px;
+  gap: 14px;
+  margin-bottom: 0;
+}
+
+/* ============================================
+   Floating Quick Actions Bar (desktop)
+   ============================================ */
+
+.floatingBar {
+  position: fixed;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%) translateX(120px); /* offset for 240px sidebar */
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: rgba(10, 10, 24, 0.88);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(124, 58, 237, 0.22);
+  border-radius: 24px;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.50), 0 0 0 1px rgba(255,255,255,0.04) inset;
+  animation: card-enter 0.5s ease-out 0.3s both;
+}
+
+.floatingBarLabel {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #475569;
+  padding-right: 8px;
+  border-right: 1px solid rgba(30, 30, 64, 0.8);
+  margin-right: 4px;
+  white-space: nowrap;
+}
+
+.floatingBarBtn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(30, 30, 64, 0.6);
+  background: rgba(18, 18, 42, 0.60);
+  color: #94A3B8;
+  font-size: 12px;
+  font-weight: 600;
+  font: inherit;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  white-space: nowrap;
+}
+
+.floatingBarBtn:hover {
+  background: rgba(124, 58, 237, 0.14);
+  border-color: rgba(124, 58, 237, 0.30);
+  color: #A78BFA;
+  transform: translateY(-1px);
+}
+
+.floatingBarBtn:active {
+  transform: scale(0.96);
+}
+
+.floatingBarDivider {
+  width: 1px;
+  height: 24px;
+  background: rgba(30, 30, 64, 0.8);
+  flex-shrink: 0;
+}
+
+/* ============================================
+   Clock display — enhanced
+   ============================================ */
+
+.clockBlock {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.clockSeconds {
+  font-size: 16px;
+  font-weight: 500;
+  color: #475569;
+  font-variant-numeric: tabular-nums;
+  margin-left: 2px;
+}
+
+/* ============================================
+   Quick actions section improvements
+   ============================================ */
+
+.quickAction {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: rgba(14, 14, 32, 0.70);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(124, 58, 237, 0.10);
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.20s ease;
+  color: #E2E8F0;
+  font-size: 13px;
+  font-weight: 500;
+  font: inherit;
+  text-align: left;
+  position: relative;
+  overflow: hidden;
+}
+
+.quickAction::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(255,255,255,0.02) 0%, transparent 50%);
+  pointer-events: none;
+}
+
+.quickAction:hover {
+  background: rgba(26, 20, 60, 0.80);
+  border-color: rgba(124, 58, 237, 0.25);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+}
+
+.quickAction:active {
+  transform: scale(0.98);
+}
+
+/* ============================================
+   Responsive — floating bar + weather
+   ============================================ */
+
+@media (max-width: 768px) {
+  .floatingBar {
+    display: none;
+  }
+
+  .topInfoRow {
+    grid-template-columns: 1fr;
+  }
+
+  .main {
+    padding-bottom: 120px;
+  }
+}
+
+@media (min-width: 769px) {
+  .main {
+    padding-bottom: 120px;
   }
 }

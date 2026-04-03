@@ -69,19 +69,18 @@ Set up each device physically first (plug it in, pair it with its native app, co
 Rename every entity to match the AURA naming convention:
 `light.{room}_leds`, `switch.{room}_plug`, `media_player.sonos_{room}`
 
-### 8. Deploy Client-Specific Config
+### 8. Deploy Everything to the Client's Pi
 ```bash
-./scripts/deploy/deploy_client.sh {client_name}
+./scripts/deploy/deploy_client.sh {client_name} --restart
 ```
 
-This uses the overrides in `clients/{client_name}/config_overrides.yaml` to customize scene colours, entity IDs, and enabled features for this client's specific setup.
+This merges base configs with client overrides from `clients/{client_name}/`, deploys to the Pi, and restarts HA. Then deploy the Python services:
 
-### 9. Deploy Automations
 ```bash
-./scripts/deploy/update_configs.sh
+./scripts/deploy/deploy_services.sh --restart --env --pip
 ```
 
-Reload automations in HA and verify none show errors.
+Verify no automations show errors in HA: Settings > Automations & Scenes.
 
 ### 10. Set Up Clap Detection
 Run `./scripts/setup/pi_setup.sh` on the Pi. Physically place the USB microphone in the primary living space (central location, away from the TV speakers). Test detection using `journalctl -u clap_service -f` while clapping.
@@ -130,7 +129,14 @@ Make sure the client can reliably trigger each clap pattern before you leave:
 Have them practice each one while watching the lights respond.
 
 ### Walk Through the Dashboard
-Show them the HA Lovelace dashboard on any browser or the HA companion app on their phone. Point out:
+Show them the AURA web dashboard on their phone (pinned as a home screen web app). Point out:
+- Scene buttons — one-tap to activate any scene
+- Now Playing — music controls
+- Climate — temperature adjustment
+- Who's Home — presence status
+- System Health — AURA service status
+
+Also show the HA Lovelace dashboard for advanced control:
 - How to manually override any light or device
 - How to check automation history
 - How to mute or disable automations temporarily (useful when they don't want clap detection active)

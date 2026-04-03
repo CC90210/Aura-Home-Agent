@@ -3,6 +3,9 @@
   trigger:
     - platform: webhook
       webhook_id: aura_close_down
+      allowed_methods:
+        - POST
+      local_only: false
   condition: []
   action:
     - service: light.turn_off

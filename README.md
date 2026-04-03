@@ -35,7 +35,10 @@ Three layers work in concert:
 - **Multi-room lighting**: Govee LED strips, Nanoleaf panels, and Philips Hue controlled independently or as a unified environment
 - **Music integration**: Spotify and Sonos control via Home Assistant, including room grouping and playlist automation
 - **Presence detection**: Phone-based WiFi and Bluetooth beacon detection for automatic arrival and departure routines
-- **Voice commands (Phase 4)**: Always-on wake word detection ("Hey Aura") with ElevenLabs TTS responses through speakers
+- **Voice commands**: Always-on "Hey Aura" wake word detection with Claude-powered intent processing and ElevenLabs TTS responses through speakers
+- **Adaptive learning**: Pattern engine detects behavioral patterns; habit tracker nudges you toward your goals
+- **10 feature modules**: Mirror Mode, AURA Drops, Pulse Check, Ghost DJ, Vibe Sync, Deja Vu, Content Radar, Social Sonar, Phantom Presence, Energy Oracle
+- **Web dashboard**: Next.js control center accessible from phones, tablets, and wall-mounted displays
 - **Client deployable**: Base configurations are universal. Client-specific overrides are isolated in `clients/{client_name}/` for repeatable OASIS installations
 
 ---
@@ -49,9 +52,10 @@ At a high level:
 1. Flash Home Assistant OS to a microSD card using Balena Etcher
 2. Boot the Raspberry Pi 5 and access Home Assistant at `homeassistant.local:8123`
 3. Install the ha-mcp add-on from the HA Add-on Store
-4. Copy `.env.example` to `.env` and fill in your API keys and tokens
+4. Run the setup wizard: `bash scripts/setup/wizard.sh` (generates `.env`, tests connections)
 5. Connect Claude Code to ha-mcp: `claude mcp add ha-mcp -- docker run -i --rm -e HA_URL -e HA_TOKEN voska/hass-mcp`
-6. Deploy the clap detection service to the Pi: `./scripts/deploy/update_configs.sh`
+6. Full deploy to Pi: `bash scripts/deploy/full_deploy.sh --restart --env --pip`
+7. Start the dashboard: `cd dashboard && npm install && npm run dev`
 
 ---
 
@@ -94,7 +98,7 @@ aura/
 │   ├── dashboards/              # Lovelace UI layouts
 │   └── packages/                # Device-specific config bundles
 │
-├── voice-agent/                 # Phase 4: Wake word + TTS voice control
+├── voice-agent/                 # Voice control + 10 feature modules
 │   ├── aura_voice.py            # Main entry point — orchestrates all voice agent components
 │   ├── wake_word.py             # OpenWakeWord listener ("Hey Aura" detection)
 │   ├── stt.py                   # Speech-to-text via faster-whisper (local) or Whisper API
@@ -104,12 +108,27 @@ aura/
 │   ├── requirements.txt         # Python deps (openwakeword, faster-whisper, anthropic, etc.)
 │   └── aura_voice.service       # Systemd unit file for auto-start on Pi boot
 │
+├── learning/                    # Adaptive learning engine
+│   ├── pattern_engine.py        # Behavioral pattern detection + Darwinian optimization
+│   ├── habit_tracker.py         # Daily habit tracking and accountability
+│   └── config.yaml              # Habit goals, learning thresholds
+│
+├── dashboard/                   # Next.js web dashboard
+│   └── src/                     # App Router pages, components, API routes
+│
 ├── esp32-sensors/               # Phase 4: Custom ESPHome room sensors
 ├── smart-mirror/                # Phase 4: MagicMirror2 configuration
 │
 ├── scripts/
-│   ├── setup/                   # First-time installation scripts
-│   └── deploy/                  # Push configs to Pi, deploy to clients
+│   ├── setup/                   # First-time installation + wizard
+│   │   ├── pi_setup.sh          # Pi OS-level setup (Alpine packages, venv, systemd)
+│   │   ├── verify_install.sh    # Post-install verification
+│   │   └── wizard.sh            # Interactive setup wizard
+│   └── deploy/                  # Push to Pi, deploy to clients
+│       ├── update_configs.sh    # Deploy HA YAML configs
+│       ├── deploy_services.sh   # Deploy Python services
+│       ├── deploy_client.sh     # Client-specific deployment
+│       └── full_deploy.sh       # One-command full deployment
 │
 ├── clients/                     # Client-specific configuration overrides
 │   └── .template/               # Copy this for each new client installation
@@ -138,6 +157,37 @@ AURA is a productized installation service offered by OASIS AI Solutions.
 | AURA Care | Monthly remote troubleshooting, updates, and new scenes | $50 - $100/month |
 
 Hardware costs are passed through at retail. Service fee covers installation, configuration, and client training.
+
+---
+
+## Deployment Commands
+
+```bash
+# First-time setup (interactive wizard)
+bash scripts/setup/wizard.sh
+
+# Full deploy: configs + Python services + restart everything
+bash scripts/deploy/full_deploy.sh --restart --env --pip
+
+# Deploy only HA YAML configs
+bash scripts/deploy/update_configs.sh --restart
+
+# Deploy only Python services (voice-agent, clap-trigger, learning)
+bash scripts/deploy/deploy_services.sh --restart
+
+# Deploy to a specific client
+bash scripts/deploy/deploy_client.sh smith_residence --restart
+
+# Run security audit
+bash scripts/security_audit.sh
+
+# Test webhooks
+bash scripts/test_webhook.sh double_clap
+bash scripts/test_webhook.sh goodnight
+
+# Calibrate clap detection mic levels (run on Pi)
+bash scripts/test_clap.sh
+```
 
 ---
 

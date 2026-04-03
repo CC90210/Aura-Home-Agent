@@ -56,6 +56,11 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import s from "./dashboard.module.css";
+import VoiceActivityLog from "@/components/VoiceActivityLog";
+import EnergyDashboard from "@/components/EnergyDashboard";
+import AuraDropsGallery from "@/components/AuraDropsGallery";
+import MusicVisualizer from "@/components/MusicVisualizer";
+import SystemHealth from "@/components/SystemHealth";
 import type {
   Scene,
   Room,
@@ -220,31 +225,262 @@ function readAuraUserCookie(): AuraUser {
 // Hooks
 // ---------------------------------------------------------------------------
 
-function useCurrentTime(): { time: string; date: string; greeting: string } {
-  const [time, setTime] = useState(() =>
-    new Date().toLocaleTimeString("en-CA", { hour: "2-digit", minute: "2-digit", hour12: false })
-  );
-  const [date] = useState(() =>
-    new Date().toLocaleDateString("en-CA", { weekday: "long", month: "long", day: "numeric" })
-  );
+interface TimeState {
+  time: string;
+  seconds: string;
+  date: string;
+  greeting: string;
+}
 
-  const getGreeting = () => {
-    const hour = new Date().getHours();
-    if (hour < 12) return "Good morning";
-    if (hour < 17) return "Good afternoon";
-    return "Good evening";
+function useCurrentTime(): TimeState {
+  const buildState = (): TimeState => {
+    const now = new Date();
+    const hour = now.getHours();
+    return {
+      time: now.toLocaleTimeString("en-CA", { hour: "2-digit", minute: "2-digit", hour12: false }),
+      seconds: now.toLocaleTimeString("en-CA", { second: "2-digit", hour12: false }).slice(-2),
+      date: now.toLocaleDateString("en-CA", { weekday: "long", month: "long", day: "numeric" }),
+      greeting:
+        hour < 12 ? "Good morning" :
+        hour < 17 ? "Good afternoon" :
+        "Good evening",
+    };
   };
 
-  const [greeting] = useState(getGreeting);
+  const [state, setState] = useState<TimeState>(buildState);
 
   useEffect(() => {
-    const tick = () =>
-      setTime(new Date().toLocaleTimeString("en-CA", { hour: "2-digit", minute: "2-digit", hour12: false }));
-    const id = setInterval(tick, 1000);
+    const id = setInterval(() => setState(buildState()), 1000);
     return () => clearInterval(id);
   }, []);
 
-  return { time, date, greeting };
+  return state;
+}
+
+// ---------------------------------------------------------------------------
+// WeatherWidget — mock data structured for real API wiring later
+// ---------------------------------------------------------------------------
+
+interface WeatherData {
+  condition: string;
+  emoji: string;
+  tempC: number;
+  feelsLikeC: number;
+  humidity: number;
+  windKph: number;
+  location: string;
+}
+
+// Mock data — swap this with a real API call (e.g. Open-Meteo, Tomorrow.io)
+// when a weather API key is available via NEXT_PUBLIC_WEATHER_API_KEY.
+const MOCK_WEATHER: WeatherData = {
+  condition: "Clear skies",
+  emoji: "✨",
+  tempC: 12,
+  feelsLikeC: 9,
+  humidity: 62,
+  windKph: 18,
+  location: "Vancouver, BC",
+};
+
+function WeatherWidget() {
+  // Structured to accept real data later — replace MOCK_WEATHER with API state
+  const w = MOCK_WEATHER;
+
+  return (
+    <div className={s.weatherCard} role="region" aria-label="Current weather">
+      <div className={s.weatherIcon} aria-hidden="true">{w.emoji}</div>
+      <div className={s.weatherInfo}>
+        <div className={s.weatherLocation}>{w.location}</div>
+        <div className={s.weatherCondition}>{w.condition}</div>
+        <div className={s.weatherMeta}>
+          <span className={s.weatherMetaItem}>
+            <Droplets size={11} aria-hidden="true" style={{ color: "#60A5FA" }} />
+            {w.humidity}%
+          </span>
+          <span className={s.weatherMetaItem}>
+            <Wind size={11} aria-hidden="true" style={{ color: "#94A3B8" }} />
+            {w.windKph} km/h
+          </span>
+          <span className={s.weatherMetaItem}>
+            <Thermometer size={11} aria-hidden="true" style={{ color: "#F59E0B" }} />
+            Feels {w.feelsLikeC}°
+          </span>
+        </div>
+      </div>
+      <div className={s.weatherTempDisplay} aria-label={`${w.tempC} degrees Celsius`}>
+        <span className={s.weatherTemp}>{w.tempC}</span>
+        <span className={s.weatherTempUnit}>°C</span>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// WhosHomeWidget — dedicated presence card
+// ---------------------------------------------------------------------------
+
+interface WhosHomeWidgetProps {
+  residents: ResidentPresence[];
+  activeUser: AuraUser;
+}
+
+function WhosHomeWidget({ residents, activeUser }: WhosHomeWidgetProps) {
+  const sorted = [...residents].sort((a) =>
+    a.name.toLowerCase() === activeUser ||
+    (activeUser === "conaugh" && a.name.toLowerCase() === "cc")
+      ? -1 : 1
+  );
+
+  return (
+    <div className={s.whosHomeCard} role="region" aria-label="Who is home">
+      <div style={{ flex: 1 }}>
+        <div className={s.whosHomeTitle}>Who&apos;s Home</div>
+        <div className={s.whosHomeResidents}>
+          {sorted.map((r) => {
+            const isCurrentUser =
+              r.name.toLowerCase() === activeUser ||
+              (activeUser === "conaugh" && r.name.toLowerCase() === "cc");
+            return (
+              <div key={r.name} className={s.residentRow}>
+                <div
+                  className={[
+                    s.residentAvatar,
+                    r.home ? s.residentAvatarHome : s.residentAvatarAway,
+                  ].join(" ")}
+                  aria-hidden="true"
+                >
+                  {r.name.slice(0, 2).toUpperCase()}
+                </div>
+                <div className={s.residentInfo}>
+                  <div className={s.residentName}>
+                    {r.name}
+                    {isCurrentUser && (
+                      <span
+                        style={{
+                          marginLeft: 6,
+                          fontSize: 9,
+                          fontWeight: 700,
+                          letterSpacing: "0.06em",
+                          textTransform: "uppercase",
+                          color: "#7C3AED",
+                          background: "rgba(124,58,237,0.12)",
+                          border: "1px solid rgba(124,58,237,0.22)",
+                          borderRadius: 5,
+                          padding: "1px 5px",
+                        }}
+                      >
+                        you
+                      </span>
+                    )}
+                  </div>
+                  <div
+                    className={[
+                      s.residentStatus,
+                      r.home ? s.residentStatusHome : "",
+                    ].join(" ")}
+                  >
+                    {r.home ? "At home" : "Away"}
+                  </div>
+                </div>
+                <span
+                  className={[
+                    s.presenceDot,
+                    r.home ? s.presenceOnline : s.presenceOffline,
+                  ].join(" ")}
+                  aria-label={r.home ? "Home" : "Away"}
+                />
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// FloatingQuickBar — always-visible bottom bar for most-used actions
+// ---------------------------------------------------------------------------
+
+interface FloatingQuickBarProps {
+  onScenePress: (scene: Scene) => Promise<void>;
+  scenes: Scene[];
+  nowPlaying: NowPlayingState | null;
+  onMediaAction: (
+    action: "media_play_pause" | "media_next_track" | "media_previous_track" | "volume_mute",
+    entityId: string
+  ) => Promise<void>;
+}
+
+function FloatingQuickBar({ onScenePress, scenes, nowPlaying, onMediaAction }: FloatingQuickBarProps) {
+  const [allLightsLoading, setAllLightsLoading] = useState(false);
+  const goodnight = scenes.find((sc) => sc.id === "close-down");
+  const isPlaying = nowPlaying?.state === "playing";
+
+  const handleAllLightsOff = useCallback(async () => {
+    if (allLightsLoading || !goodnight) return;
+    setAllLightsLoading(true);
+    try { await onScenePress(goodnight); }
+    finally { setAllLightsLoading(false); }
+  }, [allLightsLoading, goodnight, onScenePress]);
+
+  const handleMusicToggle = useCallback(async () => {
+    if (!nowPlaying) return;
+    await onMediaAction("media_play_pause", nowPlaying.entity_id);
+  }, [nowPlaying, onMediaAction]);
+
+  return (
+    <div className={s.floatingBar} role="toolbar" aria-label="Quick actions">
+      <span className={s.floatingBarLabel}>Quick</span>
+
+      <button
+        className={s.floatingBarBtn}
+        onClick={handleAllLightsOff}
+        disabled={allLightsLoading || !goodnight}
+        aria-label="Close down — all lights off"
+      >
+        <Moon size={14} aria-hidden="true" />
+        Close Down
+      </button>
+
+      <div className={s.floatingBarDivider} aria-hidden="true" />
+
+      <button
+        className={s.floatingBarBtn}
+        onClick={handleMusicToggle}
+        disabled={!nowPlaying}
+        aria-label={isPlaying ? "Pause music" : "Play music"}
+      >
+        {isPlaying
+          ? <><Pause size={14} aria-hidden="true" />Pause</>
+          : <><Play size={14} aria-hidden="true" />Play</>
+        }
+      </button>
+
+      <div className={s.floatingBarDivider} aria-hidden="true" />
+
+      {scenes.slice(0, 3).map((sc) => {
+        const Icon = SCENE_ICON_MAP[sc.icon] ?? Zap;
+        return (
+          <button
+            key={sc.id}
+            className={s.floatingBarBtn}
+            onClick={() => onScenePress(sc)}
+            aria-label={`Activate ${sc.name} scene`}
+            style={sc.active ? {
+              background: "rgba(124,58,237,0.16)",
+              borderColor: "rgba(124,58,237,0.35)",
+              color: "#A78BFA",
+            } : undefined}
+          >
+            <Icon size={14} aria-hidden="true" />
+            {sc.name}
+          </button>
+        );
+      })}
+    </div>
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -838,6 +1074,7 @@ function Sidebar({ activeTab, onTabChange, residents, activeUser, isOpen }: Side
 
 interface HomeViewProps {
   time: string;
+  seconds: string;
   date: string;
   greeting: string;
   activeUser: AuraUser;
@@ -858,6 +1095,7 @@ interface HomeViewProps {
 
 function HomeView({
   time,
+  seconds,
   date,
   greeting,
   activeUser,
@@ -936,60 +1174,31 @@ function HomeView({
               {activeUser === "adon" ? "Adon" : "Conaugh"}
             </span>
           </div>
-          <div className={s.headerDate}>{date}</div>
-          <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
-            {[...residents].sort((a) =>
-              a.name.toLowerCase() === activeUser ||
-              (activeUser === "conaugh" && a.name.toLowerCase() === "cc")
-                ? -1
-                : 1
-            ).map((r) => {
-              const isCurrentUser =
-                r.name.toLowerCase() === activeUser ||
-                (activeUser === "conaugh" && r.name.toLowerCase() === "cc");
-              return (
-                <div
-                  key={r.name}
-                  className={[s.presencePill, r.home ? s.presencePillHome : s.presencePillAway].join(" ")}
-                  style={
-                    isCurrentUser
-                      ? {
-                          border: "1px solid rgba(124,58,237,0.45)",
-                          background: "rgba(124,58,237,0.12)",
-                          color: "#A78BFA",
-                        }
-                      : undefined
-                  }
-                >
-                  <span
-                    className={[s.presenceDot, r.home ? s.presenceOnline : s.presenceOffline].join(" ")}
-                    aria-hidden="true"
-                  />
-                  {r.name}
-                  {isCurrentUser && (
-                    <span
-                      style={{
-                        marginLeft: 2,
-                        fontSize: 9,
-                        fontWeight: 700,
-                        opacity: 0.7,
-                      }}
-                    >
-                      (you)
-                    </span>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+          <div className={s.headerDate}>AURA by OASIS &mdash; Smart Living System</div>
         </div>
         <div className={s.headerRight}>
-          <div className={s.clockDisplay} aria-label={`Current time: ${time}`}>{time}</div>
+          <div className={s.clockBlock}>
+            <div
+              className={s.clockDisplay}
+              aria-label={`Current time: ${time}:${seconds}`}
+              style={{ display: "flex", alignItems: "baseline", gap: 0 }}
+            >
+              {time}
+              <span className={s.clockSeconds}>{seconds}</span>
+            </div>
+            <div style={{ fontSize: 11, color: "#64748B", textAlign: "right" }}>{date}</div>
+          </div>
           <div className={[s.statusBadge, haConnected ? "" : s.statusBadgeOffline].join(" ")}>
             <span className={s.statusDot} aria-hidden="true" />
             {haConnected ? "Connected" : "Scaffold mode"}
           </div>
         </div>
+      </div>
+
+      {/* Weather + Who's Home row */}
+      <div className={s.topInfoRow}>
+        <WeatherWidget />
+        <WhosHomeWidget residents={residents} activeUser={activeUser} />
       </div>
 
       {/* Stat cards */}
@@ -1055,6 +1264,42 @@ function HomeView({
         Climate
       </div>
       <ClimateCard state={climate} onSetTemperature={onSetTemperature} />
+
+      {/* ------------------------------------------------------------------ */}
+      {/* Intelligence Hub                                                    */}
+      {/* ------------------------------------------------------------------ */}
+      <div className={s.sectionTitle} style={{ marginTop: 36 }}>
+        <span className={s.sectionTitleBar} aria-hidden="true" />
+        Intelligence Hub
+      </div>
+
+      {/* Row 1: Music Visualizer + Voice Activity Log */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
+          gap: 16,
+          marginBottom: 16,
+        }}
+      >
+        <MusicVisualizer />
+        <VoiceActivityLog />
+      </div>
+
+      {/* Row 2: Energy Dashboard */}
+      <div style={{ marginBottom: 16 }}>
+        <EnergyDashboard />
+      </div>
+
+      {/* Row 3: AURA Drops Gallery */}
+      <div style={{ marginBottom: 16 }}>
+        <AuraDropsGallery />
+      </div>
+
+      {/* Row 4: System Health */}
+      <div style={{ marginBottom: 32 }}>
+        <SystemHealth />
+      </div>
     </div>
   );
 }
@@ -1273,7 +1518,7 @@ function ProfileView({ residents, status }: { residents: ResidentPresence[]; sta
 // ---------------------------------------------------------------------------
 
 export default function DashboardPage() {
-  const { time, date, greeting } = useCurrentTime();
+  const { time, seconds, date, greeting } = useCurrentTime();
 
   const [activeUser]                = useState<AuraUser>(readAuraUserCookie);
   const [activeTab, setActiveTab]   = useState<Tab>("home");
@@ -1398,6 +1643,7 @@ export default function DashboardPage() {
         {activeTab === "home" && (
           <HomeView
             time={time}
+            seconds={seconds}
             date={date}
             greeting={greeting}
             activeUser={activeUser}
@@ -1423,6 +1669,14 @@ export default function DashboardPage() {
           <ProfileView residents={residents} status={auraStatus} />
         )}
       </main>
+
+      {/* Floating quick actions bar — desktop only */}
+      <FloatingQuickBar
+        onScenePress={handleScenePress}
+        scenes={scenes}
+        nowPlaying={nowPlaying}
+        onMediaAction={handleMediaAction}
+      />
 
       {/* Mobile bottom nav */}
       <nav className={s.bottomNav} aria-label="Mobile navigation">

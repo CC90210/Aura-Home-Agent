@@ -4,6 +4,8 @@ This guide walks you through a complete AURA installation from scratch. It assum
 
 Estimated total time: 3–5 hours for a first installation.
 
+> **Quick Start**: For the impatient, run `bash scripts/setup/wizard.sh` on your desktop to auto-generate your `.env` file and test connectivity. Then skip to Step 6. The wizard handles Steps 4–5 interactively.
+
 ---
 
 ## Prerequisites
@@ -287,15 +289,14 @@ Replace `<your long-lived access token>` with the token from Step 4. This regist
 
 The AURA automation YAML files need to be copied into the Home Assistant config directory so HA can load them. This includes `configuration.yaml`, which defines the input boolean helpers used for mode tracking — you do not need to create those manually.
 
-**9.1** From your desktop, run the deployment script:
+**9.1** From your desktop, run the full deployment script (deploys YAML configs + Python services):
 
 ```bash
 cd /path/to/your/local/aura/repo
-chmod +x scripts/deploy/update_configs.sh
-./scripts/deploy/update_configs.sh
+bash scripts/deploy/full_deploy.sh --restart --env --pip
 ```
 
-The script uses SCP to copy the YAML files (including `configuration.yaml`) from your local repo to the Pi at `/config/`. It will copy automations, scenes, scripts, and the main configuration file.
+This validates YAML, deploys configs via SCP, deploys Python services, optionally installs pip dependencies, and restarts HA + systemd services. For configs only, use `bash scripts/deploy/update_configs.sh --restart`.
 
 **9.2** After the script completes, restart Home Assistant so it picks up all the new configuration including `configuration.yaml`. In the HA web UI: Settings → System → Restart. Wait for HA to come back up (about 60 seconds) before continuing.
 
