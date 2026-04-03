@@ -5,6 +5,22 @@ import { getHAClient } from "@/lib/ha-client";
 // Body: { domain: string; service: string; entity_id?: string; data?: Record<string, unknown> }
 // Proxies a Home Assistant service call through the server so HA_TOKEN stays
 // server-side only.
+
+// Allowlist of HA domains the dashboard is permitted to call.
+// Keeps this endpoint from being used as a generic HA proxy that could
+// invoke system-level services (e.g. homeassistant.restart, hassio.*).
+const ALLOWED_DOMAINS = new Set([
+  "light",
+  "switch",
+  "media_player",
+  "climate",
+  "scene",
+  "cover",
+  "fan",
+  "lock",
+  "input_boolean",
+]);
+
 export async function POST(req: NextRequest) {
   let body: {
     domain?: string;
@@ -28,6 +44,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       { error: "service is required" },
       { status: 400 }
+    );
+  }
+
+  if (!ALLOWED_DOMAINS.has(domain)) {
+    return NextResponse.json(
+      { error: `Domain '${domain}' not allowed` },
+      { status: 403 }
     );
   }
 

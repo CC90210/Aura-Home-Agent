@@ -135,7 +135,7 @@ protocols:
       - "Desk accent LEDs blue at 60%"
       - "Dim overheads to 20%"
 
-  movie_night:
+  movie_mode:
     description: "Movie watching ambiance"
     actions:
       - "All lights deep purple at 5%"

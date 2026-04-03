@@ -407,6 +407,8 @@ class AuraVoiceAgent:
         log.info("AURA Voice Agent starting up…")
         self._init_components()
         self._running = True
+        # Signal to the dashboard health endpoint that this service is live.
+        self._set_ha_boolean("input_boolean.aura_voice_active", True)
         log.info("AURA is ready.  Listening for 'Hey Aura'…")
         self._main_loop()
 
@@ -414,6 +416,8 @@ class AuraVoiceAgent:
         """Signal the main loop to exit on the next iteration."""
         log.info("AURA Voice Agent shutting down…")
         self._running = False
+        # Clear the health boolean so the dashboard reflects the offline state.
+        self._set_ha_boolean("input_boolean.aura_voice_active", False)
         if self._dispatcher is not None:
             try:
                 self._dispatcher.stop()
@@ -424,6 +428,25 @@ class AuraVoiceAgent:
                 self._detector.close()
             except Exception:  # noqa: BLE001
                 pass
+
+    def _set_ha_boolean(self, entity_id: str, state: bool) -> None:
+        """Best-effort toggle of an input_boolean in Home Assistant.
+
+        Failures are logged as warnings and never raise — a boolean toggle
+        must not prevent startup or clean shutdown of the voice agent.
+        """
+        if not self._secrets.get("ha_token"):
+            return
+        service = "turn_on" if state else "turn_off"
+        url = f"{self._secrets['ha_url']}/api/services/input_boolean/{service}"
+        headers = {
+            "Authorization": f"Bearer {self._secrets['ha_token']}",
+            "Content-Type": "application/json",
+        }
+        try:
+            requests.post(url, headers=headers, json={"entity_id": entity_id}, timeout=5)
+        except Exception as exc:  # noqa: BLE001
+            log.warning("Could not set %s to %s: %s", entity_id, state, exc)
 
     # ------------------------------------------------------------------
     # Component initialisation
@@ -841,21 +864,19 @@ class AuraVoiceAgent:
         self._dispatcher.register("aura_greet_person", _handle_greet_person)
 
         def _handle_goodnight(_payload: dict) -> None:
-            # Call the HA scene directly instead of re-triggering the
-            # aura_goodnight webhook — firing the webhook from within the
-            # aura_goodnight handler would create an infinite recursion loop
-            # (webhook → dispatcher → handler → webhook → ...).
-            # Speak AFTER the HA call so the confirmation only plays when the
-            # action has actually been dispatched successfully (HIGH-6).
-            success = self._call_ha_service(
-                "scene",
-                "turn_on",
-                {"entity_id": "scene.aura_goodnight"},
-            )
+            # Fire the HA goodnight webhook so the FULL automation runs:
+            # lights fade off, music stops, smart lock engages, thermostat drops
+            # to 18°C, cameras arm, and goodnight_active flag is set.
+            #
+            # No infinite loop: this dispatcher listens on localhost:5123.
+            # The webhook endpoint is at {ha_url}/api/webhook/aura_goodnight (port 8123).
+            # The goodnight automation's action list does NOT call rest_command.aura_webhook,
+            # so it never bounces back to this dispatcher.
+            success = self._trigger_ha_webhook("aura_goodnight", {})
             if success:
                 self._speak("Good night. Shutting everything down.")
             else:
-                self._speak("Goodnight sequence failed. Please check the system.")
+                self._speak("Goodnight routine had an issue. Check the lights.")
 
         self._dispatcher.register("aura_goodnight", _handle_goodnight)
 

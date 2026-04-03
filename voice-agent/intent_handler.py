@@ -383,6 +383,27 @@ class IntentHandler:
             log.warning("Skipping malformed action (missing domain or service): %s", action)
             return
 
+        # Guard: intercept scene.turn_on for security-critical scenes and
+        # redirect to the full webhook automation. scene.turn_on for these scenes
+        # only performs partial actions (lights/climate) and skips the security
+        # sequence (smart lock, cameras, mode flags). This ensures the correct
+        # path is always taken even if Claude ignores the system prompt instruction.
+        _REDIRECT_SCENES: dict[str, str] = {
+            "scene.aura_goodnight": "aura_goodnight",
+            "scene.aura_away_mode": "aura_away_mode",
+            "scene.aura_close_down": "aura_close_down",
+        }
+        if domain == "scene" and service == "turn_on" and entity_id in _REDIRECT_SCENES:
+            webhook_id = _REDIRECT_SCENES[entity_id]
+            log.info(
+                "Redirecting scene.turn_on for %s → webhook %s (full security sequence)",
+                entity_id,
+                webhook_id,
+            )
+            # Re-dispatch as a webhook action so PIN checks and security guards apply.
+            self._execute_action({"domain": "webhook", "service": "fire", "webhook_id": webhook_id})
+            return
+
         # Webhook dispatch — fires HA webhooks that trigger automations.
         # Sensitive webhooks (those that lock doors, arm cameras, or change
         # security state) require PIN verification before execution.
@@ -990,6 +1011,7 @@ RULES:
 - If the device states list says "(Home Assistant is currently unreachable)", tell the user: "I can't reach Home Assistant right now, so I can't control any devices. I can still chat though."
 - For scene activations, use domain "scene" and service "turn_on".
 - For script runs, use domain "script" and service "turn_on".
+- IMPORTANT: Never use scene.turn_on for goodnight, close_down, or away_mode scenes. These MUST be triggered via their webhook actions (aura_goodnight, aura_close_down, aura_away_mode) to ensure the full security sequence (locks, cameras, mode flags) executes correctly. Use: {"domain": "webhook", "service": "fire", "webhook_id": "aura_goodnight"}
 - If you are unsure how to execute a command, say so in "response" and leave "actions" empty. Never guess.
 - Never hallucinate entity IDs. If it is not in the device states list, it does not exist.
 - The CAPABILITIES section describes what AURA supports in general. The DEVICE STATES list is the ground truth for what is physically connected RIGHT NOW. If a capability references a device type that is not in the device states (e.g., capabilities mention thermostat but no climate entity exists), tell the user: "AURA supports thermostat control, but there's no thermostat connected to the system yet."

@@ -20,8 +20,9 @@ const RATE_LIMIT_WINDOW_MS = 60 * 1000;
 // ---------------------------------------------------------------------------
 // When DASHBOARD_AUTH_TOKEN is set in the environment, all routes except
 // /login and /api/auth require a valid auth cookie. If the variable is not
-// set, authentication is disabled and all requests pass through. This allows
-// the dashboard to run in scaffold/dev mode without configuration.
+// set in development, authentication is disabled so the dashboard can run in
+// scaffold mode without configuration. In production, a missing token blocks
+// ALL access with 503 to prevent accidental open exposure.
 const AUTH_TOKEN = process.env.DASHBOARD_AUTH_TOKEN;
 
 // Cookie name used to carry the session after successful login.
@@ -108,6 +109,20 @@ export function middleware(request: NextRequest): NextResponse {
         }
       }
     }
+  }
+
+  // -- Production safety gate -------------------------------------------
+  // If no auth token is configured AND we're in production, block all access
+  // rather than serving an open dashboard. This prevents accidental public
+  // exposure when the environment variable is missing from a Vercel deployment.
+  if (!AUTH_TOKEN && process.env.NODE_ENV === "production" && !isPublicPath) {
+    return NextResponse.json(
+      { error: "Dashboard auth not configured. Set DASHBOARD_AUTH_TOKEN." },
+      {
+        status: 503,
+        headers: { "Content-Type": "application/json", ...SECURITY_HEADERS },
+      }
+    );
   }
 
   // -- Authentication gate -----------------------------------------------

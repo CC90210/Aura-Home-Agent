@@ -182,6 +182,8 @@ class ClapDetector:
         self._open_stream()
 
         self._running = True
+        # Signal to the dashboard health endpoint that this service is live.
+        self._set_ha_boolean("input_boolean.aura_clap_active", True)
         log.info("Listening for claps…")
         self._detection_loop()
 
@@ -189,7 +191,23 @@ class ClapDetector:
         """Signal the detection loop to exit and release audio resources."""
         log.info("Shutting down clap detector…")
         self._running = False
+        # Clear the health boolean so the dashboard reflects the offline state.
+        self._set_ha_boolean("input_boolean.aura_clap_active", False)
         self._close_stream()
+
+    def _set_ha_boolean(self, entity_id: str, state: bool) -> None:
+        """Best-effort toggle of an input_boolean in Home Assistant.
+
+        Failures are logged as warnings and never raise — a boolean toggle
+        must not prevent startup or clean shutdown of the clap detector.
+        """
+        service = "turn_on" if state else "turn_off"
+        url = f"{self._ha_url}/api/services/input_boolean/{service}"
+        headers = {**self._headers, "Content-Type": "application/json"}
+        try:
+            requests.post(url, headers=headers, json={"entity_id": entity_id}, timeout=5)
+        except Exception as exc:  # noqa: BLE001
+            log.warning("Could not set %s to %s: %s", entity_id, state, exc)
 
     # ------------------------------------------------------------------
     # Audio stream management
