@@ -270,21 +270,74 @@ interface WeatherData {
   location: string;
 }
 
-// Mock data — swap this with a real API call (e.g. Open-Meteo, Tomorrow.io)
-// when a weather API key is available via NEXT_PUBLIC_WEATHER_API_KEY.
-const MOCK_WEATHER: WeatherData = {
-  condition: "Clear skies",
-  emoji: "✨",
-  tempC: 12,
-  feelsLikeC: 9,
-  humidity: 62,
-  windKph: 18,
-  location: "Vancouver, BC",
-};
+function weatherCodeToDescription(code: number): { emoji: string; condition: string } {
+  // WMO Weather Codes: https://open-meteo.com/en/docs
+  if (code === 0) return { emoji: "☀️", condition: "Clear skies" };
+  if (code <= 3) return { emoji: "⛅", condition: "Partly cloudy" };
+  if (code <= 49) return { emoji: "🌫️", condition: "Foggy" };
+  if (code <= 59) return { emoji: "🌧️", condition: "Drizzle" };
+  if (code <= 69) return { emoji: "🌧️", condition: "Rain" };
+  if (code <= 79) return { emoji: "🌨️", condition: "Snow" };
+  if (code <= 84) return { emoji: "🌧️", condition: "Rain showers" };
+  if (code <= 86) return { emoji: "🌨️", condition: "Snow showers" };
+  if (code === 95) return { emoji: "⛈️", condition: "Thunderstorm" };
+  if (code <= 99) return { emoji: "⛈️", condition: "Thunderstorm with hail" };
+  return { emoji: "🌤️", condition: "Fair" };
+}
 
 function WeatherWidget() {
-  // Structured to accept real data later — replace MOCK_WEATHER with API state
-  const w = MOCK_WEATHER;
+  const [weather, setWeather] = useState<WeatherData>({
+    condition: "Loading...",
+    emoji: "⏳",
+    tempC: 0,
+    feelsLikeC: 0,
+    humidity: 0,
+    windKph: 0,
+    location: "Montreal, QC",
+  });
+
+  useEffect(() => {
+    async function fetchWeather() {
+      try {
+        // Open-Meteo — free, no API key, Montreal coordinates
+        const res = await fetch(
+          "https://api.open-meteo.com/v1/forecast?latitude=45.5019&longitude=-73.5674&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m&timezone=America/Montreal"
+        );
+        if (!res.ok) return;
+        const data = await res.json() as {
+          current: {
+            temperature_2m: number;
+            relative_humidity_2m: number;
+            apparent_temperature: number;
+            weather_code: number;
+            wind_speed_10m: number;
+          };
+        };
+        const current = data.current;
+
+        const code = current.weather_code;
+        const { emoji, condition } = weatherCodeToDescription(code);
+
+        setWeather({
+          condition,
+          emoji,
+          tempC: Math.round(current.temperature_2m),
+          feelsLikeC: Math.round(current.apparent_temperature),
+          humidity: Math.round(current.relative_humidity_2m),
+          windKph: Math.round(current.wind_speed_10m),
+          location: "Montreal, QC",
+        });
+      } catch {
+        // Keep current state on error — don't reset to zeros
+      }
+    }
+
+    fetchWeather();
+    const interval = setInterval(fetchWeather, 15 * 60 * 1000); // refresh every 15 min
+    return () => clearInterval(interval);
+  }, []);
+
+  const w = weather;
 
   return (
     <div className={s.weatherCard} role="region" aria-label="Current weather">

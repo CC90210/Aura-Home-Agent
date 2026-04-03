@@ -378,6 +378,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 10px;
   text-align: center;
   position: relative;
@@ -385,6 +386,7 @@
   font: inherit;
   color: inherit;
   animation: card-enter 0.4s ease-out both;
+  aspect-ratio: 1 / 1;
 }
 
 .sceneCard::before {
@@ -1642,18 +1644,18 @@
     padding: 4px 9px;
   }
 
-  /* --- 4. Scene grid: 2-column, breathing room, 44px+ tap targets --- */
+  /* --- 4. Scene grid: 2-column, breathing room, uniform square cards --- */
   .scenesGrid {
     grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
+    gap: 10px;
     margin-bottom: 24px;
   }
 
   .sceneCard {
-    /* Ensure minimum 44px height per iOS HIG */
-    min-height: 44px;
-    padding: 16px 12px;
+    aspect-ratio: 1 / 1;
+    padding: 14px;
     gap: 8px;
+    justify-content: center;
     /* Slightly tighter radius on small screens */
     border-radius: var(--radius-md);
   }
@@ -1661,6 +1663,16 @@
   /* Tighter active-state scale for snappier iPhone feel */
   .sceneCard:active {
     transform: scale(0.97);
+  }
+
+  /* Icon wrap: fixed 44x44 circle so all cards render identically */
+  .sceneIconWrap {
+    width: 44px;
+    height: 44px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
   /* --- 5. Quick action buttons: 44px tap targets + active feedback --- */
