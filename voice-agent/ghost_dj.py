@@ -99,7 +99,8 @@ _PLAYLISTS: dict[str, str] = {
 _SLEEP_HOURS_START = 23   # 11 PM
 _SLEEP_HOURS_END = 7      # 7 AM
 
-# HA entity ID for the living room speaker.
+# Default HA entity ID for the primary speaker.
+# Overridden at runtime via config.yaml → speakers.default
 _DEFAULT_SPEAKER_ENTITY = "media_player.living_room_speaker"
 
 # How many recent HA history entries to pull for playlist history.

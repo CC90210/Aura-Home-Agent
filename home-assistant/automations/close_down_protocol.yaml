@@ -16,10 +16,7 @@
       continue_on_error: true
     - service: media_player.media_stop
       target:
-        entity_id:
-          - media_player.living_room_speaker
-          - media_player.bedroom_speaker
-          - media_player.studio_speaker
+        entity_id: group.aura_speakers
       continue_on_error: true
     - service: climate.set_temperature
       target:

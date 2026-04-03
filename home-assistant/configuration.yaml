@@ -87,6 +87,19 @@ input_boolean:
     icon: mdi:brain
     initial: true
 
+# ---------------------------------------------------------------------------
+# Speaker groups — define once, reference everywhere
+# When you add or swap speakers, update ONLY this list.
+# Automations use group.aura_speakers for "all speakers" actions.
+# ---------------------------------------------------------------------------
+group:
+  aura_speakers:
+    name: "AURA Speakers"
+    entities:
+      - media_player.living_room_speaker
+      - media_player.bedroom_speaker
+      - media_player.studio_speaker
+
 # REST commands for webhooks (used by automations to trigger voice prompts)
 rest_command:
   aura_webhook:

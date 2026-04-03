@@ -146,7 +146,12 @@ class SocialSonar:
         Long-lived HA access token.
     """
 
-    def __init__(self, ha_url: str, ha_token: str) -> None:
+    def __init__(
+        self,
+        ha_url: str,
+        ha_token: str,
+        speaker_entity: str = "media_player.living_room_speaker",
+    ) -> None:
         if not ha_token:
             log.warning("HA_TOKEN not set — Home Assistant API calls will fail.")
 
@@ -155,12 +160,13 @@ class SocialSonar:
             "Authorization": f"Bearer {ha_token}",
             "Content-Type": "application/json",
         }
+        self._speaker_entity = speaker_entity
 
         # Pre-adjustment state snapshot for reset()
         self._pre_adjustment_state: Optional[dict[str, Any]] = None
         self._social_mode_active = False
 
-        log.info("SocialSonar initialised — HA: %s", self._ha_url)
+        log.info("SocialSonar initialised — HA: %s  speaker: %s", self._ha_url, speaker_entity)
 
     # ------------------------------------------------------------------
     # Public API
@@ -308,7 +314,7 @@ class SocialSonar:
             self._call_service(
                 "media_player",
                 "media_pause",
-                "media_player.living_room_speaker",
+                self._speaker_entity,
             )
 
         self._social_mode_active = False
@@ -434,7 +440,7 @@ class SocialSonar:
         Start the ambient playlist if no media is currently playing.
         Returns True if music was started.
         """
-        media_state = self._get_state("media_player.living_room_speaker")
+        media_state = self._get_state(self._speaker_entity)
         if media_state == "playing":
             log.debug("Music already playing — not starting ambient playlist.")
             return False
@@ -442,7 +448,7 @@ class SocialSonar:
         ok = self._call_service(
             "media_player",
             "play_media",
-            "media_player.living_room_speaker",
+            self._speaker_entity,
             data={
                 "media_content_id": _AMBIENT_PLAYLIST_URI,
                 "media_content_type": "music",
@@ -452,7 +458,7 @@ class SocialSonar:
             self._call_service(
                 "media_player",
                 "volume_set",
-                "media_player.living_room_speaker",
+                self._speaker_entity,
                 data={"volume_level": _AMBIENT_VOLUME / 100.0},
             )
         return ok
@@ -489,7 +495,7 @@ class SocialSonar:
         thermostat_attrs = self._get_entity_attributes("climate.thermostat")
         prev_temp = thermostat_attrs.get("temperature")
 
-        media_state = self._get_state("media_player.living_room_speaker")
+        media_state = self._get_state(self._speaker_entity)
         music_was_off = media_state != "playing"
 
         self._pre_adjustment_state = {

@@ -56,7 +56,7 @@ _ACCENT_LIGHTS: list[str] = [
     "light.desk_accent",
 ]
 
-# Media player entity to poll for "now playing" state.
+# Default media player entity — overridden via config dict at init time.
 _MEDIA_PLAYER_ENTITY: str = "media_player.living_room_speaker"
 
 # Default transition for light changes, in seconds.

@@ -613,15 +613,23 @@ class AuraVoiceAgent:
         try:
             if GhostDJ is None:
                 raise RuntimeError("ghost_dj import failed")
+            default_speaker = self._config.get("speakers", {}).get(
+                "default", "media_player.living_room_speaker"
+            )
             if self._context is not None:
                 self._ghost_dj = GhostDJ(
                     ha_url, ha_token,
                     context_awareness=self._context,
                     anthropic_api_key=api_key,
+                    speaker_entity=default_speaker,
                 )
                 log.info("GhostDJ initialised.")
             else:
-                self._ghost_dj = GhostDJ(ha_url, ha_token, anthropic_api_key=api_key)
+                self._ghost_dj = GhostDJ(
+                    ha_url, ha_token,
+                    anthropic_api_key=api_key,
+                    speaker_entity=default_speaker,
+                )
                 log.info("GhostDJ initialised (no context awareness).")
         except Exception as exc:  # noqa: BLE001
             log.warning("GhostDJ init failed: %s", exc)
@@ -629,7 +637,8 @@ class AuraVoiceAgent:
         try:
             if VibeSync is None:
                 raise RuntimeError("vibe_sync import failed")
-            self._vibe_sync = VibeSync(ha_url, ha_token, anthropic_api_key=api_key)
+            vibe_cfg = {"media_player_entity": default_speaker}
+            self._vibe_sync = VibeSync(ha_url, ha_token, anthropic_api_key=api_key, config=vibe_cfg)
             log.info("VibeSync initialised.")
         except Exception as exc:  # noqa: BLE001
             log.warning("VibeSync init failed: %s", exc)
@@ -662,7 +671,7 @@ class AuraVoiceAgent:
         try:
             if SocialSonar is None:
                 raise RuntimeError("social_sonar import failed")
-            self._social_sonar = SocialSonar(ha_url, ha_token)
+            self._social_sonar = SocialSonar(ha_url, ha_token, speaker_entity=default_speaker)
             log.info("SocialSonar initialised.")
         except Exception as exc:  # noqa: BLE001
             log.warning("SocialSonar init failed: %s", exc)
