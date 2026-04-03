@@ -386,7 +386,10 @@
   font: inherit;
   color: inherit;
   animation: card-enter 0.4s ease-out both;
+  /* Uniform square sizing — aspect-ratio with iOS Safari fallback */
   aspect-ratio: 1 / 1;
+  -webkit-appearance: none;
+  appearance: none;
 }
 
 .sceneCard::before {
@@ -450,6 +453,11 @@
   font-weight: 600;
   color: var(--text-secondary);
   line-height: 1.2;
+  /* Prevent long names from stretching the card */
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .sceneCardActive .sceneName {
@@ -1652,12 +1660,16 @@
   }
 
   .sceneCard {
-    aspect-ratio: 1 / 1;
+    /* Force uniform squares on iOS Safari — div with role=button
+       avoids the iOS <button> aspect-ratio bug */
+    aspect-ratio: 1 / 1 !important;
     padding: 14px;
-    gap: 8px;
+    gap: 6px;
     justify-content: center;
-    /* Slightly tighter radius on small screens */
     border-radius: var(--radius-md);
+    /* Prevent text from stretching the card */
+    min-height: 0;
+    min-width: 0;
   }
 
   /* Tighter active-state scale for snappier iPhone feel */

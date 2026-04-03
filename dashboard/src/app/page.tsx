@@ -559,11 +559,14 @@ function SceneCard({ scene, onPress }: SceneCardProps) {
   }, [loading, onPress, scene]);
 
   return (
-    <button
+    <div
+      role="button"
+      tabIndex={0}
       onClick={handlePress}
-      disabled={loading}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handlePress(); } }}
       aria-label={`Activate ${scene.name} scene`}
       aria-pressed={scene.active}
+      aria-disabled={loading}
       className={[s.sceneCard, scene.active ? s.sceneCardActive : ""].join(" ")}
     >
       {scene.active && <span className={s.sceneActiveDot} aria-hidden="true" />}
@@ -575,7 +578,7 @@ function SceneCard({ scene, onPress }: SceneCardProps) {
         )}
       </span>
       <span className={s.sceneName}>{scene.name}</span>
-    </button>
+    </div>
   );
 }
 
