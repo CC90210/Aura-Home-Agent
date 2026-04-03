@@ -47,7 +47,6 @@ import {
   Terminal,
   Clock3,
   Activity,
-  Wifi,
   Menu,
   X,
   ChevronRight,
@@ -1126,7 +1125,7 @@ function HomeView({
 }: HomeViewProps) {
   const activeScene = scenes.find((s) => s.active);
 
-  // Stat card data
+  // Stat card data — connection status is already shown in the header badge
   const statCards = [
     {
       label: "Active Scene",
@@ -1143,30 +1142,6 @@ function HomeView({
       iconBg: "rgba(245,158,11,0.15)",
       iconColor: "#F59E0B",
       icon: <Thermometer size={18} aria-hidden="true" />,
-    },
-    {
-      label: "Gym Streak",
-      value: String(habits.find((h) => h.id === "gym")?.streak ?? 0),
-      sub: "consecutive days",
-      iconBg: "rgba(16,185,129,0.15)",
-      iconColor: "#10B981",
-      icon: <Flame size={18} aria-hidden="true" />,
-    },
-    {
-      label: "Habits Done",
-      value: `${habits.filter((h) => h.completed).length}/${habits.length}`,
-      sub: "today",
-      iconBg: "rgba(96,165,250,0.15)",
-      iconColor: "#60A5FA",
-      icon: <Check size={18} aria-hidden="true" />,
-    },
-    {
-      label: "AURA Status",
-      value: haConnected ? "Live" : "Offline",
-      sub: haConnected ? "HA connected" : "Scaffold mode",
-      iconBg: haConnected ? "rgba(16,185,129,0.15)" : "rgba(100,116,139,0.12)",
-      iconColor: haConnected ? "#10B981" : "#64748B",
-      icon: <Wifi size={18} aria-hidden="true" />,
     },
   ];
 
@@ -1237,13 +1212,13 @@ function HomeView({
       </div>
 
       {/* Weather + Who's Home row */}
-      <div className={s.topInfoRow}>
+      <div className={s.topInfoRow} style={{ marginBottom: 20 }}>
         <WeatherWidget />
         <WhosHomeWidget residents={residents} activeUser={activeUser} />
       </div>
 
       {/* Stat cards */}
-      <div className={s.statsGrid} role="list" aria-label="System stats">
+      <div className={s.statsGrid} role="list" aria-label="System stats" style={{ marginBottom: 20 }}>
         {statCards.map((card) => (
           <div key={card.label} className={s.statCard} role="listitem">
             <div className={s.statIcon} style={{ background: card.iconBg, color: card.iconColor }}>
@@ -1311,10 +1286,17 @@ function HomeView({
         Climate
       </div>
       <ClimateCard state={climate} onSetTemperature={onSetTemperature} />
+    </div>
+  );
+}
 
-      {/* ------------------------------------------------------------------ */}
-      {/* Intelligence Hub                                                    */}
-      {/* ------------------------------------------------------------------ */}
+// ---------------------------------------------------------------------------
+// IntelligenceHubView — rendered under the System tab alongside ProfileView
+// ---------------------------------------------------------------------------
+
+function IntelligenceHubView() {
+  return (
+    <div>
       <div className={[s.sectionTitle, s.sectionTitleHub].join(" ")}>
         <span className={s.sectionTitleBar} aria-hidden="true" />
         Intelligence Hub
@@ -1567,12 +1549,16 @@ export default function DashboardPage() {
   const nowPlaying: NowPlayingState | null = null;
   const climateState: ClimateState | null  = null;
 
-  // Poll /api/health on mount to reflect real HA connection status
+  // Poll /api/health on mount to reflect real HA connection status.
+  // /api/health always returns HTTP 200 — the real status lives in the
+  // JSON body as `ha_connected: boolean`, so we must read the body.
   useEffect(() => {
     async function checkHealth() {
       try {
         const res = await fetch("/api/health", { cache: "no-store" });
-        setHaConnected(res.ok);
+        if (!res.ok) { setHaConnected(false); return; }
+        const data = await res.json() as { ha_connected?: boolean };
+        setHaConnected(data.ha_connected === true);
       } catch {
         setHaConnected(false);
       }
@@ -1736,7 +1722,10 @@ export default function DashboardPage() {
           <RoomsView rooms={rooms} onDeviceToggle={handleDeviceToggle} />
         )}
         {activeTab === "profile" && (
-          <ProfileView residents={residents} status={auraStatus} />
+          <>
+            <ProfileView residents={residents} status={auraStatus} />
+            <IntelligenceHubView />
+          </>
         )}
       </main>
 
