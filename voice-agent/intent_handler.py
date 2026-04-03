@@ -142,9 +142,17 @@ class IntentHandler:
         }
 
         claude_cfg = config.get("claude", {})
-        self._claude_model: str = claude_cfg.get("model", "claude-sonnet-4-6")
+        # Use tiered model resolution — IntentHandler defaults to Haiku
+        models = claude_cfg.get("models", {})
+        tiers = claude_cfg.get("tiers", {})
+        tier = tiers.get("intent_handler")
+        if tier and tier in models:
+            self._claude_model: str = models[tier]
+        else:
+            self._claude_model = claude_cfg.get("model", "claude-haiku-4-5-20251001")
         self._max_tokens: int = int(claude_cfg.get("max_tokens", 500))
         self._temperature: float = float(claude_cfg.get("temperature", 0.3))
+        log.info("IntentHandler using model: %s", self._claude_model)
         self._protocols: dict[str, Any] = config.get("protocols", {})
 
         import anthropic  # type: ignore[import-untyped]

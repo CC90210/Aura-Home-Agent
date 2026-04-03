@@ -108,7 +108,8 @@ _HISTORY_HOURS = 6
 _HISTORY_LIMIT = 10
 
 # Claude settings
-_CLAUDE_MODEL = "claude-sonnet-4-6"
+# Default model — overridden at runtime by config.yaml tiers.
+_CLAUDE_MODEL = "claude-haiku-4-5-20251001"
 _CLAUDE_MAX_TOKENS = 200
 _CLAUDE_TEMPERATURE = 0.4
 
@@ -166,6 +167,7 @@ class GhostDJ:
         context_awareness: "ContextAwareness | None" = None,
         anthropic_api_key: str = "",
         speaker_entity: str = _DEFAULT_SPEAKER_ENTITY,
+        claude_model: str = _CLAUDE_MODEL,
     ) -> None:
         self._ha_url: str = ha_url.rstrip("/")
         self._ha_headers: dict[str, str] = {
@@ -174,6 +176,7 @@ class GhostDJ:
         }
         self._context_awareness = context_awareness
         self._speaker_entity = speaker_entity
+        self._claude_model = claude_model
 
         api_key = anthropic_api_key or os.getenv("ANTHROPIC_API_KEY", "")
         if not api_key:
@@ -188,7 +191,7 @@ class GhostDJ:
         log.info(
             "GhostDJ initialised — speaker: %s  model: %s",
             self._speaker_entity,
-            _CLAUDE_MODEL,
+            self._claude_model,
         )
 
     # ------------------------------------------------------------------
@@ -435,7 +438,7 @@ class GhostDJ:
         t0 = time.monotonic()
         try:
             message = self._claude.messages.create(
-                model=_CLAUDE_MODEL,
+                model=self._claude_model,
                 max_tokens=_CLAUDE_MAX_TOKENS,
                 temperature=_CLAUDE_TEMPERATURE,
                 system=system_prompt,

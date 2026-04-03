@@ -59,6 +59,9 @@ _ACCENT_LIGHTS: list[str] = [
 # Default media player entity — overridden via config dict at init time.
 _MEDIA_PLAYER_ENTITY: str = "media_player.living_room_speaker"
 
+# Default model — overridden at runtime by config.yaml tiers.
+_CLAUDE_MODEL: str = "claude-haiku-4-5-20251001"
+
 # Default transition for light changes, in seconds.
 _DEFAULT_TRANSITION_SECONDS: int = 30
 
@@ -66,8 +69,8 @@ _DEFAULT_TRANSITION_SECONDS: int = 30
 # Avoids micro-adjustments when tracks have similar energy.
 _ENERGY_CHANGE_THRESHOLD: float = 1.5
 
-# Claude model to use for track analysis.
-_CLAUDE_MODEL: str = "claude-sonnet-4-6"
+# Claude model — overridden at runtime by config.yaml tiers.
+# VibeSync uses Haiku by default (structured JSON mood classification).
 
 # ---------------------------------------------------------------------------
 # VibeSync
@@ -104,6 +107,7 @@ class VibeSync:
         ha_token: str,
         anthropic_api_key: str | None = None,
         config: dict[str, Any] | None = None,
+        claude_model: str = _CLAUDE_MODEL,
     ) -> None:
         if not ha_token:
             raise ValueError("ha_token must not be empty.")
@@ -124,6 +128,8 @@ class VibeSync:
             )
         import anthropic  # type: ignore[import-untyped]
         self._claude = anthropic.Anthropic(api_key=api_key)
+
+        self._claude_model = claude_model
 
         self._enabled: bool = False
         self._last_track: str | None = None
@@ -304,7 +310,7 @@ class VibeSync:
 
         try:
             message = self._claude.messages.create(
-                model=_CLAUDE_MODEL,
+                model=self._claude_model,
                 max_tokens=256,
                 temperature=0.4,
                 messages=[{"role": "user", "content": prompt}],

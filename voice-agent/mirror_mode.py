@@ -58,6 +58,7 @@ _STAGGER_DELAY: float = 0.5
 _HA_TIMEOUT: int = 5
 
 # Claude model to use for palette generation.
+# Default model — Mirror Mode stays on Sonnet (creative lighting design).
 _CLAUDE_MODEL: str = "claude-sonnet-4-6"
 
 # Maximum tokens for the palette response.  The JSON payload is compact, so
@@ -90,6 +91,7 @@ class MirrorMode:
         ha_url: str,
         ha_token: str,
         anthropic_api_key: str,
+        claude_model: str = _CLAUDE_MODEL,
     ) -> None:
         if not ha_token:
             log.warning("HA_TOKEN is empty — HA service calls will fail.")
@@ -101,12 +103,13 @@ class MirrorMode:
             "Authorization": f"Bearer {ha_token}",
             "Content-Type": "application/json",
         }
+        self._claude_model = claude_model
 
         import anthropic  # type: ignore[import-untyped]
 
         self._client = anthropic.Anthropic(api_key=anthropic_api_key)
 
-        log.info("MirrorMode initialised — HA: %s", self._ha_url)
+        log.info("MirrorMode initialised — HA: %s  model: %s", self._ha_url, claude_model)
 
     # ------------------------------------------------------------------
     # Public API
@@ -305,7 +308,7 @@ Every entity from the list above must appear in "lights". No exceptions."""
 
         try:
             message = self._client.messages.create(
-                model=_CLAUDE_MODEL,
+                model=self._claude_model,
                 max_tokens=_MAX_TOKENS,
                 temperature=_TEMPERATURE,
                 messages=[{"role": "user", "content": prompt}],

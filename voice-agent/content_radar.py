@@ -106,6 +106,7 @@ class ContentRadar:
         ha_token: str,
         db_path: str | Path,
         anthropic_api_key: str,
+        claude_model: str = "claude-haiku-4-5-20251001",
     ) -> None:
         if not ha_token:
             log.warning("HA_TOKEN is not set — Home Assistant calls will fail.")
@@ -119,9 +120,14 @@ class ContentRadar:
         }
         self._db_path = Path(db_path)
         self._anthropic_api_key = anthropic_api_key
+        self._claude_model = claude_model
+
+        # Cache the Anthropic client instead of creating one per call
+        import anthropic  # type: ignore[import-untyped]
+        self._claude = anthropic.Anthropic(api_key=anthropic_api_key)
 
         self._ensure_db()
-        log.info("ContentRadar initialised — db: %s", self._db_path)
+        log.info("ContentRadar initialised — db: %s  model: %s", self._db_path, claude_model)
 
     # ------------------------------------------------------------------
     # Public API
@@ -324,11 +330,8 @@ class ContentRadar:
         )
 
         try:
-            import anthropic  # type: ignore[import-untyped]
-
-            client = anthropic.Anthropic(api_key=self._anthropic_api_key)
-            message = client.messages.create(
-                model="claude-sonnet-4-6",
+            message = self._claude.messages.create(
+                model=self._claude_model,
                 max_tokens=150,
                 temperature=0.7,
                 messages=[{"role": "user", "content": prompt}],

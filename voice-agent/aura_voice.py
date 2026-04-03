@@ -138,6 +138,35 @@ def load_config() -> dict[str, Any]:
     return config
 
 
+def resolve_model(config: dict[str, Any], module_name: str) -> str:
+    """
+    Return the Claude model ID for ``module_name`` based on the tiered
+    config in config.yaml.
+
+    Lookup order:
+      1. claude.tiers.{module_name} → tier name (e.g. "haiku")
+      2. claude.models.{tier_name}  → model ID (e.g. "claude-haiku-4-5-20251001")
+      3. Falls back to claude.model (legacy single-model config)
+
+    This lets operators shift any module between Haiku and Sonnet by editing
+    one line in config.yaml — zero code changes.
+    """
+    claude_cfg = config.get("claude", {})
+    models = claude_cfg.get("models", {})
+    tiers = claude_cfg.get("tiers", {})
+
+    tier = tiers.get(module_name)
+    if tier and tier in models:
+        model_id = models[tier]
+        log.debug("Model for %s: %s (tier: %s)", module_name, model_id, tier)
+        return model_id
+
+    # Legacy fallback
+    fallback = claude_cfg.get("model", "claude-haiku-4-5-20251001")
+    log.debug("Model for %s: %s (fallback)", module_name, fallback)
+    return fallback
+
+
 def resolve_secrets(config: dict[str, Any]) -> dict[str, str]:
     """
     Pull all required secrets from environment variables.
@@ -576,8 +605,9 @@ class AuraVoiceAgent:
         try:
             if MirrorMode is None:
                 raise RuntimeError("mirror_mode import failed")
-            self._mirror_mode = MirrorMode(ha_url, ha_token, api_key)
-            log.info("MirrorMode initialised.")
+            mirror_model = resolve_model(self._config, "mirror_mode")
+            self._mirror_mode = MirrorMode(ha_url, ha_token, api_key, claude_model=mirror_model)
+            log.info("MirrorMode initialised (model: %s).", mirror_model)
         except Exception as exc:  # noqa: BLE001
             log.warning("MirrorMode init failed: %s", exc)
 
@@ -596,6 +626,7 @@ class AuraVoiceAgent:
             if self._habit_tracker is not None and self._personality is not None:
                 personality = self._personality
                 if personality is not None:
+                    pulse_model = resolve_model(self._config, "pulse_check")
                     self._pulse_check = PulseCheck(
                         ha_url,
                         ha_token,
@@ -603,8 +634,9 @@ class AuraVoiceAgent:
                         personality,
                         api_key,
                         data_dir=shared_data_dir,
+                        claude_model=pulse_model,
                     )
-                    log.info("PulseCheck initialised.")
+                    log.info("PulseCheck initialised (model: %s).", pulse_model)
                 else:
                     log.warning("PulseCheck skipped — personality not yet loaded (intent handler not ready).")
         except Exception as exc:  # noqa: BLE001
@@ -616,29 +648,38 @@ class AuraVoiceAgent:
             default_speaker = self._config.get("speakers", {}).get(
                 "default", "media_player.living_room_speaker"
             )
+            ghost_model = resolve_model(self._config, "ghost_dj")
             if self._context is not None:
                 self._ghost_dj = GhostDJ(
                     ha_url, ha_token,
                     context_awareness=self._context,
                     anthropic_api_key=api_key,
                     speaker_entity=default_speaker,
+                    claude_model=ghost_model,
                 )
-                log.info("GhostDJ initialised.")
             else:
                 self._ghost_dj = GhostDJ(
                     ha_url, ha_token,
                     anthropic_api_key=api_key,
                     speaker_entity=default_speaker,
+                    claude_model=ghost_model,
                 )
-                log.info("GhostDJ initialised (no context awareness).")
+            log.info("GhostDJ initialised (model: %s).", ghost_model)
         except Exception as exc:  # noqa: BLE001
             log.warning("GhostDJ init failed: %s", exc)
 
         try:
             if VibeSync is None:
                 raise RuntimeError("vibe_sync import failed")
+            vibe_model = resolve_model(self._config, "vibe_sync")
             vibe_cfg = {"media_player_entity": default_speaker}
-            self._vibe_sync = VibeSync(ha_url, ha_token, anthropic_api_key=api_key, config=vibe_cfg)
+            self._vibe_sync = VibeSync(
+                ha_url, ha_token,
+                anthropic_api_key=api_key,
+                config=vibe_cfg,
+                claude_model=vibe_model,
+            )
+            log.info("VibeSync initialised (model: %s).", vibe_model)
             log.info("VibeSync initialised.")
         except Exception as exc:  # noqa: BLE001
             log.warning("VibeSync init failed: %s", exc)
@@ -659,12 +700,14 @@ class AuraVoiceAgent:
         try:
             if ContentRadar is None:
                 raise RuntimeError("content_radar import failed")
+            content_model = resolve_model(self._config, "content_radar")
             self._content_radar = ContentRadar(
                 ha_url, ha_token,
                 str(shared_db_path),
                 api_key,
+                claude_model=content_model,
             )
-            log.info("ContentRadar initialised.")
+            log.info("ContentRadar initialised (model: %s).", content_model)
         except Exception as exc:  # noqa: BLE001
             log.warning("ContentRadar init failed: %s", exc)
 
@@ -692,6 +735,7 @@ class AuraVoiceAgent:
                 self._context is not None
                 and hasattr(self._context, "_engine")
             ):
+                oracle_model = resolve_model(self._config, "energy_oracle")
                 self._energy_oracle = EnergyOracle(
                     ha_url,
                     ha_token,
@@ -699,8 +743,9 @@ class AuraVoiceAgent:
                     self._context._engine,  # noqa: SLF001
                     self._habit_tracker,  # may be None — EnergyOracle handles gracefully
                     self._content_radar,  # may be None — EnergyOracle handles gracefully
+                    claude_model=oracle_model,
                 )
-                log.info("EnergyOracle initialised.")
+                log.info("EnergyOracle initialised (model: %s).", oracle_model)
         except Exception as exc:  # noqa: BLE001
             log.warning("EnergyOracle init failed: %s", exc)
 

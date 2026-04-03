@@ -148,6 +148,7 @@ class EnergyOracle:
         pattern_engine: _PatternEngineProtocol,
         habit_tracker: _HabitTrackerProtocol,
         content_radar: _ContentRadarProtocol,
+        claude_model: str = _CLAUDE_MODEL,
     ) -> None:
         if not ha_token:
             log.warning("HA_TOKEN not set — HA device data will be unavailable.")
@@ -163,11 +164,12 @@ class EnergyOracle:
         self._pattern_engine = pattern_engine
         self._habit_tracker = habit_tracker
         self._content_radar = content_radar
+        self._claude_model = claude_model
 
         import anthropic  # type: ignore[import-untyped]
 
         self._claude = anthropic.Anthropic(api_key=anthropic_api_key)
-        log.info("EnergyOracle initialised.")
+        log.info("EnergyOracle initialised (model: %s).", claude_model)
 
     # ------------------------------------------------------------------
     # Public API
@@ -201,7 +203,7 @@ class EnergyOracle:
 
         try:
             message = self._claude.messages.create(
-                model=_CLAUDE_MODEL,
+                model=self._claude_model,
                 max_tokens=_BRIEF_MAX_TOKENS,
                 temperature=_BRIEF_TEMPERATURE,
                 system=system_prompt,

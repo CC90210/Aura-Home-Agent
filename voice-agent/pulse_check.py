@@ -120,6 +120,7 @@ class PulseCheck:
         data_dir: Path | None = None,
         checkin_window_start: int = _DEFAULT_CHECKIN_WINDOW_START,
         checkin_window_end: int = _DEFAULT_CHECKIN_WINDOW_END,
+        claude_model: str = _CLAUDE_MODEL,
     ) -> None:
         self._ha_url: str = ha_url.rstrip("/")
         self._ha_headers: dict[str, str] = {
@@ -130,6 +131,7 @@ class PulseCheck:
         self._personality = personality
         self._checkin_window_start = checkin_window_start
         self._checkin_window_end = checkin_window_end
+        self._claude_model = claude_model
 
         # Resolve Anthropic key: explicit arg first, then env var.
         api_key = anthropic_api_key or os.getenv("ANTHROPIC_API_KEY", "")
@@ -204,7 +206,7 @@ class PulseCheck:
 
         try:
             message = self._claude.messages.create(
-                model=_CLAUDE_MODEL,
+                model=self._claude_model,
                 max_tokens=_CLAUDE_MAX_TOKENS,
                 temperature=_CLAUDE_TEMPERATURE,
                 system=system_prompt,

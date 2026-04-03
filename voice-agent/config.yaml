@@ -48,12 +48,44 @@ tts:
   # Set to an integer (e.g. 1) to route to a specific speaker.
   output_device: null
 
+# ---------------------------------------------------------------------------
+# Claude API — Tiered Model Configuration
+# ---------------------------------------------------------------------------
+# Two tiers keep costs low without sacrificing quality where it matters:
+#
+#   haiku  — Fast, cheap. Used for structured/routine tasks (intent parsing,
+#            JSON extraction, playlist selection, mood classification).
+#            ~10x cheaper than Sonnet. ~$2-5/month at normal usage.
+#
+#   sonnet — Smart, creative. Used for tasks requiring reasoning, synthesis,
+#            or emotional intelligence (lighting design, weekly reports,
+#            accountability conversations).
+#
+# All models use the same ANTHROPIC_API_KEY from .env — no extra setup.
+# To force everything onto one tier (e.g., during testing), set both to
+# the same model ID.
+# ---------------------------------------------------------------------------
 claude:
-  # Model for intent processing.
-  model: "claude-sonnet-4-6"
-  max_tokens: 500
+  # Tier definitions — model IDs
+  models:
+    haiku: "claude-haiku-4-5-20251001"
+    sonnet: "claude-sonnet-4-6"
 
-  # Lower temperature = more predictable, structured JSON responses.
+  # Per-module tier assignments.
+  # Change any module from "haiku" to "sonnet" (or vice versa) to shift
+  # its cost/quality tradeoff without touching Python code.
+  tiers:
+    intent_handler: "haiku"     # Structured JSON action parsing
+    ghost_dj: "haiku"           # Playlist selection from a menu
+    vibe_sync: "haiku"          # Track mood → lighting JSON
+    content_radar: "haiku"      # Short nudge messages
+    mirror_mode: "sonnet"       # Creative multi-light palette design
+    energy_oracle: "sonnet"     # Weekly narrative briefing synthesis
+    pulse_check: "sonnet"       # Conversational accountability
+
+  # Legacy fallback — used if a module doesn't read tiers yet.
+  model: "claude-haiku-4-5-20251001"
+  max_tokens: 500
   temperature: 0.3
 
 homeassistant:
