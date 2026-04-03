@@ -20,7 +20,7 @@ import type {
 } from "@/lib/types";
 
 // ---------------------------------------------------------------------------
-// Placeholder / seed data — replaced by live HA data once connected
+// Seed / placeholder data — replaced by live HA data once connected
 // ---------------------------------------------------------------------------
 
 const PLACEHOLDER_SCENES: Scene[] = [
@@ -99,81 +99,28 @@ const PLACEHOLDER_SCENES: Scene[] = [
 ];
 
 const PLACEHOLDER_ROOMS: Room[] = [
-  {
-    name: "Living Room",
-    icon: "🛋️",
-    temperature: null,
-    devices: [],
-  },
-  {
-    name: "Bedroom",
-    icon: "🛏️",
-    temperature: null,
-    devices: [],
-  },
-  {
-    name: "Kitchen",
-    icon: "🍳",
-    temperature: null,
-    devices: [],
-  },
+  { name: "Living Room", icon: "Sofa",    temperature: null, devices: [] },
+  { name: "Bedroom",     icon: "BedDouble", temperature: null, devices: [] },
+  { name: "Kitchen",     icon: "UtensilsCrossed", temperature: null, devices: [] },
 ];
 
 const DEFAULT_HABITS: HabitEntry[] = [
-  {
-    id: "gym",
-    name: "Gym",
-    icon: "🏋️",
-    target_time: "09:00",
-    completed: false,
-    streak: 0,
-  },
-  {
-    id: "meals",
-    name: "Meals tracked",
-    icon: "🥗",
-    target_time: "20:00",
-    completed: false,
-    streak: 0,
-  },
-  {
-    id: "deep-work",
-    name: "Deep work",
-    icon: "💻",
-    target_time: "13:00",
-    completed: false,
-    streak: 0,
-  },
-  {
-    id: "bedtime",
-    name: "Bedtime by midnight",
-    icon: "🌙",
-    target_time: "23:59",
-    completed: false,
-    streak: 0,
-  },
+  { id: "gym",       name: "Gym",                icon: "Dumbbell", target_time: "09:00", completed: false, streak: 0 },
+  { id: "meals",     name: "Meals tracked",       icon: "Salad",    target_time: "20:00", completed: false, streak: 0 },
+  { id: "deep-work", name: "Deep work",            icon: "Monitor",  target_time: "13:00", completed: false, streak: 0 },
+  { id: "bedtime",   name: "Bedtime by midnight",  icon: "Moon",     target_time: "23:59", completed: false, streak: 0 },
 ];
 
 const PLACEHOLDER_RESIDENTS: ResidentPresence[] = [
-  {
-    name: "Conaugh",
-    home: false,
-    entity_id: "device_tracker.conaugh_phone",
-    last_seen: null,
-  },
-  {
-    name: "Adon",
-    home: false,
-    entity_id: "device_tracker.adon_phone",
-    last_seen: null,
-  },
+  { name: "CC",   home: false, entity_id: "device_tracker.conaugh_phone", last_seen: null },
+  { name: "Adon", home: false, entity_id: "device_tracker.adon_phone",    last_seen: null },
 ];
 
 const PLACEHOLDER_STATUS: AuraStatus = {
   pi_online: false,
   services: [
     { name: "clap-listener", running: false, last_seen: null },
-    { name: "ha-mcp", running: false, last_seen: null },
+    { name: "ha-mcp",        running: false, last_seen: null },
   ],
   last_command: null,
   last_command_time: null,
@@ -181,7 +128,7 @@ const PLACEHOLDER_STATUS: AuraStatus = {
 };
 
 // ---------------------------------------------------------------------------
-// Helpers
+// Hooks
 // ---------------------------------------------------------------------------
 
 function useCurrentTime(): string {
@@ -225,21 +172,18 @@ export default function DashboardPage() {
   const currentTime = useCurrentTime();
   const currentDate = useCurrentDate();
 
-  // Scene state — tracks which scene is currently active
-  const [scenes, setScenes] = useState<Scene[]>(PLACEHOLDER_SCENES);
-  const [rooms] = useState<Room[]>(PLACEHOLDER_ROOMS);
-  const [habits, setHabits] = useState<HabitEntry[]>(DEFAULT_HABITS);
-  const [residents] = useState<ResidentPresence[]>(PLACEHOLDER_RESIDENTS);
-  const [auraStatus] = useState<AuraStatus>(PLACEHOLDER_STATUS);
-  const [haConnected] = useState(false);
+  const [scenes, setScenes]   = useState<Scene[]>(PLACEHOLDER_SCENES);
+  const [rooms]               = useState<Room[]>(PLACEHOLDER_ROOMS);
+  const [habits, setHabits]   = useState<HabitEntry[]>(DEFAULT_HABITS);
+  const [residents]           = useState<ResidentPresence[]>(PLACEHOLDER_RESIDENTS);
+  const [auraStatus]          = useState<AuraStatus>(PLACEHOLDER_STATUS);
+  const [haConnected]         = useState(false);
 
-  // Placeholder media and climate — will be driven by HA WebSocket in Phase 2
-  const nowPlaying: NowPlayingState | null = null;
-  const climateState: ClimateState | null = null;
+  const nowPlaying: NowPlayingState | null  = null;
+  const climateState: ClimateState | null   = null;
 
-  // Scene activation — fires the HA webhook
+  // Scene activation — fires HA webhook, optimistic update
   const handleScenePress = useCallback(async (pressedScene: Scene) => {
-    // Optimistic UI — mark this scene active immediately
     setScenes((prev) =>
       prev.map((s) => ({ ...s, active: s.id === pressedScene.id }))
     );
@@ -251,51 +195,34 @@ export default function DashboardPage() {
     });
 
     if (!res.ok) {
-      // Revert optimistic update on failure
       setScenes((prev) => prev.map((s) => ({ ...s, active: false })));
       throw new Error(`Webhook failed: ${res.status}`);
     }
   }, []);
 
-  // Device toggle — calls HA service through server-side API route
+  // Device toggle — calls HA service via server-side route
   const handleDeviceToggle = useCallback(async (device: Device) => {
     const service = device.state === "on" ? "turn_off" : "turn_on";
     const res = await fetch(`/api/service`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        domain: device.domain,
-        service,
-        entity_id: device.entity_id,
-      }),
+      body: JSON.stringify({ domain: device.domain, service, entity_id: device.entity_id }),
     });
-    if (!res.ok) {
-      throw new Error(`Service call failed: ${res.status}`);
-    }
+    if (!res.ok) throw new Error(`Service call failed: ${res.status}`);
   }, []);
 
   // Media player controls
   const handleMediaAction = useCallback(
     async (
-      action:
-        | "media_play_pause"
-        | "media_next_track"
-        | "media_previous_track"
-        | "volume_mute",
+      action: "media_play_pause" | "media_next_track" | "media_previous_track" | "volume_mute",
       entityId: string
     ) => {
       const res = await fetch(`/api/service`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          domain: "media_player",
-          service: action,
-          entity_id: entityId,
-        }),
+        body: JSON.stringify({ domain: "media_player", service: action, entity_id: entityId }),
       });
-      if (!res.ok) {
-        throw new Error(`Media service call failed: ${res.status}`);
-      }
+      if (!res.ok) throw new Error(`Media service call failed: ${res.status}`);
     },
     []
   );
@@ -313,9 +240,7 @@ export default function DashboardPage() {
           data: { temperature: newTemp },
         }),
       });
-      if (!res.ok) {
-        throw new Error(`Climate service call failed: ${res.status}`);
-      }
+      if (!res.ok) throw new Error(`Climate service call failed: ${res.status}`);
     },
     []
   );
@@ -339,43 +264,51 @@ export default function DashboardPage() {
 
   return (
     <main className="min-h-dvh px-4 py-6 max-w-2xl mx-auto">
-      {/* ------------------------------------------------------------------ */}
-      {/* HEADER                                                               */}
-      {/* ------------------------------------------------------------------ */}
-      <header className="flex items-start justify-between mb-8 animate-[fade-in_0.4s_ease-out]">
-        <div className="flex flex-col gap-1">
-          {/* AURA wordmark */}
-          <div className="flex items-baseline gap-2">
-            <h1 className="text-3xl font-black tracking-[0.2em] text-transparent bg-clip-text bg-gradient-to-r from-aura-purple-light via-aura-blue-light to-aura-purple-light">
+
+      {/* ── HEADER ──────────────────────────────────────────────── */}
+      <header
+        className="flex items-start justify-between mb-8"
+        style={{ animation: "fade-in 0.4s ease-out" }}
+      >
+        {/* Left — wordmark + status */}
+        <div className="flex flex-col gap-1.5">
+          <div className="flex items-baseline gap-2.5">
+            <h1
+              className="text-3xl font-black tracking-[0.22em] text-transparent bg-clip-text"
+              style={{
+                backgroundImage:
+                  "linear-gradient(135deg, #9F67FF 0%, #60A5FA 50%, #9F67FF 100%)",
+              }}
+            >
               AURA
             </h1>
-            <span className="text-xs font-medium text-aura-text-muted tracking-widest uppercase">
+            <span className="text-xs font-semibold text-aura-text-muted tracking-widest uppercase">
               by OASIS
             </span>
           </div>
 
-          {/* Date + connection status */}
-          <div className="flex items-center gap-2">
+          {/* Date + connection badge */}
+          <div className="flex items-center gap-2 flex-wrap">
             <p className="text-xs text-aura-text-muted">{currentDate}</p>
-            <span className="text-aura-border">·</span>
+            <span className="text-aura-border" aria-hidden="true">·</span>
             {haConnected ? (
-              <div className="flex items-center gap-1">
-                <Wifi size={10} className="text-aura-green" aria-hidden="true" />
-                <span className="text-xs text-aura-green">Connected</span>
+              <div className="flex items-center gap-1.5 bg-aura-green/10 border border-aura-green/20 rounded-full px-2 py-0.5">
+                <Wifi size={9} className="text-aura-green" aria-hidden="true" />
+                <span className="text-xs text-aura-green font-medium">Connected</span>
               </div>
             ) : (
-              <div className="flex items-center gap-1">
-                <WifiOff size={10} className="text-aura-amber" aria-hidden="true" />
-                <span className="text-xs text-aura-amber">Scaffold mode</span>
+              <div className="flex items-center gap-1.5 bg-aura-amber/10 border border-aura-amber/20 rounded-full px-2 py-0.5">
+                <WifiOff size={9} className="text-aura-amber" aria-hidden="true" />
+                <span className="text-xs text-aura-amber font-medium">Scaffold</span>
               </div>
             )}
           </div>
         </div>
 
+        {/* Right — clock + presence */}
         <div className="flex flex-col items-end gap-2">
-          {/* Clock */}
           <p
-            className="text-4xl font-black tabular-nums text-aura-text tracking-tight"
+            className="text-5xl font-black tabular-nums text-aura-text tracking-tight leading-none"
             aria-label={`Current time: ${currentTime}`}
           >
             {currentTime}
@@ -387,7 +320,7 @@ export default function DashboardPage() {
               <div key={resident.name} className="flex items-center gap-1.5">
                 <span
                   className={[
-                    "w-2 h-2 rounded-full",
+                    "w-2 h-2 rounded-full shrink-0",
                     resident.home ? "status-online" : "bg-aura-border",
                   ].join(" ")}
                   aria-hidden="true"
@@ -404,25 +337,26 @@ export default function DashboardPage() {
             ))}
           </div>
 
-          {/* Presence summary pill */}
           {anyoneHome && (
-            <span className="text-xs bg-aura-green/15 text-aura-green border border-aura-green/25 rounded-full px-2 py-0.5 font-medium">
-              Someone's home
+            <span className="text-xs bg-aura-green/12 text-aura-green border border-aura-green/22 rounded-full px-2 py-0.5 font-medium">
+              Home
             </span>
           )}
         </div>
       </header>
 
-      {/* ------------------------------------------------------------------ */}
-      {/* QUICK SCENES                                                         */}
-      {/* ------------------------------------------------------------------ */}
-      <section aria-label="Quick scenes" className="mb-6">
+      {/* ── SCENES ──────────────────────────────────────────────── */}
+      <section
+        aria-label="Quick scenes"
+        className="mb-6"
+        style={{ animation: "slide-up 0.4s ease-out 0.05s both" }}
+      >
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-xs font-semibold text-aura-text-muted uppercase tracking-wider">
             Scenes
           </h2>
           <button
-            className="flex items-center gap-1 text-xs text-aura-text-muted hover:text-aura-purple-light transition-colors"
+            className="flex items-center gap-1.5 text-xs text-aura-text-muted hover:text-aura-purple-light transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-aura-purple rounded"
             aria-label="Refresh scene states"
           >
             <RefreshCw size={11} aria-hidden="true" />
@@ -432,62 +366,51 @@ export default function DashboardPage() {
 
         <div className="grid grid-cols-3 gap-2.5">
           {scenes.map((scene) => (
-            <SceneButton
-              key={scene.id}
-              scene={scene}
-              onPress={handleScenePress}
-            />
+            <SceneButton key={scene.id} scene={scene} onPress={handleScenePress} />
           ))}
         </div>
       </section>
 
-      {/* ------------------------------------------------------------------ */}
-      {/* MUSIC + CLIMATE — side by side on wider screens                     */}
-      {/* ------------------------------------------------------------------ */}
+      {/* ── MUSIC + CLIMATE ─────────────────────────────────────── */}
       <section
         aria-label="Media and climate"
         className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4"
+        style={{ animation: "slide-up 0.4s ease-out 0.10s both" }}
       >
         <NowPlaying state={nowPlaying} onAction={handleMediaAction} />
-        <ClimateControl
-          state={climateState}
-          onSetTemperature={handleSetTemperature}
-        />
+        <ClimateControl state={climateState} onSetTemperature={handleSetTemperature} />
       </section>
 
-      {/* ------------------------------------------------------------------ */}
-      {/* ROOMS                                                                */}
-      {/* ------------------------------------------------------------------ */}
-      <section aria-label="Room controls" className="mb-4">
+      {/* ── ROOMS ───────────────────────────────────────────────── */}
+      <section
+        aria-label="Room controls"
+        className="mb-4"
+        style={{ animation: "slide-up 0.4s ease-out 0.15s both" }}
+      >
         <h2 className="text-xs font-semibold text-aura-text-muted uppercase tracking-wider mb-3">
           Rooms
         </h2>
         <div className="grid grid-cols-1 gap-4">
           {rooms.map((room) => (
-            <RoomCard
-              key={room.name}
-              room={room}
-              onDeviceToggle={handleDeviceToggle}
-            />
+            <RoomCard key={room.name} room={room} onDeviceToggle={handleDeviceToggle} />
           ))}
         </div>
       </section>
 
-      {/* ------------------------------------------------------------------ */}
-      {/* ACCOUNTABILITY + STATUS — side by side on wider screens             */}
-      {/* ------------------------------------------------------------------ */}
+      {/* ── HABITS + STATUS ─────────────────────────────────────── */}
       <section
         aria-label="Habits and system status"
         className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8"
+        style={{ animation: "slide-up 0.4s ease-out 0.20s both" }}
       >
         <HabitTracker habits={habits} onToggle={handleHabitToggle} />
         <StatusBar status={auraStatus} />
       </section>
 
-      {/* Footer */}
-      <footer className="text-center">
-        <p className="text-xs text-aura-text-muted/40">
-          AURA by OASIS AI Solutions · v0.1.0
+      {/* ── FOOTER ──────────────────────────────────────────────── */}
+      <footer className="text-center pb-safe">
+        <p className="text-xs text-aura-text-muted/35 tracking-wide">
+          AURA by OASIS AI Solutions &middot; v0.1.0
         </p>
       </footer>
     </main>

@@ -6,29 +6,27 @@ import type { ClimateState } from "@/lib/types";
 
 interface ClimateControlProps {
   state: ClimateState | null;
-  /** Called when the user adjusts the target temperature.
-   *  newTemp is in Celsius. Maps to HA climate.set_temperature service. */
   onSetTemperature: (entityId: string, newTemp: number) => Promise<void>;
 }
 
 const MODE_LABELS: Record<string, string> = {
-  heat: "Heating",
-  cool: "Cooling",
+  heat:      "Heating",
+  cool:      "Cooling",
   heat_cool: "Auto",
-  auto: "Auto",
-  dry: "Dry",
-  fan_only: "Fan",
-  off: "Off",
+  auto:      "Auto",
+  dry:       "Dry",
+  fan_only:  "Fan",
+  off:       "Off",
 };
 
 const MODE_COLORS: Record<string, string> = {
-  heat: "text-aura-amber",
-  cool: "text-aura-blue-light",
+  heat:      "text-aura-amber",
+  cool:      "text-aura-blue-light",
   heat_cool: "text-aura-purple-light",
-  auto: "text-aura-purple-light",
-  dry: "text-aura-blue",
-  fan_only: "text-aura-text-muted",
-  off: "text-aura-border",
+  auto:      "text-aura-purple-light",
+  dry:       "text-aura-blue",
+  fan_only:  "text-aura-text-muted",
+  off:       "text-aura-border",
 };
 
 const MIN_TEMP = 16;
@@ -36,27 +34,25 @@ const MAX_TEMP = 28;
 
 export function ClimateControl({ state, onSetTemperature }: ClimateControlProps) {
   const [pendingTemp, setPendingTemp] = useState<number | null>(null);
-  const [adjusting, setAdjusting] = useState(false);
+  const [adjusting, setAdjusting]     = useState(false);
 
   const displayTarget = pendingTemp ?? state?.target_temp ?? null;
-  const isOff = !state || state.mode === "off";
-  const modeColor = state ? (MODE_COLORS[state.mode] ?? "text-aura-text-muted") : "text-aura-border";
+  const isOff         = !state || state.mode === "off";
+  const modeColor     = state ? (MODE_COLORS[state.mode] ?? "text-aura-text-muted") : "text-aura-border";
 
   const adjust = async (delta: number) => {
     if (!state || adjusting || isOff) return;
 
-    const currentTarget = displayTarget ?? 20;
-    const newTemp = Math.min(MAX_TEMP, Math.max(MIN_TEMP, currentTarget + delta));
-    if (newTemp === currentTarget) return;
+    const current = displayTarget ?? 20;
+    const newTemp = Math.min(MAX_TEMP, Math.max(MIN_TEMP, current + delta));
+    if (newTemp === current) return;
 
     setPendingTemp(newTemp);
     setAdjusting(true);
 
     try {
       await onSetTemperature(state.entity_id, newTemp);
-      // Keep pending until server reflects the change
     } catch {
-      // Revert optimistic update on error
       setPendingTemp(null);
     } finally {
       setAdjusting(false);
@@ -64,12 +60,15 @@ export function ClimateControl({ state, onSetTemperature }: ClimateControlProps)
   };
 
   return (
-    <div className="glass-card rounded-2xl p-4 flex flex-col gap-4 animate-[slide-up_0.4s_ease-out]">
+    <div
+      className="glass-card rounded-2xl p-4 flex flex-col gap-4"
+      style={{ animation: "slide-up 0.4s ease-out both" }}
+    >
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Thermometer size={16} className="text-aura-amber" aria-hidden="true" />
-          <h2 className="text-sm font-semibold text-aura-text-muted uppercase tracking-wider">
+          <Thermometer size={15} className="text-aura-amber" aria-hidden="true" />
+          <h2 className="text-xs font-semibold text-aura-text-muted uppercase tracking-wider">
             Climate
           </h2>
         </div>
@@ -86,14 +85,12 @@ export function ClimateControl({ state, onSetTemperature }: ClimateControlProps)
         <div className="flex flex-col items-center gap-1">
           <span className="text-xs text-aura-text-muted">Current</span>
           <span className="text-4xl font-bold text-aura-text tabular-nums">
-            {state?.current_temp != null
-              ? `${state.current_temp}°`
-              : "--°"}
+            {state?.current_temp != null ? `${state.current_temp}°` : "--°"}
           </span>
-          <span className="text-xs text-aura-text-muted">Celsius</span>
+          <span className="text-xs text-aura-text-muted">C</span>
         </div>
 
-        {/* Divider */}
+        {/* Vertical divider */}
         <div className="h-16 w-px bg-aura-border" aria-hidden="true" />
 
         {/* Target temperature control */}
@@ -136,13 +133,16 @@ export function ClimateControl({ state, onSetTemperature }: ClimateControlProps)
               <Plus size={14} aria-hidden="true" />
             </button>
           </div>
-          <span className="text-xs text-aura-text-muted">Celsius</span>
+          <span className="text-xs text-aura-text-muted">C</span>
         </div>
       </div>
 
-      {/* Humidity + fan speed row (if available) */}
+      {/* Humidity row */}
       {state?.humidity != null && (
-        <div className="flex items-center gap-2 rounded-xl bg-aura-card-hover/60 px-3 py-2">
+        <div
+          className="flex items-center gap-2 rounded-xl px-3 py-2 border border-aura-border/40"
+          style={{ background: "rgba(26,26,62,0.50)" }}
+        >
           <Droplets size={14} className="text-aura-blue shrink-0" aria-hidden="true" />
           <span className="text-xs text-aura-text-muted">Humidity</span>
           <span className="text-xs font-semibold text-aura-text ml-auto">
@@ -151,9 +151,12 @@ export function ClimateControl({ state, onSetTemperature }: ClimateControlProps)
         </div>
       )}
 
-      {/* Offline placeholder */}
+      {/* Offline notice */}
       {!state && (
-        <div className="flex items-center gap-2 rounded-xl bg-aura-amber/10 border border-aura-amber/20 px-3 py-2">
+        <div
+          className="flex items-center gap-2 rounded-xl px-3 py-2 border border-aura-amber/20"
+          style={{ background: "rgba(245,158,11,0.08)" }}
+        >
           <Wind size={14} className="text-aura-amber shrink-0" aria-hidden="true" />
           <p className="text-xs text-aura-text-muted">
             No thermostat connected. Configure a climate entity in HA.

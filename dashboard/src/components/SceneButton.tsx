@@ -16,8 +16,7 @@ import {
 } from "lucide-react";
 import type { Scene } from "@/lib/types";
 
-// Map of string icon names to Lucide components.
-// Kept explicit — avoids dynamic imports and satisfies no-any rule.
+// Explicit map of string names → Lucide components (avoids dynamic imports and `any`).
 const ICON_MAP: Record<string, React.ComponentType<LucideProps>> = {
   Sunset,
   Sun,
@@ -37,16 +36,15 @@ interface SceneButtonProps {
 }
 
 export function SceneButton({ scene, onPress }: SceneButtonProps) {
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading]   = useState(false);
   const [rippling, setRippling] = useState(false);
-  const [error, setError] = useState(false);
+  const [error, setError]       = useState(false);
 
   const Icon = ICON_MAP[scene.icon] ?? Zap;
 
   const handlePress = useCallback(async () => {
     if (loading) return;
 
-    // Trigger ripple animation
     setRippling(true);
     setTimeout(() => setRippling(false), 600);
 
@@ -57,7 +55,6 @@ export function SceneButton({ scene, onPress }: SceneButtonProps) {
       await onPress(scene);
     } catch {
       setError(true);
-      // Clear error indicator after 3 s so it resets visually
       setTimeout(() => setError(false), 3000);
     } finally {
       setLoading(false);
@@ -65,7 +62,7 @@ export function SceneButton({ scene, onPress }: SceneButtonProps) {
   }, [loading, onPress, scene]);
 
   const isActive = scene.active && !error;
-  const isError = error;
+  const isError  = error;
 
   return (
     <button
@@ -75,26 +72,33 @@ export function SceneButton({ scene, onPress }: SceneButtonProps) {
       aria-pressed={isActive}
       title={scene.description}
       className={[
-        // Base
+        // Layout
         "relative flex flex-col items-center justify-center gap-2",
         "rounded-2xl p-4 min-h-[100px] w-full",
         "overflow-hidden",
+        // Interaction feel
         "transition-all duration-200 ease-out",
         "select-none touch-none",
-        // Border
-        "border",
-        // Hover / focus
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-aura-purple",
-        // States
-        isError
-          ? "bg-aura-red/10 border-aura-red/40 shadow-[0_0_15px_rgba(239,68,68,0.25)]"
-          : isActive
-          ? "scene-active"
-          : "glass-card border-aura-border hover:border-aura-purple/40 hover:bg-aura-card-hover",
         loading ? "opacity-70 cursor-wait" : "cursor-pointer active:scale-95",
+        // Focus ring
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-aura-purple",
+        // State-driven appearance
+        isError
+          ? "border border-aura-red/40"
+          : isActive
+          ? "scene-active border"
+          : "glass-card hover:border-aura-purple/30",
       ]
         .filter(Boolean)
         .join(" ")}
+      style={
+        isError
+          ? {
+              background: "rgba(239,68,68,0.10)",
+              boxShadow: "0 0 15px rgba(239,68,68,0.22)",
+            }
+          : undefined
+      }
     >
       {/* Ripple layer */}
       {rippling && (
@@ -103,30 +107,39 @@ export function SceneButton({ scene, onPress }: SceneButtonProps) {
           className="absolute inset-0 flex items-center justify-center pointer-events-none"
         >
           <span
-            className="block rounded-full bg-white/10 animate-[ripple_0.6s_linear]"
-            style={{ width: 200, height: 200, marginTop: -100, marginLeft: -100 }}
+            className="block rounded-full bg-white/10"
+            style={{
+              width: 200,
+              height: 200,
+              marginTop: -100,
+              marginLeft: -100,
+              animation: "ripple 0.6s linear",
+            }}
           />
         </span>
       )}
 
-      {/* Active glow background */}
+      {/* Active gradient overlay */}
       {isActive && (
         <span
           aria-hidden="true"
-          className="absolute inset-0 bg-gradient-to-br from-aura-purple/20 to-aura-blue/10 pointer-events-none"
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background:
+              "linear-gradient(135deg, rgba(124,58,237,0.22) 0%, rgba(59,130,246,0.12) 100%)",
+          }}
         />
       )}
 
-      {/* Icon */}
+      {/* Icon container */}
       <span
         className={[
-          "relative z-10 rounded-xl p-2",
+          "relative z-10 rounded-xl p-2 transition-colors",
           isError
-            ? "text-aura-red"
+            ? "text-aura-red bg-aura-red/15"
             : isActive
-            ? "text-aura-purple-light"
-            : "text-aura-text-muted",
-          isActive ? "bg-aura-purple/20" : "bg-white/5",
+            ? "text-aura-purple-light bg-aura-purple/20"
+            : "text-aura-text-muted bg-white/5",
         ].join(" ")}
       >
         <Icon
@@ -147,10 +160,19 @@ export function SceneButton({ scene, onPress }: SceneButtonProps) {
             : "text-aura-text-muted",
         ].join(" ")}
       >
-        {loading ? "..." : scene.name}
+        {loading ? (
+          <span className="flex items-center gap-1">
+            <span
+              className="w-3 h-3 rounded-full border border-aura-text-muted/40 border-t-aura-text-muted"
+              style={{ animation: "spin 0.8s linear infinite" }}
+            />
+          </span>
+        ) : (
+          scene.name
+        )}
       </span>
 
-      {/* Active indicator dot */}
+      {/* Active dot */}
       {isActive && (
         <span
           aria-hidden="true"

@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense } from "react";
+import { Lock } from "lucide-react";
 
 // ---------------------------------------------------------------------------
-// Inner form component — reads search params (requires Suspense boundary)
+// Inner form — needs Suspense because it reads useSearchParams()
 // ---------------------------------------------------------------------------
 
 function LoginForm() {
@@ -29,14 +29,11 @@ function LoginForm() {
         });
 
         if (res.ok) {
-          // Redirect to the originally requested URL, or the dashboard root.
           const next = searchParams.get("next") ?? "/";
-          // router.replace avoids adding the login page to browser history.
           router.replace(next);
           router.refresh();
         } else {
           setError("Invalid access code. Try again.");
-          // Clear the field so the user cannot resubmit the same bad token.
           setToken("");
         }
       } catch {
@@ -50,7 +47,8 @@ function LoginForm() {
 
   return (
     <form onSubmit={handleLogin} className="space-y-4" noValidate>
-      <div>
+      {/* Input */}
+      <div className="relative">
         <label htmlFor="access-code" className="sr-only">
           Access code
         </label>
@@ -59,42 +57,58 @@ function LoginForm() {
           type="password"
           value={token}
           onChange={(e) => setToken(e.target.value)}
-          placeholder="Access code"
+          placeholder="Enter access code"
           autoComplete="current-password"
           autoFocus
           required
           disabled={loading}
           className={[
-            "w-full px-4 py-3 rounded-xl",
-            "bg-[#1A1A2E] border text-white placeholder-gray-500",
-            "focus:outline-none focus:ring-1",
+            "w-full px-4 py-3.5 rounded-2xl text-aura-text placeholder-aura-text-muted",
+            "bg-aura-card border text-sm",
+            "focus:outline-none focus-visible:ring-2",
             "disabled:opacity-50 disabled:cursor-not-allowed",
-            "transition-colors",
+            "transition-all duration-200",
             error
-              ? "border-red-500/60 focus:border-red-500 focus:ring-red-500"
-              : "border-gray-700 focus:border-purple-500 focus:ring-purple-500",
+              ? "border-aura-red/60 focus-visible:ring-aura-red/50"
+              : "border-aura-border focus:border-aura-purple focus-visible:ring-aura-purple/40",
           ]
             .filter(Boolean)
             .join(" ")}
         />
       </div>
 
+      {/* Error message */}
       {error && (
-        <p role="alert" className="text-red-400 text-sm text-center">
+        <p
+          role="alert"
+          className="text-aura-red text-sm text-center animate-[fade-in_0.25s_ease-out]"
+        >
           {error}
         </p>
       )}
 
+      {/* Submit button */}
       <button
         type="submit"
         disabled={loading || token.length === 0}
         className={[
-          "w-full py-3 rounded-xl font-medium transition-colors",
-          "bg-purple-600 hover:bg-purple-500 text-white",
-          "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-purple-600",
+          "w-full py-3.5 rounded-2xl font-semibold text-sm text-white",
+          "transition-all duration-200",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-aura-purple/60",
+          "active:scale-[0.98]",
+          loading || token.length === 0
+            ? "bg-aura-purple/40 cursor-not-allowed opacity-60"
+            : "bg-aura-purple hover:bg-aura-purple-light cursor-pointer shadow-[0_0_20px_rgba(124,58,237,0.35)]",
         ].join(" ")}
       >
-        {loading ? "Verifying..." : "Enter"}
+        {loading ? (
+          <span className="flex items-center justify-center gap-2">
+            <span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-[spin_0.8s_linear_infinite]" />
+            Verifying...
+          </span>
+        ) : (
+          "Enter"
+        )}
       </button>
     </form>
   );
@@ -106,44 +120,68 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <div className="min-h-screen bg-[#0F0F1A] flex items-center justify-center px-4">
-      {/*
-        Ambient background glow — matches the main dashboard aesthetic so
-        the login page feels like part of the same product.
-      */}
+    <div className="min-h-screen bg-aura-dark flex items-center justify-center px-4">
+      {/* Ambient glow behind the card */}
       <div
         aria-hidden="true"
         className="pointer-events-none fixed inset-0 overflow-hidden"
       >
-        <div className="absolute -top-40 left-1/2 -translate-x-1/2 h-[600px] w-[800px] rounded-full bg-purple-600 opacity-[0.06] blur-[120px]" />
+        <div
+          className="absolute -top-32 left-1/2 -translate-x-1/2 h-[500px] w-[700px] rounded-full blur-[130px]"
+          style={{ background: "rgba(124,58,237,0.10)" }}
+        />
+        <div
+          className="absolute bottom-0 left-1/2 -translate-x-1/2 h-[300px] w-[500px] rounded-full blur-[100px]"
+          style={{ background: "rgba(59,130,246,0.06)" }}
+        />
       </div>
 
-      <div className="relative z-10 w-full max-w-sm">
-        {/* Wordmark */}
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-black tracking-[0.2em] text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-blue-400 to-purple-400">
-            AURA
-          </h1>
-          <p className="text-gray-400 mt-2 text-sm">
-            by OASIS &mdash; Enter your access code
-          </p>
+      <div className="relative z-10 w-full max-w-sm animate-[slide-up_0.4s_ease-out]">
+        {/* Card */}
+        <div className="glass-card rounded-3xl p-8">
+          {/* Lock icon + wordmark */}
+          <div className="text-center mb-8">
+            <div className="flex items-center justify-center mb-5">
+              <div
+                className="w-16 h-16 rounded-2xl flex items-center justify-center"
+                style={{
+                  background: "rgba(124,58,237,0.15)",
+                  border: "1px solid rgba(124,58,237,0.30)",
+                  boxShadow: "0 0 24px rgba(124,58,237,0.20)",
+                }}
+              >
+                <Lock size={28} className="text-aura-purple-light" aria-hidden="true" />
+              </div>
+            </div>
+
+            <h1
+              className="text-4xl font-black tracking-[0.22em] text-transparent bg-clip-text"
+              style={{
+                backgroundImage:
+                  "linear-gradient(135deg, #9F67FF 0%, #60A5FA 50%, #9F67FF 100%)",
+              }}
+            >
+              AURA
+            </h1>
+            <p className="text-aura-text-muted mt-2 text-sm tracking-wide">
+              by OASIS &mdash; Enter your access code
+            </p>
+          </div>
+
+          {/* Login form — needs Suspense for useSearchParams */}
+          <Suspense
+            fallback={
+              <div className="h-[116px] flex items-center justify-center">
+                <span className="text-aura-text-muted text-sm">Loading...</span>
+              </div>
+            }
+          >
+            <LoginForm />
+          </Suspense>
         </div>
 
-        {/*
-          Suspense is required because LoginForm uses useSearchParams(), which
-          relies on the dynamic request context at render time.
-        */}
-        <Suspense
-          fallback={
-            <div className="h-[120px] flex items-center justify-center">
-              <span className="text-gray-500 text-sm">Loading...</span>
-            </div>
-          }
-        >
-          <LoginForm />
-        </Suspense>
-
-        <p className="text-gray-600 text-xs text-center mt-8">
+        {/* Footer */}
+        <p className="text-aura-text-muted/40 text-xs text-center mt-6 tracking-wide">
           AURA by OASIS AI Solutions
         </p>
       </div>

@@ -10,15 +10,12 @@ import {
   Volume2,
   VolumeX,
   Shuffle,
-  Repeat,
   Music2,
 } from "lucide-react";
 import type { NowPlayingState } from "@/lib/types";
 
 interface NowPlayingProps {
   state: NowPlayingState | null;
-  /** Called when the user presses a media control button.
-   *  The action maps directly to HA media_player service names. */
   onAction: (
     action:
       | "media_play_pause"
@@ -48,17 +45,21 @@ export function NowPlaying({ state, onAction }: NowPlayingProps) {
     }
   };
 
-  const isPlaying = state?.state === "playing";
+  const isPlaying     = state?.state === "playing";
   const isUnavailable = !state || state.state === "unavailable" || state.state === "off";
 
   return (
-    <div className="glass-card rounded-2xl p-4 flex flex-col gap-4 animate-[slide-up_0.4s_ease-out]">
-      {/* Section label */}
+    <div
+      className="glass-card rounded-2xl p-4 flex flex-col gap-4"
+      style={{ animation: "slide-up 0.4s ease-out both" }}
+    >
+      {/* Section header */}
       <div className="flex items-center gap-2">
-        <Music2 size={16} className="text-aura-purple" aria-hidden="true" />
-        <h2 className="text-sm font-semibold text-aura-text-muted uppercase tracking-wider">
+        <Music2 size={15} className="text-aura-purple" aria-hidden="true" />
+        <h2 className="text-xs font-semibold text-aura-text-muted uppercase tracking-wider">
           Now Playing
         </h2>
+        {/* Animated equalizer bars when music is playing */}
         {isPlaying && (
           <span className="ml-auto flex gap-0.5 items-end h-4" aria-hidden="true">
             {[3, 5, 4, 6, 3].map((h, i) => (
@@ -76,23 +77,27 @@ export function NowPlaying({ state, onAction }: NowPlayingProps) {
         )}
       </div>
 
+      {/* Track info area */}
       {isUnavailable ? (
-        /* Placeholder state — HA not connected or speaker off */
         <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-xl bg-aura-card-hover border border-aura-border flex items-center justify-center shrink-0">
+          <div
+            className="w-16 h-16 rounded-xl flex items-center justify-center shrink-0 border border-aura-border"
+            style={{ background: "rgba(26,26,62,0.60)" }}
+          >
             <Music2 size={24} className="text-aura-border" aria-hidden="true" />
           </div>
           <div className="flex flex-col gap-1 min-w-0">
-            <p className="text-aura-text-muted text-sm">Nothing playing</p>
-            <p className="text-aura-text-muted/60 text-xs">
-              Speaker offline or idle
-            </p>
+            <p className="text-aura-text-muted text-sm font-medium">Nothing playing</p>
+            <p className="text-aura-text-muted/60 text-xs">Speaker offline or idle</p>
           </div>
         </div>
       ) : (
         <div className="flex items-center gap-4">
           {/* Album art */}
-          <div className="relative w-16 h-16 rounded-xl overflow-hidden shrink-0 border border-aura-border shadow-aura-purple-sm">
+          <div
+            className="relative w-16 h-16 rounded-xl overflow-hidden shrink-0 border border-aura-border"
+            style={{ boxShadow: "0 0 12px rgba(124,58,237,0.25)" }}
+          >
             {state.album_art_url ? (
               <Image
                 src={state.album_art_url}
@@ -102,13 +107,18 @@ export function NowPlaying({ state, onAction }: NowPlayingProps) {
                 sizes="64px"
               />
             ) : (
-              <div className="w-full h-full bg-gradient-to-br from-aura-purple-dim to-aura-card flex items-center justify-center">
+              <div
+                className="w-full h-full flex items-center justify-center"
+                style={{
+                  background: "linear-gradient(135deg, #4C1D95 0%, #12122A 100%)",
+                }}
+              >
                 <Music2 size={24} className="text-aura-purple-light" aria-hidden="true" />
               </div>
             )}
           </div>
 
-          {/* Track info */}
+          {/* Track text */}
           <div className="flex flex-col gap-0.5 min-w-0 flex-1">
             <p className="text-aura-text font-semibold text-sm leading-tight truncate">
               {state.title ?? "Unknown Track"}
@@ -117,19 +127,17 @@ export function NowPlaying({ state, onAction }: NowPlayingProps) {
               {state.artist ?? "Unknown Artist"}
             </p>
             {state.album && (
-              <p className="text-aura-text-muted/60 text-xs truncate">
-                {state.album}
-              </p>
+              <p className="text-aura-text-muted/60 text-xs truncate">{state.album}</p>
             )}
           </div>
         </div>
       )}
 
-      {/* Controls */}
+      {/* Transport controls */}
       <div className="flex items-center justify-between">
         {/* Shuffle */}
         <button
-          onClick={() => {/* Shuffle toggle — Phase 2 */}}
+          onClick={() => { /* Shuffle — Phase 2 */ }}
           disabled={isUnavailable}
           aria-label="Toggle shuffle"
           className={[
@@ -141,7 +149,7 @@ export function NowPlaying({ state, onAction }: NowPlayingProps) {
               : "text-aura-text-muted hover:text-aura-text hover:bg-white/5",
           ].join(" ")}
         >
-          <Shuffle size={16} aria-hidden="true" />
+          <Shuffle size={15} aria-hidden="true" />
         </button>
 
         {/* Previous */}
@@ -169,11 +177,19 @@ export function NowPlaying({ state, onAction }: NowPlayingProps) {
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-aura-purple",
             isUnavailable || actionLoading
               ? "bg-aura-border cursor-not-allowed text-aura-text-muted"
-              : "bg-aura-purple hover:bg-aura-purple-light active:scale-90 text-white shadow-aura-purple-sm",
+              : "bg-aura-purple hover:bg-aura-purple-light active:scale-90 text-white",
           ].join(" ")}
+          style={
+            !isUnavailable && !actionLoading
+              ? { boxShadow: "0 0 16px rgba(124,58,237,0.40)" }
+              : undefined
+          }
         >
           {actionLoading === "media_play_pause" ? (
-            <span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+            <span
+              className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white"
+              style={{ animation: "spin 0.8s linear infinite" }}
+            />
           ) : isPlaying ? (
             <Pause size={20} fill="currentColor" aria-hidden="true" />
           ) : (
@@ -209,9 +225,9 @@ export function NowPlaying({ state, onAction }: NowPlayingProps) {
           ].join(" ")}
         >
           {state?.volume === 0 ? (
-            <VolumeX size={16} aria-hidden="true" />
+            <VolumeX size={15} aria-hidden="true" />
           ) : (
-            <Volume2 size={16} aria-hidden="true" />
+            <Volume2 size={15} aria-hidden="true" />
           )}
         </button>
       </div>

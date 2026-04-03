@@ -1,157 +1,129 @@
 @import "tailwindcss";
 
-@layer base {
-  html {
-    background-color: #0F0F1A;
-    color: #E2E8F0;
-    -webkit-tap-highlight-color: transparent;
-    overscroll-behavior: none;
-  }
+@theme {
+  /* ── Brand colors ─────────────────────────────────────────── */
+  --color-aura-purple:       #7C3AED;
+  --color-aura-purple-light: #9F67FF;
+  --color-aura-purple-dim:   #4C1D95;
+  --color-aura-blue:         #3B82F6;
+  --color-aura-blue-light:   #60A5FA;
 
-  body {
-    background-color: #0F0F1A;
-    min-height: 100dvh;
-    font-family: "Inter", system-ui, sans-serif;
-  }
+  /* ── Surface colors ───────────────────────────────────────── */
+  --color-aura-dark:         #0A0A14;
+  --color-aura-darker:       #06060F;
+  --color-aura-card:         #12122A;
+  --color-aura-card-hover:   #1A1A3E;
+  --color-aura-border:       #1E1E40;
 
-  * {
-    box-sizing: border-box;
-  }
+  /* ── Text colors ──────────────────────────────────────────── */
+  --color-aura-text:         #E2E8F0;
+  --color-aura-text-muted:   #64748B;
 
-  /* Smooth scrolling */
-  :root {
-    scroll-behavior: smooth;
-  }
+  /* ── Semantic colors ──────────────────────────────────────── */
+  --color-aura-green:        #10B981;
+  --color-aura-red:          #EF4444;
+  --color-aura-amber:        #F59E0B;
 
-  /* Custom scrollbar — dark themed */
-  ::-webkit-scrollbar {
-    width: 4px;
-    height: 4px;
-  }
+  /* ── Typography ───────────────────────────────────────────── */
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
 
-  ::-webkit-scrollbar-track {
-    background: #0F0F1A;
-  }
-
-  ::-webkit-scrollbar-thumb {
-    background: #2D2D50;
-    border-radius: 2px;
-  }
-
-  ::-webkit-scrollbar-thumb:hover {
-    background: #7C3AED;
-  }
+  /* ── Named animations ─────────────────────────────────────── */
+  --animate-glow-pulse: glow-pulse 2s ease-in-out infinite;
+  --animate-fade-in:    fade-in 0.4s ease-out;
+  --animate-slide-up:   slide-up 0.4s ease-out both;
+  --animate-ripple:     ripple 0.6s linear;
+  --animate-spin:       spin 0.8s linear infinite;
 }
 
-@layer utilities {
-  /* Glassmorphism card base */
-  .glass-card {
-    background: linear-gradient(
-      135deg,
-      rgba(255, 255, 255, 0.05) 0%,
-      rgba(255, 255, 255, 0.02) 100%
-    );
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08),
-      0 4px 24px rgba(0, 0, 0, 0.4);
-  }
-
-  /* Purple glow border */
-  .glow-border-purple {
-    border-color: rgba(124, 58, 237, 0.5);
-    box-shadow: 0 0 15px rgba(124, 58, 237, 0.25),
-      inset 0 1px 0 rgba(124, 58, 237, 0.1);
-  }
-
-  /* Active scene glow */
-  .scene-active {
-    background: linear-gradient(
-      135deg,
-      rgba(124, 58, 237, 0.25) 0%,
-      rgba(59, 130, 246, 0.15) 100%
-    );
-    border-color: rgba(124, 58, 237, 0.6);
-    box-shadow: 0 0 20px rgba(124, 58, 237, 0.4),
-      inset 0 1px 0 rgba(124, 58, 237, 0.2);
-  }
-
-  /* Ripple effect container */
-  .ripple-container {
-    position: relative;
-    overflow: hidden;
-  }
-
-  .ripple-container::after {
-    content: "";
-    position: absolute;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.15);
-    width: 100px;
-    height: 100px;
-    margin-top: -50px;
-    margin-left: -50px;
-    top: 50%;
-    left: 50%;
-    animation: ripple 0.6s linear;
-    pointer-events: none;
-  }
-
-  /* Status dot pulse */
-  .status-online {
-    background-color: #10B981;
-    box-shadow: 0 0 6px rgba(16, 185, 129, 0.8);
-  }
-
-  .status-offline {
-    background-color: #EF4444;
-    box-shadow: 0 0 6px rgba(239, 68, 68, 0.8);
-  }
-
-  .status-unknown {
-    background-color: #F59E0B;
-    box-shadow: 0 0 6px rgba(245, 158, 11, 0.8);
-  }
+/* ── Base reset & document defaults ────────────────────────── */
+html,
+body {
+  background-color: var(--color-aura-dark);
+  color: var(--color-aura-text);
+  font-family: var(--font-sans);
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
 }
 
-@keyframes ripple {
-  0% {
-    transform: scale(0);
-    opacity: 0.5;
-  }
-  100% {
-    transform: scale(4);
-    opacity: 0;
-  }
+body {
+  min-height: 100dvh;
+  background-image:
+    radial-gradient(ellipse at 20% 0%,   rgba(124, 58, 237, 0.10) 0%, transparent 55%),
+    radial-gradient(ellipse at 80% 100%, rgba(59, 130, 246, 0.07) 0%, transparent 55%);
+  background-attachment: fixed;
 }
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/* ── Custom scrollbar ───────────────────────────────────────── */
+::-webkit-scrollbar             { width: 3px; height: 3px; }
+::-webkit-scrollbar-track       { background: transparent; }
+::-webkit-scrollbar-thumb       { background: #2D2D50; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #7C3AED; }
+
+/* ── Reusable utility classes ───────────────────────────────── */
+
+/* Glassmorphism card base — used by every card component */
+.glass-card {
+  background: rgba(18, 18, 42, 0.80);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(124, 58, 237, 0.12);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 4px 32px rgba(0, 0, 0, 0.45);
+}
+
+/* Active scene card — glowing purple border + tinted background */
+.scene-active {
+  background: linear-gradient(
+    135deg,
+    rgba(124, 58, 237, 0.28) 0%,
+    rgba(59, 130, 246, 0.16) 100%
+  );
+  border-color: rgba(124, 58, 237, 0.65);
+  box-shadow:
+    0 0 22px rgba(124, 58, 237, 0.45),
+    inset 0 1px 0 rgba(124, 58, 237, 0.22);
+}
+
+/* Status dot helpers */
+.status-online  { background-color: #10B981; box-shadow: 0 0 6px rgba(16,  185, 129, 0.8); }
+.status-offline { background-color: #EF4444; box-shadow: 0 0 6px rgba(239,  68,  68, 0.8); }
+.status-unknown { background-color: #F59E0B; box-shadow: 0 0 6px rgba(245, 158,  11, 0.8); }
+
+/* ── Keyframe definitions ───────────────────────────────────── */
 
 @keyframes glow-pulse {
-  0%,
-  100% {
-    box-shadow: 0 0 10px rgba(124, 58, 237, 0.3);
-  }
-  50% {
-    box-shadow: 0 0 25px rgba(124, 58, 237, 0.7);
-  }
+  0%, 100% { box-shadow: 0 0 8px  rgba(124, 58, 237, 0.30); }
+  50%       { box-shadow: 0 0 22px rgba(124, 58, 237, 0.65); }
 }
 
 @keyframes fade-in {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
 @keyframes slide-up {
-  from {
-    transform: translateY(12px);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes ripple {
+  0%   { transform: scale(0); opacity: 0.5; }
+  100% { transform: scale(4); opacity: 0; }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
 }

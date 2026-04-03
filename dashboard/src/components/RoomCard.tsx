@@ -1,8 +1,31 @@
 "use client";
 
 import { useState } from "react";
-import { Lightbulb, Power, Thermometer, ChevronDown, ChevronUp } from "lucide-react";
+import {
+  Lightbulb,
+  Power,
+  Thermometer,
+  ChevronDown,
+  ChevronUp,
+  Sofa,
+  BedDouble,
+  UtensilsCrossed,
+  Home,
+  type LucideProps,
+} from "lucide-react";
 import type { Room, Device } from "@/lib/types";
+
+// Maps the string room icon name (set in page.tsx) to a Lucide component.
+const ROOM_ICON_MAP: Record<string, React.ComponentType<LucideProps>> = {
+  Sofa,
+  BedDouble,
+  UtensilsCrossed,
+  Home,
+};
+
+// ---------------------------------------------------------------------------
+// DeviceRow
+// ---------------------------------------------------------------------------
 
 interface DeviceRowProps {
   device: Device;
@@ -11,10 +34,9 @@ interface DeviceRowProps {
 
 function DeviceRow({ device, onToggle }: DeviceRowProps) {
   const [loading, setLoading] = useState(false);
-  const isOn = device.state === "on";
-  const isToggleable = ["light", "switch", "fan", "input_boolean"].includes(
-    device.domain
-  );
+
+  const isOn          = device.state === "on";
+  const isToggleable  = ["light", "switch", "fan", "input_boolean"].includes(device.domain);
 
   const handleToggle = async () => {
     if (!isToggleable || loading) return;
@@ -27,7 +49,7 @@ function DeviceRow({ device, onToggle }: DeviceRowProps) {
   };
 
   return (
-    <div className="flex items-center justify-between py-2 border-b border-aura-border/40 last:border-0">
+    <div className="flex items-center justify-between py-2.5 border-b border-aura-border/30 last:border-0">
       <div className="flex items-center gap-2.5 min-w-0">
         <span
           className={[
@@ -36,18 +58,12 @@ function DeviceRow({ device, onToggle }: DeviceRowProps) {
           ].join(" ")}
           aria-hidden="true"
         />
-        <span className="text-sm text-aura-text truncate">
-          {device.friendly_name}
-        </span>
-        {/* Show brightness % if available */}
+        <span className="text-sm text-aura-text truncate">{device.friendly_name}</span>
         {device.domain === "light" &&
           isOn &&
           typeof device.attributes["brightness"] === "number" && (
             <span className="shrink-0 text-xs text-aura-text-muted">
-              {Math.round(
-                ((device.attributes["brightness"] as number) / 255) * 100
-              )}
-              %
+              {Math.round(((device.attributes["brightness"] as number) / 255) * 100)}%
             </span>
           )}
       </div>
@@ -61,9 +77,8 @@ function DeviceRow({ device, onToggle }: DeviceRowProps) {
           role="switch"
           className={[
             "shrink-0 relative inline-flex h-5 w-9 items-center rounded-full",
-            "transition-colors duration-200 focus-visible:outline-none",
-            "focus-visible:ring-2 focus-visible:ring-aura-purple focus-visible:ring-offset-2",
-            "focus-visible:ring-offset-aura-card",
+            "transition-colors duration-200",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-aura-purple focus-visible:ring-offset-2 focus-visible:ring-offset-aura-card",
             loading ? "opacity-50 cursor-wait" : "cursor-pointer",
             isOn ? "bg-aura-purple" : "bg-aura-border",
           ].join(" ")}
@@ -81,6 +96,10 @@ function DeviceRow({ device, onToggle }: DeviceRowProps) {
   );
 }
 
+// ---------------------------------------------------------------------------
+// RoomCard
+// ---------------------------------------------------------------------------
+
 interface RoomCardProps {
   room: Room;
   onDeviceToggle: (device: Device) => Promise<void>;
@@ -89,26 +108,31 @@ interface RoomCardProps {
 export function RoomCard({ room, onDeviceToggle }: RoomCardProps) {
   const [expanded, setExpanded] = useState(false);
 
+  const RoomIcon   = ROOM_ICON_MAP[room.icon] ?? Home;
   const onlineCount = room.devices.filter((d) => d.state === "on").length;
-  const totalCount = room.devices.length;
+  const totalCount  = room.devices.length;
 
-  // Show up to 3 devices collapsed, all when expanded
   const visibleDevices = expanded ? room.devices : room.devices.slice(0, 3);
-  const hasMore = room.devices.length > 3;
+  const hasMore        = room.devices.length > 3;
 
   return (
-    <div className="glass-card rounded-2xl p-4 flex flex-col gap-3 animate-[slide-up_0.4s_ease-out]">
+    <div
+      className="glass-card rounded-2xl p-4 flex flex-col gap-3"
+      style={{ animation: "slide-up 0.4s ease-out both" }}
+    >
       {/* Room header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span className="text-lg" aria-hidden="true">
-            {room.icon}
-          </span>
-          <h3 className="font-semibold text-aura-text">{room.name}</h3>
+        <div className="flex items-center gap-2.5">
+          <div
+            className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
+            style={{ background: "rgba(124,58,237,0.12)", border: "1px solid rgba(124,58,237,0.18)" }}
+          >
+            <RoomIcon size={16} className="text-aura-purple-light" aria-hidden="true" />
+          </div>
+          <h3 className="font-semibold text-aura-text text-sm">{room.name}</h3>
         </div>
 
         <div className="flex items-center gap-3">
-          {/* Temperature badge */}
           {room.temperature !== null && (
             <div className="flex items-center gap-1 text-xs text-aura-text-muted">
               <Thermometer size={12} className="text-aura-blue" aria-hidden="true" />
@@ -116,14 +140,11 @@ export function RoomCard({ room, onDeviceToggle }: RoomCardProps) {
             </div>
           )}
 
-          {/* Active device count */}
           <div className="flex items-center gap-1.5 text-xs">
             {onlineCount > 0 ? (
               <>
                 <span className="status-online w-1.5 h-1.5 rounded-full" aria-hidden="true" />
-                <span className="text-aura-green font-medium">
-                  {onlineCount}/{totalCount}
-                </span>
+                <span className="text-aura-green font-medium">{onlineCount}/{totalCount}</span>
               </>
             ) : (
               <>
@@ -135,25 +156,27 @@ export function RoomCard({ room, onDeviceToggle }: RoomCardProps) {
         </div>
       </div>
 
-      {/* Devices list */}
+      {/* Device list or empty state */}
       {room.devices.length === 0 ? (
-        <p className="text-xs text-aura-text-muted italic">
-          No devices configured for this room yet.
-        </p>
+        <div
+          className="flex items-center gap-2 rounded-xl px-3 py-2.5 border border-dashed"
+          style={{ borderColor: "rgba(124,58,237,0.18)", background: "rgba(124,58,237,0.05)" }}
+        >
+          <Lightbulb size={14} className="text-aura-purple shrink-0" aria-hidden="true" />
+          <p className="text-xs text-aura-text-muted">
+            Connect HA to see live device states.
+          </p>
+        </div>
       ) : (
         <div className="flex flex-col">
           {visibleDevices.map((device) => (
-            <DeviceRow
-              key={device.entity_id}
-              device={device}
-              onToggle={onDeviceToggle}
-            />
+            <DeviceRow key={device.entity_id} device={device} onToggle={onDeviceToggle} />
           ))}
 
           {hasMore && (
             <button
               onClick={() => setExpanded((prev) => !prev)}
-              className="mt-2 flex items-center gap-1 text-xs text-aura-text-muted hover:text-aura-purple-light transition-colors self-start"
+              className="mt-2 flex items-center gap-1 text-xs text-aura-text-muted hover:text-aura-purple-light transition-colors self-start focus-visible:outline-none"
               aria-expanded={expanded}
             >
               {expanded ? (
@@ -173,17 +196,7 @@ export function RoomCard({ room, onDeviceToggle }: RoomCardProps) {
         </div>
       )}
 
-      {/* Placeholder notice when no real HA data yet */}
-      {room.devices.length === 0 && (
-        <div className="flex items-center gap-2 rounded-xl bg-aura-purple/10 border border-aura-purple/20 px-3 py-2">
-          <Lightbulb size={14} className="text-aura-purple shrink-0" aria-hidden="true" />
-          <p className="text-xs text-aura-text-muted">
-            Connect HA to see live device states.
-          </p>
-        </div>
-      )}
-
-      {/* Room-level all-off shortcut when devices are active */}
+      {/* All-off shortcut */}
       {onlineCount > 0 && (
         <button
           onClick={async () => {
@@ -191,7 +204,7 @@ export function RoomCard({ room, onDeviceToggle }: RoomCardProps) {
               await onDeviceToggle(device);
             }
           }}
-          className="mt-1 flex items-center justify-center gap-1.5 rounded-xl border border-aura-border/60 py-1.5 text-xs text-aura-text-muted hover:border-aura-red/50 hover:text-aura-red transition-all"
+          className="mt-1 flex items-center justify-center gap-1.5 rounded-xl border border-aura-border/60 py-1.5 text-xs text-aura-text-muted hover:border-aura-red/50 hover:text-aura-red transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-aura-red/50"
         >
           <Power size={12} aria-hidden="true" />
           Turn off all
