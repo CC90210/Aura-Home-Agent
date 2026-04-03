@@ -8,12 +8,15 @@ import { Lock, ShieldCheck, AlertTriangle } from "lucide-react";
 // Inner form — needs Suspense because it reads useSearchParams()
 // ---------------------------------------------------------------------------
 
+type LoginUser = "conaugh" | "adon";
+
 function LoginForm() {
-  const [token, setToken]     = useState("");
-  const [error, setError]     = useState("");
-  const [loading, setLoading] = useState(false);
-  const router                = useRouter();
-  const searchParams          = useSearchParams();
+  const [token, setToken]         = useState("");
+  const [user, setUser]           = useState<LoginUser>("conaugh");
+  const [error, setError]         = useState("");
+  const [loading, setLoading]     = useState(false);
+  const router                    = useRouter();
+  const searchParams              = useSearchParams();
 
   const handleLogin = useCallback(
     async (e: React.FormEvent<HTMLFormElement>) => {
@@ -25,7 +28,7 @@ function LoginForm() {
         const res = await fetch("/api/auth", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ token }),
+          body: JSON.stringify({ token, user }),
         });
 
         if (res.ok) {
@@ -42,7 +45,7 @@ function LoginForm() {
         setLoading(false);
       }
     },
-    [token, router, searchParams]
+    [token, user, router, searchParams]
   );
 
   const inputBorder = error
@@ -102,6 +105,59 @@ function LoginForm() {
             cursor: loading ? "not-allowed" : "text",
           }}
         />
+      </div>
+
+      {/* User selector */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <span
+          style={{
+            fontSize: 11,
+            fontWeight: 600,
+            letterSpacing: "0.08em",
+            textTransform: "uppercase",
+            color: "#64748B",
+          }}
+        >
+          Who are you?
+        </span>
+        <div style={{ display: "flex", gap: 10 }}>
+          {(["conaugh", "adon"] as const).map((option) => {
+            const isSelected = user === option;
+            const label = option === "conaugh" ? "CC" : "Adon";
+            return (
+              <button
+                key={option}
+                type="button"
+                onClick={() => setUser(option)}
+                disabled={loading}
+                aria-pressed={isSelected}
+                style={{
+                  flex: 1,
+                  padding: "12px 0",
+                  borderRadius: 14,
+                  border: isSelected
+                    ? "2px solid rgba(124,58,237,0.70)"
+                    : "2px solid rgba(30,30,64,0.80)",
+                  background: isSelected
+                    ? "rgba(124,58,237,0.20)"
+                    : "rgba(18,18,42,0.60)",
+                  color: isSelected ? "#A78BFA" : "#64748B",
+                  fontSize: 13,
+                  fontWeight: 700,
+                  fontFamily: "inherit",
+                  cursor: loading ? "not-allowed" : "pointer",
+                  transition: "all 0.18s",
+                  boxShadow: isSelected
+                    ? "0 0 0 4px rgba(124,58,237,0.12)"
+                    : "none",
+                  opacity: loading ? 0.5 : 1,
+                }}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Error message */}

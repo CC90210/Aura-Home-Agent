@@ -1,0 +1,16 @@
+- alias: "Dashboard Studio Mode"
+  description: "Studio mode triggered from dashboard or voice webhook."
+  trigger:
+    - platform: webhook
+      webhook_id: aura_studio_mode
+  condition: []
+  action:
+    - service: scene.turn_on
+      target:
+        entity_id: scene.aura_studio_mode
+      continue_on_error: true
+    - service: input_boolean.turn_on
+      target:
+        entity_id: input_boolean.studio_mode_active
+      continue_on_error: true
+  mode: single

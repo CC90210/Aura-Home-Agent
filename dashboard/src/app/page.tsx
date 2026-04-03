@@ -198,6 +198,25 @@ const PLACEHOLDER_STATUS: AuraStatus = {
 };
 
 // ---------------------------------------------------------------------------
+// Cookie helper
+// ---------------------------------------------------------------------------
+
+type AuraUser = "conaugh" | "adon";
+
+/**
+ * Reads the `aura-user` cookie set by /api/auth at login.
+ * Returns "conaugh" when the cookie is absent or unrecognised.
+ * Runs client-side only — safe to call inside useEffect or useState initialisers.
+ */
+function readAuraUserCookie(): AuraUser {
+  if (typeof document === "undefined") return "conaugh";
+  const match = document.cookie.split("; ").find((row) => row.startsWith("aura-user="));
+  if (!match) return "conaugh";
+  const value = match.split("=")[1];
+  return value === "adon" ? "adon" : "conaugh";
+}
+
+// ---------------------------------------------------------------------------
 // Hooks
 // ---------------------------------------------------------------------------
 
@@ -722,10 +741,11 @@ interface SidebarProps {
   activeTab: Tab;
   onTabChange: (tab: Tab) => void;
   residents: ResidentPresence[];
+  activeUser: AuraUser;
   isOpen: boolean;
 }
 
-function Sidebar({ activeTab, onTabChange, residents, isOpen }: SidebarProps) {
+function Sidebar({ activeTab, onTabChange, residents, activeUser, isOpen }: SidebarProps) {
   const TABS: { id: Tab; icon: React.ComponentType<LucideProps>; label: string; section: string }[] = [
     { id: "home",    icon: Home,     label: "Dashboard", section: "OVERVIEW" },
     { id: "scenes",  icon: Grid3X3,  label: "Scenes",    section: "CONTROLS" },
@@ -769,15 +789,44 @@ function Sidebar({ activeTab, onTabChange, residents, isOpen }: SidebarProps) {
 
       <div className={s.presenceSection}>
         <span className={s.presenceSectionLabel}>Who&apos;s Home</span>
-        {residents.map((r) => (
-          <div key={r.name} className={s.presenceRow}>
-            <span
-              className={[s.presenceDot, r.home ? s.presenceOnline : s.presenceOffline].join(" ")}
-              aria-hidden="true"
-            />
-            <span className={r.home ? s.presenceNameOnline : undefined}>{r.name}</span>
-          </div>
-        ))}
+        {[...residents].sort((a) =>
+          a.name.toLowerCase() === activeUser || a.name.toLowerCase() === (activeUser === "conaugh" ? "cc" : activeUser)
+            ? -1
+            : 1
+        ).map((r) => {
+          const isCurrentUser =
+            r.name.toLowerCase() === activeUser ||
+            (activeUser === "conaugh" && r.name.toLowerCase() === "cc");
+          return (
+            <div key={r.name} className={s.presenceRow}>
+              <span
+                className={[s.presenceDot, r.home ? s.presenceOnline : s.presenceOffline].join(" ")}
+                aria-hidden="true"
+              />
+              <span className={r.home ? s.presenceNameOnline : undefined}>
+                {r.name}
+              </span>
+              {isCurrentUser && (
+                <span
+                  style={{
+                    marginLeft: "auto",
+                    fontSize: 9,
+                    fontWeight: 700,
+                    letterSpacing: "0.06em",
+                    textTransform: "uppercase",
+                    color: "#7C3AED",
+                    background: "rgba(124,58,237,0.12)",
+                    border: "1px solid rgba(124,58,237,0.25)",
+                    borderRadius: 6,
+                    padding: "2px 6px",
+                  }}
+                >
+                  You
+                </span>
+              )}
+            </div>
+          );
+        })}
       </div>
     </nav>
   );
@@ -791,6 +840,7 @@ interface HomeViewProps {
   time: string;
   date: string;
   greeting: string;
+  activeUser: AuraUser;
   residents: ResidentPresence[];
   scenes: Scene[];
   onScenePress: (scene: Scene) => Promise<void>;
@@ -810,6 +860,7 @@ function HomeView({
   time,
   date,
   greeting,
+  activeUser,
   residents,
   scenes,
   onScenePress,
@@ -881,22 +932,55 @@ function HomeView({
         <div className={s.headerLeft}>
           <div className={s.greeting}>
             {greeting},{" "}
-            <span className={s.greetingName}>Conaugh</span>
+            <span className={s.greetingName}>
+              {activeUser === "adon" ? "Adon" : "Conaugh"}
+            </span>
           </div>
           <div className={s.headerDate}>{date}</div>
           <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
-            {residents.map((r) => (
-              <div
-                key={r.name}
-                className={[s.presencePill, r.home ? s.presencePillHome : s.presencePillAway].join(" ")}
-              >
-                <span
-                  className={[s.presenceDot, r.home ? s.presenceOnline : s.presenceOffline].join(" ")}
-                  aria-hidden="true"
-                />
-                {r.name}
-              </div>
-            ))}
+            {[...residents].sort((a) =>
+              a.name.toLowerCase() === activeUser ||
+              (activeUser === "conaugh" && a.name.toLowerCase() === "cc")
+                ? -1
+                : 1
+            ).map((r) => {
+              const isCurrentUser =
+                r.name.toLowerCase() === activeUser ||
+                (activeUser === "conaugh" && r.name.toLowerCase() === "cc");
+              return (
+                <div
+                  key={r.name}
+                  className={[s.presencePill, r.home ? s.presencePillHome : s.presencePillAway].join(" ")}
+                  style={
+                    isCurrentUser
+                      ? {
+                          border: "1px solid rgba(124,58,237,0.45)",
+                          background: "rgba(124,58,237,0.12)",
+                          color: "#A78BFA",
+                        }
+                      : undefined
+                  }
+                >
+                  <span
+                    className={[s.presenceDot, r.home ? s.presenceOnline : s.presenceOffline].join(" ")}
+                    aria-hidden="true"
+                  />
+                  {r.name}
+                  {isCurrentUser && (
+                    <span
+                      style={{
+                        marginLeft: 2,
+                        fontSize: 9,
+                        fontWeight: 700,
+                        opacity: 0.7,
+                      }}
+                    >
+                      (you)
+                    </span>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
         <div className={s.headerRight}>
@@ -1191,6 +1275,7 @@ function ProfileView({ residents, status }: { residents: ResidentPresence[]; sta
 export default function DashboardPage() {
   const { time, date, greeting } = useCurrentTime();
 
+  const [activeUser]                = useState<AuraUser>(readAuraUserCookie);
   const [activeTab, setActiveTab]   = useState<Tab>("home");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [scenes, setScenes]         = useState<Scene[]>(PLACEHOLDER_SCENES);
@@ -1304,6 +1389,7 @@ export default function DashboardPage() {
         activeTab={activeTab}
         onTabChange={handleTabChange}
         residents={residents}
+        activeUser={activeUser}
         isOpen={sidebarOpen}
       />
 
@@ -1314,6 +1400,7 @@ export default function DashboardPage() {
             time={time}
             date={date}
             greeting={greeting}
+            activeUser={activeUser}
             residents={residents}
             scenes={scenes}
             onScenePress={handleScenePress}

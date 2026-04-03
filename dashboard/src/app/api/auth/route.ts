@@ -7,9 +7,13 @@ import { NextResponse } from "next/server";
 const VALID_TOKEN = process.env.DASHBOARD_AUTH_TOKEN;
 
 // Cookie settings
-const COOKIE_NAME = "aura-auth";
+const COOKIE_NAME      = "aura-auth";
+const USER_COOKIE_NAME = "aura-user";
 // 30 days — residents should not need to log in more than once a month.
 const COOKIE_MAX_AGE_SECS = 60 * 60 * 24 * 30;
+
+const VALID_USERS = ["conaugh", "adon"] as const;
+type ValidUser = (typeof VALID_USERS)[number];
 
 // ---------------------------------------------------------------------------
 // POST /api/auth
@@ -26,8 +30,10 @@ const COOKIE_MAX_AGE_SECS = 60 * 60 * 24 * 30;
 export async function POST(request: Request): Promise<NextResponse> {
   let submittedToken: string;
 
+  let selectedUser: ValidUser = "conaugh";
+
   try {
-    const body = (await request.json()) as { token?: unknown };
+    const body = (await request.json()) as { token?: unknown; user?: unknown };
     if (typeof body.token !== "string" || body.token.length === 0) {
       return NextResponse.json(
         { error: "token must be a non-empty string" },
@@ -35,6 +41,11 @@ export async function POST(request: Request): Promise<NextResponse> {
       );
     }
     submittedToken = body.token;
+
+    // Validate optional user field — default to "conaugh" if absent or invalid.
+    if (typeof body.user === "string" && (VALID_USERS as readonly string[]).includes(body.user)) {
+      selectedUser = body.user as ValidUser;
+    }
   } catch {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
@@ -42,6 +53,13 @@ export async function POST(request: Request): Promise<NextResponse> {
   // If auth is not configured, allow any token (scaffold / dev mode).
   if (!VALID_TOKEN) {
     const response = NextResponse.json({ ok: true });
+    response.cookies.set(USER_COOKIE_NAME, selectedUser, {
+      httpOnly: false,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: COOKIE_MAX_AGE_SECS,
+      path: "/",
+    });
     return response;
   }
 
@@ -60,6 +78,15 @@ export async function POST(request: Request): Promise<NextResponse> {
     httpOnly: true,
     // Require HTTPS in production. In development (NODE_ENV !== "production"),
     // cookies can be sent over HTTP to localhost.
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
+    maxAge: COOKIE_MAX_AGE_SECS,
+    path: "/",
+  });
+
+  // Not httpOnly — the client-side dashboard reads this to personalise the UI.
+  response.cookies.set(USER_COOKIE_NAME, selectedUser, {
+    httpOnly: false,
     secure: process.env.NODE_ENV === "production",
     sameSite: "strict",
     maxAge: COOKIE_MAX_AGE_SECS,
