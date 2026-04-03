@@ -12,7 +12,13 @@ trigger:
       - POST
     local_only: true
 
-condition: []
+condition:
+  # Prevent duplicate execution if goodnight is already active.
+  # This also stops close_down and goodnight from racing each other
+  # since both set this flag on completion.
+  - condition: state
+    entity_id: input_boolean.goodnight_active
+    state: "off"
 
 action:
   # Step 1 — Fade all lights off over 30 seconds

@@ -86,6 +86,20 @@ input_boolean:
     name: "Deja Vu Enabled"
     icon: mdi:brain
     initial: true
+  # Service health flags — toggled on/off by their respective systemd services
+  # so the dashboard /api/health endpoint can report live status.
+  aura_voice_active:
+    name: "AURA Voice Agent Active"
+    icon: mdi:microphone
+    initial: false
+  aura_clap_active:
+    name: "AURA Clap Detector Active"
+    icon: mdi:hand-wave
+    initial: false
+  aura_learning_active:
+    name: "AURA Learning Engine Active"
+    icon: mdi:brain
+    initial: false
 
 # ---------------------------------------------------------------------------
 # Speaker groups — define once, reference everywhere

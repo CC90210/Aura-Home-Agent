@@ -384,23 +384,41 @@ class IntentHandler:
             return
 
         # Webhook dispatch — fires HA webhooks that trigger automations.
-        # This bypasses the security check intentionally: the webhooks trigger
-        # HA automations that have their own safety conditions, and we do not
-        # want the voice security layer blocking protocol activations.
+        # Sensitive webhooks (those that lock doors, arm cameras, or change
+        # security state) require PIN verification before execution.
+        # Non-sensitive webhooks are posted directly to the HA webhook endpoint.
         if domain == "webhook":
             webhook_id = action.get("webhook_id", "")
-            if webhook_id:
-                try:
-                    requests.post(
-                        f"http://localhost:5123/{webhook_id}",
-                        json={},
-                        timeout=5,
-                    )
-                    log.info("Webhook fired: %s", webhook_id)
-                except Exception as exc:  # noqa: BLE001
-                    log.error("Failed to fire webhook %s: %s", webhook_id, exc)
-            else:
+            if not webhook_id:
                 log.warning("Webhook action missing webhook_id: %s", action)
+                return
+
+            # Webhooks that perform security-sensitive actions require a PIN.
+            _SENSITIVE_WEBHOOKS: frozenset[str] = frozenset({
+                "aura_goodnight",   # engages smart lock + arms cameras
+                "aura_close_down",  # engages smart lock + arms cameras
+                "aura_away_mode",   # arms cameras + locks, cuts power
+            })
+            if webhook_id in _SENSITIVE_WEBHOOKS and self._security:
+                status, message = self._security.check_action("lock", "lock")
+                if status in ("blocked", "pin_required"):
+                    log.warning(
+                        "PIN required for sensitive webhook %s — %s",
+                        webhook_id,
+                        message,
+                    )
+                    self._security_feedback = message
+                    return
+
+            try:
+                requests.post(
+                    f"{self._ha_url}/api/webhook/{webhook_id}",
+                    json={},
+                    timeout=5,
+                )
+                log.info("Webhook fired: %s", webhook_id)
+            except Exception as exc:  # noqa: BLE001
+                log.error("Failed to fire webhook %s: %s", webhook_id, exc)
             return
 
         # Security check — block or require PIN for sensitive actions

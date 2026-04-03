@@ -168,7 +168,7 @@ class EnergyOracle:
 
         import anthropic  # type: ignore[import-untyped]
 
-        self._claude = anthropic.Anthropic(api_key=anthropic_api_key)
+        self._claude = anthropic.Anthropic(api_key=anthropic_api_key, timeout=30.0)
         log.info("EnergyOracle initialised (model: %s).", claude_model)
 
     # ------------------------------------------------------------------

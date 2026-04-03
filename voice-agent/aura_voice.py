@@ -831,9 +831,22 @@ class AuraVoiceAgent:
 
         self._dispatcher.register("aura_greet_person", _handle_greet_person)
 
-        def _handle_goodnight(payload: dict) -> None:
-            self._speak("Good night. Shutting everything down.")
-            self._trigger_ha_webhook("aura_goodnight", payload)
+        def _handle_goodnight(_payload: dict) -> None:
+            # Call the HA scene directly instead of re-triggering the
+            # aura_goodnight webhook — firing the webhook from within the
+            # aura_goodnight handler would create an infinite recursion loop
+            # (webhook → dispatcher → handler → webhook → ...).
+            # Speak AFTER the HA call so the confirmation only plays when the
+            # action has actually been dispatched successfully (HIGH-6).
+            success = self._call_ha_service(
+                "scene",
+                "turn_on",
+                {"entity_id": "scene.aura_goodnight"},
+            )
+            if success:
+                self._speak("Good night. Shutting everything down.")
+            else:
+                self._speak("Goodnight sequence failed. Please check the system.")
 
         self._dispatcher.register("aura_goodnight", _handle_goodnight)
 

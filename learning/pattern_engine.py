@@ -313,7 +313,16 @@ class PatternEngine:
         else:
             self._config = _load_config()
 
-        self._db = _Database(self._config["database"]["path"])
+        # Resolve the database path relative to this module's directory so that
+        # a relative path in config.yaml works correctly on both the Pi (where
+        # cwd may differ) and dev machines.  Absolute paths pass through unchanged.
+        _raw_db_path = self._config["database"]["path"]
+        _db_path = str(
+            (SCRIPT_DIR / _raw_db_path).resolve()
+            if not Path(_raw_db_path).is_absolute()
+            else Path(_raw_db_path)
+        )
+        self._db = _Database(_db_path)
         self._tracked_patterns: list[str] = self._config["tracking"]["entities"]
         self._min_samples: int = int(self._config["tracking"]["min_samples"])
         log.info(

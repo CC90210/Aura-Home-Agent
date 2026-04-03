@@ -3,7 +3,10 @@
 # never stored here.
 
 database:
-  path: "/config/aura/data/patterns.db"
+  # Relative path — resolved against the learning/ directory at runtime.
+  # On the Pi this resolves to /path/to/aura/learning/data/patterns.db.
+  # Do NOT use an absolute path here; it breaks dev machines on Windows/macOS.
+  path: "data/patterns.db"
 
 homeassistant:
   # Overridden by HA_URL environment variable at runtime

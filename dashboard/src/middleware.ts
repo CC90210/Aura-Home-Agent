@@ -98,6 +98,16 @@ export function middleware(request: NextRequest): NextResponse {
       // First request in this window, or window has expired — start a new bucket.
       requestCounts.set(ip, { count: 1, resetTime: now + RATE_LIMIT_WINDOW_MS });
     }
+
+    // Sweep expired entries to prevent unbounded memory growth.
+    // Triggered periodically rather than on every request to keep overhead low.
+    if (requestCounts.size > 1000) {
+      for (const [entryIp, entryRecord] of requestCounts) {
+        if (now > entryRecord.resetTime) {
+          requestCounts.delete(entryIp);
+        }
+      }
+    }
   }
 
   // -- Authentication gate -----------------------------------------------
