@@ -1,56 +1,23 @@
+/* ============================================
+   AURA — Global base styles only
+   The dashboard uses dashboard.module.css for all component styles.
+   The login page uses inline styles.
+   This file handles document-level resets only.
+   ============================================ */
+
 @import "tailwindcss";
 
-@theme {
-  /* ── Brand colors ─────────────────────────────────────────── */
-  --color-aura-purple:       #7C3AED;
-  --color-aura-purple-light: #9F67FF;
-  --color-aura-purple-dim:   #4C1D95;
-  --color-aura-blue:         #3B82F6;
-  --color-aura-blue-light:   #60A5FA;
-
-  /* ── Surface colors ───────────────────────────────────────── */
-  --color-aura-dark:         #0A0A14;
-  --color-aura-darker:       #06060F;
-  --color-aura-card:         #12122A;
-  --color-aura-card-hover:   #1A1A3E;
-  --color-aura-border:       #1E1E40;
-
-  /* ── Text colors ──────────────────────────────────────────── */
-  --color-aura-text:         #E2E8F0;
-  --color-aura-text-muted:   #64748B;
-
-  /* ── Semantic colors ──────────────────────────────────────── */
-  --color-aura-green:        #10B981;
-  --color-aura-red:          #EF4444;
-  --color-aura-amber:        #F59E0B;
-
-  /* ── Typography ───────────────────────────────────────────── */
-  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
-
-  /* ── Named animations ─────────────────────────────────────── */
-  --animate-glow-pulse: glow-pulse 2s ease-in-out infinite;
-  --animate-fade-in:    fade-in 0.4s ease-out;
-  --animate-slide-up:   slide-up 0.4s ease-out both;
-  --animate-ripple:     ripple 0.6s linear;
-  --animate-spin:       spin 0.8s linear infinite;
-}
-
-/* ── Base reset & document defaults ────────────────────────── */
+/* Document defaults */
 html,
 body {
-  background-color: var(--color-aura-dark);
-  color: var(--color-aura-text);
-  font-family: var(--font-sans);
+  margin: 0;
+  padding: 0;
+  background: #0A0A14;
+  color: #E2E8F0;
+  font-family: 'Inter', -apple-system, system-ui, sans-serif;
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior: none;
-}
-
-body {
   min-height: 100dvh;
-  background-image:
-    radial-gradient(ellipse at 20% 0%,   rgba(124, 58, 237, 0.10) 0%, transparent 55%),
-    radial-gradient(ellipse at 80% 100%, rgba(59, 130, 246, 0.07) 0%, transparent 55%);
-  background-attachment: fixed;
 }
 
 *,
@@ -59,146 +26,27 @@ body {
   box-sizing: border-box;
 }
 
-/* ── Custom scrollbar ───────────────────────────────────────── */
-::-webkit-scrollbar             { width: 3px; height: 3px; }
-::-webkit-scrollbar-track       { background: transparent; }
-::-webkit-scrollbar-thumb       { background: #2D2D50; border-radius: 3px; }
+/* Custom scrollbar */
+::-webkit-scrollbar       { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #2D2D50; border-radius: 4px; }
 ::-webkit-scrollbar-thumb:hover { background: #7C3AED; }
 
-/* ── Reusable utility classes ───────────────────────────────── */
+/* Keyframe animations referenced by both login and dashboard.module.css */
 
-/* Glassmorphism card base — used by every card component */
-.glass-card {
-  background: rgba(18, 18, 42, 0.80);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(124, 58, 237, 0.12);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.06),
-    0 4px 32px rgba(0, 0, 0, 0.45);
-}
-
-/* Active scene card — glowing purple border + tinted background */
-.scene-active {
-  background: linear-gradient(
-    135deg,
-    rgba(124, 58, 237, 0.28) 0%,
-    rgba(59, 130, 246, 0.16) 100%
-  );
-  border-color: rgba(124, 58, 237, 0.65);
-  box-shadow:
-    0 0 22px rgba(124, 58, 237, 0.45),
-    inset 0 1px 0 rgba(124, 58, 237, 0.22);
-}
-
-/* Status dot helpers */
-.status-online  { background-color: #10B981; box-shadow: 0 0 6px rgba(16,  185, 129, 0.8); }
-.status-offline { background-color: #EF4444; box-shadow: 0 0 6px rgba(239,  68,  68, 0.8); }
-.status-unknown { background-color: #F59E0B; box-shadow: 0 0 6px rgba(245, 158,  11, 0.8); }
-
-/* ── Bottom navigation ──────────────────────────────────────── */
-.bottom-nav {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  z-index: 50;
-  background: rgba(10, 10, 20, 0.90);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  border-top: 1px solid rgba(124, 58, 237, 0.15);
-  padding-bottom: env(safe-area-inset-bottom);
-}
-
-/* ── Horizontal scroll, hidden scrollbar ───────────────────── */
-.scroll-hide::-webkit-scrollbar { display: none; }
-.scroll-hide { -ms-overflow-style: none; scrollbar-width: none; }
-
-/* ── Scene card gradients (Scenes tab full cards) ───────────── */
-.scene-gradient-sunset    { background: linear-gradient(135deg, #1a0a2e 0%, #2d1b4e 50%, #4a1942 100%); }
-.scene-gradient-morning   { background: linear-gradient(135deg, #1a1a0a 0%, #2d2b1b 50%, #4a3a19 100%); }
-.scene-gradient-studio    { background: linear-gradient(135deg, #0a1a2e 0%, #1b2d4e 50%, #194299 100%); }
-.scene-gradient-movie     { background: linear-gradient(135deg, #100a1e 0%, #1e0b2e 50%, #1a0a30 100%); }
-.scene-gradient-party     { background: linear-gradient(135deg, #2e0a2e 0%, #4e1b3e 50%, #7a1950 100%); }
-.scene-gradient-focus     { background: linear-gradient(135deg, #0a1e1a 0%, #1b3e2d 50%, #195a3a 100%); }
-.scene-gradient-gaming    { background: linear-gradient(135deg, #0a0a2e 0%, #1b1b4e 50%, #2a1990 100%); }
-.scene-gradient-streaming { background: linear-gradient(135deg, #2e0a0a 0%, #4e1b1b 50%, #901930 100%); }
-.scene-gradient-music     { background: linear-gradient(135deg, #1a0a2e 0%, #3a1b4e 50%, #5a1990 100%); }
-
-/* ── Toggle switch ──────────────────────────────────────────── */
-.toggle-switch {
-  width: 44px;
-  height: 24px;
-  border-radius: 12px;
-  position: relative;
-  cursor: pointer;
-  transition: background-color 0.2s;
-  flex-shrink: 0;
-}
-.toggle-switch::after {
-  content: '';
-  position: absolute;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: white;
-  top: 2px;
-  left: 2px;
-  transition: transform 0.2s;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.40);
-}
-.toggle-switch[data-on="true"]  { background-color: #7C3AED; box-shadow: 0 0 10px rgba(124, 58, 237, 0.35); }
-.toggle-switch[data-on="true"]::after  { transform: translateX(20px); }
-.toggle-switch[data-on="false"] { background-color: #1E1E40; }
-
-/* ── Equalizer animation bars (Now Playing) ─────────────────── */
-@keyframes eq-bounce-1 {
-  0%, 100% { height: 6px; }
-  50%       { height: 16px; }
-}
-@keyframes eq-bounce-2 {
-  0%, 100% { height: 10px; }
-  50%       { height: 6px; }
-}
-@keyframes eq-bounce-3 {
-  0%, 100% { height: 14px; }
-  50%       { height: 8px; }
-}
-@keyframes eq-bounce-4 {
-  0%, 100% { height: 8px; }
-  50%       { height: 16px; }
-}
-@keyframes eq-bounce-5 {
-  0%, 100% { height: 5px; }
-  50%       { height: 12px; }
-}
-
-.eq-bar-1 { animation: eq-bounce-1 0.9s ease-in-out infinite; }
-.eq-bar-2 { animation: eq-bounce-2 0.7s ease-in-out infinite 0.1s; }
-.eq-bar-3 { animation: eq-bounce-3 1.1s ease-in-out infinite 0.2s; }
-.eq-bar-4 { animation: eq-bounce-4 0.8s ease-in-out infinite 0.05s; }
-.eq-bar-5 { animation: eq-bounce-5 1.0s ease-in-out infinite 0.15s; }
-
-/* ── Progress ring animation ────────────────────────────────── */
-@keyframes progress-ring-fill {
-  from { stroke-dashoffset: 251; }
-}
-
-/* ── Tab transition ─────────────────────────────────────────── */
-@keyframes tab-enter {
-  from { opacity: 0; transform: translateY(6px); }
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(10px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
-.tab-enter {
-  animation: tab-enter 0.25s ease-out both;
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
-/* ── Keyframe definitions ───────────────────────────────────── */
-
-@keyframes glow-pulse {
-  0%, 100% { box-shadow: 0 0 8px  rgba(124, 58, 237, 0.30); }
-  50%       { box-shadow: 0 0 22px rgba(124, 58, 237, 0.65); }
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
 }
 
 @keyframes wordmark-glow {
@@ -212,35 +60,6 @@ body {
   }
 }
 
-.wordmark-glow {
-  animation: wordmark-glow 3s ease-in-out infinite;
-}
-
-@keyframes fade-in {
-  from { opacity: 0; }
-  to   { opacity: 1; }
-}
-
-@keyframes slide-up {
-  from { opacity: 0; transform: translateY(10px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes ripple {
-  0%   { transform: scale(0); opacity: 0.5; }
-  100% { transform: scale(4); opacity: 0; }
-}
-
-@keyframes shimmer {
-  0%   { background-position: -200% 0; }
-  100% { background-position:  200% 0; }
-}
-
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to   { transform: rotate(360deg); }
-}
-
 @keyframes login-glow-pulse {
   0%, 100% {
     box-shadow: 0 0 24px rgba(124, 58, 237, 0.25),
@@ -250,6 +69,11 @@ body {
     box-shadow: 0 0 40px rgba(124, 58, 237, 0.55),
                 0 0 100px rgba(124, 58, 237, 0.25);
   }
+}
+
+/* Login page animation classes (used via className since login page is still partially Tailwind) */
+.wordmark-glow {
+  animation: wordmark-glow 3s ease-in-out infinite;
 }
 
 .login-icon-glow {

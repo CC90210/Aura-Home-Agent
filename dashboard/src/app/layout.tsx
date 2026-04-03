@@ -34,7 +34,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`dark ${inter.variable}`}>
+    <html lang="en" className={inter.variable}>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
@@ -43,18 +43,71 @@ export default function RootLayout({
           crossOrigin="anonymous"
         />
       </head>
-      <body className="bg-aura-dark text-aura-text font-sans antialiased">
-        {/* Ambient background glow — top center purple radial */}
+      <body
+        style={{
+          margin: 0,
+          padding: 0,
+          background: "#0A0A14",
+          color: "#E2E8F0",
+          fontFamily: "'Inter', -apple-system, system-ui, sans-serif",
+          WebkitFontSmoothing: "antialiased",
+          MozOsxFontSmoothing: "grayscale",
+          minHeight: "100dvh",
+        }}
+      >
+        {/* Ambient background glow — guaranteed via inline styles */}
         <div
           aria-hidden="true"
-          className="pointer-events-none fixed inset-0 overflow-hidden"
+          style={{
+            pointerEvents: "none",
+            position: "fixed",
+            inset: 0,
+            overflow: "hidden",
+            zIndex: 0,
+          }}
         >
-          <div className="absolute -top-40 left-1/2 -translate-x-1/2 h-[600px] w-[800px] rounded-full bg-aura-purple opacity-[0.06] blur-[120px]" />
-          <div className="absolute top-1/3 -left-40 h-[400px] w-[400px] rounded-full bg-aura-blue opacity-[0.04] blur-[100px]" />
-          <div className="absolute top-2/3 -right-40 h-[400px] w-[400px] rounded-full bg-aura-purple opacity-[0.04] blur-[100px]" />
+          <div
+            style={{
+              position: "absolute",
+              top: "-10%",
+              left: "50%",
+              transform: "translateX(-50%)",
+              width: 800,
+              height: 600,
+              borderRadius: "50%",
+              background: "rgba(124,58,237,0.06)",
+              filter: "blur(120px)",
+            }}
+          />
+          <div
+            style={{
+              position: "absolute",
+              top: "33%",
+              left: "-10%",
+              width: 400,
+              height: 400,
+              borderRadius: "50%",
+              background: "rgba(59,130,246,0.04)",
+              filter: "blur(100px)",
+            }}
+          />
+          <div
+            style={{
+              position: "absolute",
+              top: "66%",
+              right: "-10%",
+              width: 400,
+              height: 400,
+              borderRadius: "50%",
+              background: "rgba(124,58,237,0.04)",
+              filter: "blur(100px)",
+            }}
+          />
         </div>
 
-        <div className="relative z-10 min-h-dvh">{children}</div>
+        <div style={{ position: "relative", zIndex: 1, minHeight: "100dvh" }}>
+          {children}
+        </div>
       </body>
     </html>
   );

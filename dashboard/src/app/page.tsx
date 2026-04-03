@@ -31,7 +31,6 @@ import {
   Wind,
   Flame,
   Check,
-  Clock,
   Dumbbell,
   Salad,
   Monitor,
@@ -50,9 +49,13 @@ import {
   Activity,
   Wifi,
   WifiOff,
+  Menu,
+  X,
+  ChevronRight,
   type LucideProps,
 } from "lucide-react";
 import Image from "next/image";
+import s from "./dashboard.module.css";
 import type {
   Scene,
   Room,
@@ -71,7 +74,7 @@ import type {
 type Tab = "home" | "scenes" | "rooms" | "profile";
 
 // ---------------------------------------------------------------------------
-// Icon maps — avoids dynamic imports and preserves type safety
+// Icon maps
 // ---------------------------------------------------------------------------
 
 const SCENE_ICON_MAP: Record<string, React.ComponentType<LucideProps>> = {
@@ -86,21 +89,8 @@ const ROOM_ICON_MAP: Record<string, React.ComponentType<LucideProps>> = {
   Sofa, BedDouble, UtensilsCrossed, Home,
 };
 
-// Maps scene id → CSS class for the gradient background on full scene cards
-const SCENE_GRADIENT_MAP: Record<string, string> = {
-  "close-down": "scene-gradient-sunset",
-  "open-up":    "scene-gradient-morning",
-  studio:       "scene-gradient-studio",
-  movie:        "scene-gradient-movie",
-  party:        "scene-gradient-party",
-  focus:        "scene-gradient-focus",
-  gaming:       "scene-gradient-gaming",
-  streaming:    "scene-gradient-streaming",
-  music:        "scene-gradient-music",
-};
-
 // ---------------------------------------------------------------------------
-// Seed / placeholder data
+// Seed / placeholder data  (identical to before — API patterns preserved)
 // ---------------------------------------------------------------------------
 
 const PLACEHOLDER_SCENES: Scene[] = [
@@ -211,13 +201,22 @@ const PLACEHOLDER_STATUS: AuraStatus = {
 // Hooks
 // ---------------------------------------------------------------------------
 
-function useCurrentTime(): { time: string; date: string } {
+function useCurrentTime(): { time: string; date: string; greeting: string } {
   const [time, setTime] = useState(() =>
     new Date().toLocaleTimeString("en-CA", { hour: "2-digit", minute: "2-digit", hour12: false })
   );
   const [date] = useState(() =>
     new Date().toLocaleDateString("en-CA", { weekday: "long", month: "long", day: "numeric" })
   );
+
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return "Good morning";
+    if (hour < 17) return "Good afternoon";
+    return "Good evening";
+  };
+
+  const [greeting] = useState(getGreeting);
 
   useEffect(() => {
     const tick = () =>
@@ -226,91 +225,11 @@ function useCurrentTime(): { time: string; date: string } {
     return () => clearInterval(id);
   }, []);
 
-  return { time, date };
+  return { time, date, greeting };
 }
 
 // ---------------------------------------------------------------------------
-// Small shared primitives
-// ---------------------------------------------------------------------------
-
-function SectionHeader({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="flex items-center gap-3 mb-4">
-      <div
-        className="h-4 w-0.5 rounded-full"
-        style={{ background: "linear-gradient(180deg, #9F67FF 0%, #3B82F6 100%)" }}
-        aria-hidden="true"
-      />
-      <h2 className="text-xs font-semibold uppercase tracking-widest" style={{ color: "#64748B" }}>
-        {children}
-      </h2>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// ScenePill — compact, horizontal-scroll version for the Home tab
-// ---------------------------------------------------------------------------
-
-interface ScenePillProps {
-  scene: Scene;
-  onPress: (scene: Scene) => Promise<void>;
-}
-
-function ScenePill({ scene, onPress }: ScenePillProps) {
-  const [loading, setLoading] = useState(false);
-  const Icon = SCENE_ICON_MAP[scene.icon] ?? Zap;
-
-  const handlePress = useCallback(async () => {
-    if (loading) return;
-    setLoading(true);
-    try {
-      await onPress(scene);
-    } finally {
-      setLoading(false);
-    }
-  }, [loading, onPress, scene]);
-
-  return (
-    <button
-      onClick={handlePress}
-      disabled={loading}
-      aria-label={`Activate ${scene.name} scene`}
-      aria-pressed={scene.active}
-      className={[
-        "flex items-center gap-2 px-4 py-2 rounded-full shrink-0",
-        "text-xs font-semibold transition-all duration-200",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-aura-purple",
-        "active:scale-95 select-none",
-        scene.active
-          ? "text-white border border-aura-purple"
-          : "border border-aura-border text-aura-text-muted hover:border-aura-purple/40 hover:text-aura-text",
-      ].join(" ")}
-      style={
-        scene.active
-          ? {
-              background: "linear-gradient(135deg, rgba(124,58,237,0.55) 0%, rgba(59,130,246,0.35) 100%)",
-              boxShadow: "0 0 14px rgba(124,58,237,0.45)",
-            }
-          : { background: "rgba(18,18,42,0.70)" }
-      }
-    >
-      {loading ? (
-        <span
-          className="w-3 h-3 rounded-full border border-aura-text-muted/40 border-t-aura-text-muted shrink-0"
-          style={{ animation: "spin 0.8s linear infinite" }}
-          aria-hidden="true"
-        />
-      ) : (
-        <Icon size={13} strokeWidth={scene.active ? 2.5 : 1.75} aria-hidden="true" />
-      )}
-      {scene.name}
-    </button>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// SceneCard — tall gradient card for the Scenes tab
+// SceneCard — compact grid card
 // ---------------------------------------------------------------------------
 
 interface SceneCardProps {
@@ -320,14 +239,10 @@ interface SceneCardProps {
 
 function SceneCard({ scene, onPress }: SceneCardProps) {
   const [loading, setLoading] = useState(false);
-  const [rippling, setRippling] = useState(false);
   const Icon = SCENE_ICON_MAP[scene.icon] ?? Zap;
-  const gradientClass = SCENE_GRADIENT_MAP[scene.id] ?? "scene-gradient-music";
 
   const handlePress = useCallback(async () => {
     if (loading) return;
-    setRippling(true);
-    setTimeout(() => setRippling(false), 600);
     setLoading(true);
     try {
       await onPress(scene);
@@ -342,87 +257,23 @@ function SceneCard({ scene, onPress }: SceneCardProps) {
       disabled={loading}
       aria-label={`Activate ${scene.name} scene`}
       aria-pressed={scene.active}
-      className={[
-        "relative flex flex-col justify-between p-4 rounded-2xl overflow-hidden",
-        "aspect-[3/4] w-full text-left",
-        "transition-all duration-200 select-none",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-aura-purple",
-        loading ? "opacity-70 cursor-wait" : "cursor-pointer active:scale-[0.97]",
-        gradientClass,
-      ].join(" ")}
-      style={
-        scene.active
-          ? { boxShadow: "0 0 0 2px rgba(124,58,237,0.80), 0 0 28px rgba(124,58,237,0.40)" }
-          : { boxShadow: "0 4px 24px rgba(0,0,0,0.50)" }
-      }
+      className={[s.sceneCard, scene.active ? s.sceneCardActive : ""].join(" ")}
     >
-      {/* Ripple */}
-      {rippling && (
-        <span
-          aria-hidden="true"
-          className="absolute inset-0 flex items-center justify-center pointer-events-none"
-        >
-          <span
-            className="block rounded-full bg-white/10"
-            style={{ width: 240, height: 240, animation: "ripple 0.6s linear" }}
-          />
-        </span>
-      )}
-
-      {/* Shine overlay when active */}
-      {scene.active && (
-        <span
-          aria-hidden="true"
-          className="absolute inset-0 pointer-events-none rounded-2xl"
-          style={{ background: "linear-gradient(135deg, rgba(255,255,255,0.07) 0%, transparent 60%)" }}
-        />
-      )}
-
-      {/* Active dot */}
-      {scene.active && (
-        <span
-          aria-hidden="true"
-          className="absolute top-3 right-3 w-2 h-2 rounded-full status-online animate-pulse"
-        />
-      )}
-
-      {/* Top — icon */}
-      <span
-        className="relative z-10 w-10 h-10 rounded-xl flex items-center justify-center"
-        style={{
-          background: scene.active ? "rgba(124,58,237,0.35)" : "rgba(255,255,255,0.08)",
-          border: "1px solid rgba(255,255,255,0.10)",
-        }}
-      >
+      {scene.active && <span className={s.sceneActiveDot} aria-hidden="true" />}
+      <span className={s.sceneIconWrap}>
         {loading ? (
-          <span
-            className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white"
-            style={{ animation: "spin 0.8s linear infinite" }}
-            aria-hidden="true"
-          />
+          <span className={s.spinner} aria-hidden="true" />
         ) : (
-          <Icon
-            size={20}
-            strokeWidth={scene.active ? 2.5 : 1.75}
-            className={scene.active ? "text-aura-purple-light" : "text-white/70"}
-            aria-hidden="true"
-          />
+          <Icon size={20} strokeWidth={scene.active ? 2.5 : 1.75} aria-hidden="true" />
         )}
       </span>
-
-      {/* Bottom — name + description */}
-      <div className="relative z-10 flex flex-col gap-1">
-        <span className="font-bold text-sm text-white leading-tight">{scene.name}</span>
-        <span className="text-[10px] leading-tight" style={{ color: "rgba(255,255,255,0.50)" }}>
-          {scene.description}
-        </span>
-      </div>
+      <span className={s.sceneName}>{scene.name}</span>
     </button>
   );
 }
 
 // ---------------------------------------------------------------------------
-// NowPlayingCard — inline on Home tab
+// NowPlayingCard
 // ---------------------------------------------------------------------------
 
 interface NowPlayingCardProps {
@@ -452,93 +303,59 @@ function NowPlayingCard({ state, onAction }: NowPlayingCardProps) {
   const isUnavailable = !state || state.state === "unavailable" || state.state === "off";
 
   return (
-    <div
-      className="glass-card rounded-2xl overflow-hidden"
-      style={{ animation: "slide-up 0.4s ease-out both" }}
-    >
-      {/* Gradient header strip */}
-      <div
-        className="px-4 pt-4 pb-3"
-        style={{
-          background: isPlaying
-            ? "linear-gradient(135deg, rgba(124,58,237,0.20) 0%, rgba(59,130,246,0.12) 100%)"
-            : "transparent",
-        }}
-      >
-        <div className="flex items-center gap-2 mb-3">
-          <Music2 size={14} className="text-aura-purple" aria-hidden="true" />
-          <span className="text-xs font-semibold uppercase tracking-widest text-aura-text-muted">
-            Now Playing
+    <div className={s.infoCard} style={isPlaying ? { background: "linear-gradient(135deg, rgba(18,18,42,1) 0%, rgba(28,18,52,1) 100%)" } : undefined}>
+      <div className={s.nowPlayingHeader}>
+        <Music2 size={14} style={{ color: "#7C3AED" }} aria-hidden="true" />
+        <span className={s.nowPlayingTitle}>Now Playing</span>
+        {isPlaying && (
+          <span className={s.eqBars} aria-label="Playing">
+            <span className={[s.eqBar, s.eqBar1].join(" ")} style={{ height: 6 }} />
+            <span className={[s.eqBar, s.eqBar2].join(" ")} style={{ height: 10 }} />
+            <span className={[s.eqBar, s.eqBar3].join(" ")} style={{ height: 14 }} />
+            <span className={[s.eqBar, s.eqBar4].join(" ")} style={{ height: 8 }} />
+            <span className={[s.eqBar, s.eqBar5].join(" ")} style={{ height: 5 }} />
           </span>
-          {isPlaying && (
-            <span className="ml-auto flex items-end gap-0.5 h-4" aria-label="Playing" aria-hidden="true">
-              <span className="w-0.5 rounded-full bg-aura-purple-light eq-bar-1" style={{ height: 6 }} />
-              <span className="w-0.5 rounded-full bg-aura-purple-light eq-bar-2" style={{ height: 10 }} />
-              <span className="w-0.5 rounded-full bg-aura-purple-light eq-bar-3" style={{ height: 14 }} />
-              <span className="w-0.5 rounded-full bg-aura-purple-light eq-bar-4" style={{ height: 8 }} />
-              <span className="w-0.5 rounded-full bg-aura-purple-light eq-bar-5" style={{ height: 5 }} />
-            </span>
-          )}
-        </div>
-
-        {isUnavailable ? (
-          <div className="flex items-center gap-3 py-1">
-            <div
-              className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0"
-              style={{ background: "rgba(26,26,62,0.60)", border: "1px solid rgba(124,58,237,0.12)" }}
-            >
-              <Music2 size={20} aria-hidden="true" style={{ color: "#1E1E40" }} />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-aura-text-muted">Nothing playing</p>
-              <p className="text-xs" style={{ color: "rgba(100,116,139,0.60)" }}>Speaker offline or idle</p>
-            </div>
-          </div>
-        ) : (
-          <div className="flex items-center gap-3">
-            <div
-              className="relative w-12 h-12 rounded-xl overflow-hidden shrink-0"
-              style={{ boxShadow: "0 0 12px rgba(124,58,237,0.30)" }}
-            >
-              {state.album_art_url ? (
-                <Image
-                  src={state.album_art_url}
-                  alt={`Album art for ${state.album ?? "current track"}`}
-                  fill
-                  className="object-cover"
-                  sizes="48px"
-                />
-              ) : (
-                <div
-                  className="w-full h-full flex items-center justify-center"
-                  style={{ background: "linear-gradient(135deg, #4C1D95 0%, #12122A 100%)" }}
-                >
-                  <Music2 size={20} className="text-aura-purple-light" aria-hidden="true" />
-                </div>
-              )}
-            </div>
-            <div className="flex flex-col gap-0.5 min-w-0 flex-1">
-              <p className="text-sm font-semibold text-aura-text truncate leading-tight">
-                {state.title ?? "Unknown Track"}
-              </p>
-              <p className="text-xs text-aura-text-muted truncate">
-                {state.artist ?? "Unknown Artist"}
-              </p>
-            </div>
-          </div>
         )}
       </div>
 
-      {/* Controls */}
-      <div className="flex items-center justify-between px-4 py-3" style={{ borderTop: "1px solid rgba(30,30,64,0.60)" }}>
+      {isUnavailable ? (
+        <div className={s.offlineNote}>
+          <div className={s.offlineArtPlaceholder}>
+            <Music2 size={20} style={{ color: "#1E1E40" }} aria-hidden="true" />
+          </div>
+          <div>
+            <div className={s.offlineLabel}>Nothing playing</div>
+            <div className={s.offlineSub}>Speaker offline or idle</div>
+          </div>
+        </div>
+      ) : (
+        <div className={s.trackInfo}>
+          <div className={s.albumArt}>
+            {state.album_art_url ? (
+              <Image
+                src={state.album_art_url}
+                alt={`Album art for ${state.album ?? "current track"}`}
+                fill
+                sizes="52px"
+                style={{ objectFit: "cover" }}
+              />
+            ) : (
+              <Music2 size={20} style={{ color: "#A78BFA" }} aria-hidden="true" />
+            )}
+          </div>
+          <div className={s.trackMeta}>
+            <div className={s.trackTitle}>{state.title ?? "Unknown Track"}</div>
+            <div className={s.trackArtist}>{state.artist ?? "Unknown Artist"}</div>
+          </div>
+        </div>
+      )}
+
+      <div className={s.mediaControls}>
         <button
           onClick={() => { /* shuffle — Phase 2 */ }}
           disabled={isUnavailable}
           aria-label="Toggle shuffle"
-          className={[
-            "p-2 rounded-lg transition-colors",
-            isUnavailable ? "opacity-30 cursor-not-allowed" : "text-aura-text-muted hover:text-aura-purple-light active:scale-90",
-          ].join(" ")}
+          className={s.mediaBtn}
         >
           <Shuffle size={14} aria-hidden="true" />
         </button>
@@ -546,10 +363,7 @@ function NowPlayingCard({ state, onAction }: NowPlayingCardProps) {
           onClick={() => handleAction("media_previous_track")}
           disabled={isUnavailable || !!actionLoading}
           aria-label="Previous track"
-          className={[
-            "p-2 rounded-lg transition-all",
-            isUnavailable || actionLoading ? "opacity-30 cursor-not-allowed" : "text-aura-text-muted hover:text-aura-text active:scale-90",
-          ].join(" ")}
+          className={s.mediaBtn}
         >
           <SkipBack size={18} aria-hidden="true" />
         </button>
@@ -557,35 +371,21 @@ function NowPlayingCard({ state, onAction }: NowPlayingCardProps) {
           onClick={() => handleAction("media_play_pause")}
           disabled={isUnavailable || !!actionLoading}
           aria-label={isPlaying ? "Pause" : "Play"}
-          className={[
-            "w-11 h-11 rounded-full flex items-center justify-center transition-all",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-aura-purple",
-            isUnavailable || actionLoading
-              ? "cursor-not-allowed"
-              : "active:scale-90",
-          ].join(" ")}
-          style={
-            isUnavailable || actionLoading
-              ? { background: "#1E1E40", color: "#64748B" }
-              : { background: "linear-gradient(135deg, #7C3AED 0%, #3B82F6 100%)", color: "white", boxShadow: "0 0 16px rgba(124,58,237,0.45)" }
-          }
+          className={s.playBtn}
         >
           {actionLoading === "media_play_pause" ? (
-            <span className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white" style={{ animation: "spin 0.8s linear infinite" }} />
+            <span className={s.spinner} aria-hidden="true" />
           ) : isPlaying ? (
             <Pause size={18} fill="currentColor" aria-hidden="true" />
           ) : (
-            <Play size={18} fill="currentColor" className="ml-0.5" aria-hidden="true" />
+            <Play size={18} fill="currentColor" style={{ marginLeft: 2 }} aria-hidden="true" />
           )}
         </button>
         <button
           onClick={() => handleAction("media_next_track")}
           disabled={isUnavailable || !!actionLoading}
           aria-label="Next track"
-          className={[
-            "p-2 rounded-lg transition-all",
-            isUnavailable || actionLoading ? "opacity-30 cursor-not-allowed" : "text-aura-text-muted hover:text-aura-text active:scale-90",
-          ].join(" ")}
+          className={s.mediaBtn}
         >
           <SkipForward size={18} aria-hidden="true" />
         </button>
@@ -593,10 +393,7 @@ function NowPlayingCard({ state, onAction }: NowPlayingCardProps) {
           onClick={() => handleAction("volume_mute")}
           disabled={isUnavailable || !!actionLoading}
           aria-label="Toggle mute"
-          className={[
-            "p-2 rounded-lg transition-colors",
-            isUnavailable || actionLoading ? "opacity-30 cursor-not-allowed" : "text-aura-text-muted hover:text-aura-purple-light",
-          ].join(" ")}
+          className={s.mediaBtn}
         >
           {state?.volume === 0 ? <VolumeX size={14} aria-hidden="true" /> : <Volume2 size={14} aria-hidden="true" />}
         </button>
@@ -606,114 +403,65 @@ function NowPlayingCard({ state, onAction }: NowPlayingCardProps) {
 }
 
 // ---------------------------------------------------------------------------
-// ProgressRing — circular SVG progress indicator for the habit tracker
+// HabitsCard
 // ---------------------------------------------------------------------------
 
-function ProgressRing({ percent, size = 72 }: { percent: number; size?: number }) {
-  const radius    = (size - 8) / 2;
-  const circ      = 2 * Math.PI * radius;
-  const offset    = circ - (percent / 100) * circ;
-  const allDone   = percent >= 100;
-
-  return (
-    <svg width={size} height={size} aria-hidden="true" role="img">
-      {/* Track */}
-      <circle
-        cx={size / 2}
-        cy={size / 2}
-        r={radius}
-        fill="none"
-        stroke="#1E1E40"
-        strokeWidth={6}
-      />
-      {/* Fill */}
-      <circle
-        cx={size / 2}
-        cy={size / 2}
-        r={radius}
-        fill="none"
-        stroke={allDone ? "#10B981" : "url(#ring-gradient)"}
-        strokeWidth={6}
-        strokeLinecap="round"
-        strokeDasharray={circ}
-        strokeDashoffset={offset}
-        style={{
-          transform: "rotate(-90deg)",
-          transformOrigin: "50% 50%",
-          transition: "stroke-dashoffset 0.6s ease",
-          filter: allDone
-            ? "drop-shadow(0 0 6px rgba(16,185,129,0.60))"
-            : "drop-shadow(0 0 6px rgba(124,58,237,0.50))",
-        }}
-      />
-      <defs>
-        <linearGradient id="ring-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#7C3AED" />
-          <stop offset="100%" stopColor="#3B82F6" />
-        </linearGradient>
-      </defs>
-    </svg>
-  );
+interface HabitsCardProps {
+  habits: HabitEntry[];
+  onToggle: (id: string) => void;
 }
 
-// ---------------------------------------------------------------------------
-// HabitChip — toggleable chip for the Home tab habit section
-// ---------------------------------------------------------------------------
-
-function HabitChip({ habit, onToggle }: { habit: HabitEntry; onToggle: (id: string) => void }) {
-  const HabitIcon = HABIT_ICON_MAP[habit.icon] ?? Star;
+function HabitsCard({ habits, onToggle }: HabitsCardProps) {
+  const completedCount = habits.filter((h) => h.completed).length;
+  const totalCount     = habits.length;
 
   return (
-    <button
-      onClick={() => onToggle(habit.id)}
-      role="checkbox"
-      aria-checked={habit.completed}
-      aria-label={`${habit.name} — ${habit.completed ? "completed" : "pending"}`}
-      className={[
-        "flex items-center gap-2 px-3 py-2 rounded-xl",
-        "text-xs font-medium transition-all duration-200",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-aura-purple",
-        "active:scale-[0.97] select-none",
-        habit.completed
-          ? "border border-aura-green/30"
-          : "border border-aura-border/50 hover:border-aura-border",
-      ].join(" ")}
-      style={
-        habit.completed
-          ? { background: "rgba(16,185,129,0.10)" }
-          : { background: "rgba(18,18,42,0.60)" }
-      }
-    >
-      <span
-        className={[
-          "w-4 h-4 rounded-full border flex items-center justify-center shrink-0 transition-all",
-          habit.completed ? "border-aura-green" : "border-aura-border",
-        ].join(" ")}
-        style={habit.completed ? { background: "#10B981" } : undefined}
-        aria-hidden="true"
-      >
-        {habit.completed && <Check size={9} strokeWidth={3} className="text-white" />}
-      </span>
-      <HabitIcon
-        size={12}
-        className={habit.completed ? "text-aura-green shrink-0" : "text-aura-text-muted shrink-0"}
-        aria-hidden="true"
-      />
-      <span className={habit.completed ? "text-aura-text line-through opacity-60" : "text-aura-text"}>
-        {habit.name}
-      </span>
-      {habit.streak > 0 && (
-        <span className="ml-auto flex items-center gap-0.5 shrink-0">
-          <Flame size={10} className="text-aura-amber" aria-hidden="true" />
-          <span className="text-aura-amber text-[10px] font-bold tabular-nums">{habit.streak}</span>
+    <div className={s.infoCard}>
+      <div className={s.habitsHeader}>
+        <span className={s.habitsTitle}>Today&apos;s Habits</span>
+        <span className={s.habitsProgress}>
+          <span className={s.habitsProgressCount}>{completedCount}</span>/{totalCount}
         </span>
-      )}
-    </button>
+      </div>
+      {habits.map((habit) => {
+        const HabitIcon = HABIT_ICON_MAP[habit.icon] ?? Star;
+        return (
+          <div
+            key={habit.id}
+            className={s.habitRow}
+            onClick={() => onToggle(habit.id)}
+            role="checkbox"
+            aria-checked={habit.completed}
+            aria-label={`${habit.name} — ${habit.completed ? "completed" : "pending"}`}
+            tabIndex={0}
+            onKeyDown={(e) => { if (e.key === " " || e.key === "Enter") onToggle(habit.id); }}
+          >
+            <div className={[s.habitCheckbox, habit.completed ? s.habitCheckboxDone : ""].join(" ")} aria-hidden="true">
+              {habit.completed && <Check size={11} strokeWidth={3} style={{ color: "white" }} />}
+            </div>
+            <HabitIcon
+              size={13}
+              style={{ color: habit.completed ? "#10B981" : "#64748B", flexShrink: 0 }}
+              aria-hidden="true"
+            />
+            <span className={[s.habitName, habit.completed ? s.habitNameDone : ""].join(" ")}>
+              {habit.name}
+            </span>
+            {habit.streak > 0 && (
+              <span className={s.habitStreak}>
+                <Flame size={11} aria-hidden="true" />
+                {habit.streak}
+              </span>
+            )}
+          </div>
+        );
+      })}
+    </div>
   );
 }
 
 // ---------------------------------------------------------------------------
-// ClimateCard — temperature display on Home tab
+// ClimateCard
 // ---------------------------------------------------------------------------
 
 const MODE_LABELS: Record<string, string> = {
@@ -750,57 +498,45 @@ function ClimateCard({ state, onSetTemperature }: ClimateCardProps) {
   };
 
   return (
-    <div className="glass-card rounded-2xl p-4" style={{ animation: "slide-up 0.4s ease-out both" }}>
-      <div className="flex items-center gap-2 mb-4">
-        <Thermometer size={14} className="text-aura-amber" aria-hidden="true" />
-        <span className="text-xs font-semibold uppercase tracking-widest text-aura-text-muted">Climate</span>
+    <div className={s.climateCard}>
+      <div className={s.climateHeader}>
+        <Thermometer size={14} style={{ color: "#F59E0B" }} aria-hidden="true" />
+        <span className={s.climateTitle}>Climate</span>
         {state && (
-          <span className="ml-auto text-xs font-medium text-aura-text-muted">
-            {MODE_LABELS[state.mode] ?? state.mode}
-          </span>
+          <span className={s.climateMode}>{MODE_LABELS[state.mode] ?? state.mode}</span>
         )}
       </div>
 
-      <div className="flex items-center justify-between gap-4">
-        {/* Current */}
-        <div className="flex flex-col items-center gap-0.5">
-          <span className="text-[10px] text-aura-text-muted uppercase tracking-wider">Current</span>
-          <span className="text-4xl font-black tabular-nums text-aura-text leading-none">
+      <div className={s.climateBody}>
+        <div className={s.climateTempBlock}>
+          <span className={s.climateTempLabel}>Current</span>
+          <span className={s.climateTempValue}>
             {state?.current_temp != null ? `${state.current_temp}` : "--"}
           </span>
-          <span className="text-xs text-aura-text-muted">°C</span>
+          <span className={s.climateTempUnit}>°C</span>
         </div>
 
-        <div className="h-12 w-px" style={{ background: "#1E1E40" }} aria-hidden="true" />
+        <div className={s.climateDivider} aria-hidden="true" />
 
-        {/* Target */}
-        <div className="flex flex-col items-center gap-1">
-          <span className="text-[10px] text-aura-text-muted uppercase tracking-wider">Target</span>
-          <div className="flex items-center gap-2">
+        <div className={s.climateTempBlock}>
+          <span className={s.climateTempLabel}>Target</span>
+          <div className={s.climateTargetControls}>
             <button
               onClick={() => adjust(-0.5)}
               disabled={isOff || adjusting}
               aria-label="Decrease target temperature"
-              className={[
-                "w-7 h-7 rounded-full border border-aura-border flex items-center justify-center transition-all",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-aura-purple",
-                isOff || adjusting ? "opacity-30 cursor-not-allowed" : "hover:border-aura-blue hover:text-aura-blue active:scale-90 cursor-pointer",
-              ].join(" ")}
+              className={s.climateAdjBtn}
             >
               <Minus size={12} aria-hidden="true" />
             </button>
-            <span className="text-2xl font-bold tabular-nums text-aura-purple-light w-12 text-center">
+            <span className={s.climateTargetValue}>
               {displayTarget != null ? `${displayTarget}°` : "--°"}
             </span>
             <button
               onClick={() => adjust(0.5)}
               disabled={isOff || adjusting}
               aria-label="Increase target temperature"
-              className={[
-                "w-7 h-7 rounded-full border border-aura-border flex items-center justify-center transition-all",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-aura-purple",
-                isOff || adjusting ? "opacity-30 cursor-not-allowed" : "hover:border-aura-amber hover:text-aura-amber active:scale-90 cursor-pointer",
-              ].join(" ")}
+              className={s.climateAdjBtn}
             >
               <Plus size={12} aria-hidden="true" />
             </button>
@@ -810,22 +546,32 @@ function ClimateCard({ state, onSetTemperature }: ClimateCardProps) {
 
       {state?.humidity != null && (
         <div
-          className="flex items-center gap-2 rounded-xl px-3 py-2 mt-3 border border-aura-border/40"
-          style={{ background: "rgba(26,26,62,0.50)" }}
+          style={{
+            display: "flex", alignItems: "center", gap: 8,
+            padding: "8px 12px", marginTop: 12, borderRadius: 10,
+            background: "rgba(26,26,62,0.5)",
+            border: "1px solid rgba(30,30,64,0.5)",
+          }}
         >
-          <Droplets size={12} className="text-aura-blue shrink-0" aria-hidden="true" />
-          <span className="text-xs text-aura-text-muted">Humidity</span>
-          <span className="text-xs font-semibold text-aura-text ml-auto">{state.humidity}%</span>
+          <Droplets size={12} style={{ color: "#60A5FA", flexShrink: 0 }} aria-hidden="true" />
+          <span style={{ fontSize: 12, color: "#64748B" }}>Humidity</span>
+          <span style={{ fontSize: 12, fontWeight: 600, color: "#E2E8F0", marginLeft: "auto" }}>
+            {state.humidity}%
+          </span>
         </div>
       )}
 
       {!state && (
         <div
-          className="flex items-center gap-2 rounded-xl px-3 py-2 mt-3"
-          style={{ background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.20)" }}
+          style={{
+            display: "flex", alignItems: "center", gap: 8,
+            padding: "8px 12px", marginTop: 12, borderRadius: 10,
+            background: "rgba(245,158,11,0.06)",
+            border: "1px solid rgba(245,158,11,0.18)",
+          }}
         >
-          <Wind size={12} className="text-aura-amber shrink-0" aria-hidden="true" />
-          <p className="text-xs text-aura-text-muted">No thermostat connected</p>
+          <Wind size={12} style={{ color: "#F59E0B", flexShrink: 0 }} aria-hidden="true" />
+          <span style={{ fontSize: 12, color: "#64748B" }}>No thermostat connected</span>
         </div>
       )}
     </div>
@@ -833,7 +579,7 @@ function ClimateCard({ state, onSetTemperature }: ClimateCardProps) {
 }
 
 // ---------------------------------------------------------------------------
-// DeviceRow — single device toggle row inside an expanded room
+// DeviceRow
 // ---------------------------------------------------------------------------
 
 function DeviceRow({ device, onToggle }: { device: Device; onToggle: (device: Device) => Promise<void> }) {
@@ -849,19 +595,17 @@ function DeviceRow({ device, onToggle }: { device: Device; onToggle: (device: De
   };
 
   return (
-    <div className="flex items-center justify-between py-2.5" style={{ borderBottom: "1px solid rgba(30,30,64,0.50)" }}>
-      <div className="flex items-center gap-2.5 min-w-0">
-        <span
-          className={["shrink-0 w-1.5 h-1.5 rounded-full", isOn ? "status-online" : "bg-aura-border"].join(" ")}
-          aria-hidden="true"
-        />
-        <span className="text-sm text-aura-text truncate">{device.friendly_name}</span>
-        {device.domain === "light" && isOn && typeof device.attributes["brightness"] === "number" && (
-          <span className="shrink-0 text-xs text-aura-text-muted">
-            {Math.round(((device.attributes["brightness"] as number) / 255) * 100)}%
-          </span>
-        )}
-      </div>
+    <div className={s.deviceRow}>
+      <span
+        className={[s.deviceDot, isOn ? s.deviceDotOn : s.deviceDotOff].join(" ")}
+        aria-hidden="true"
+      />
+      <span className={s.deviceName}>{device.friendly_name}</span>
+      {device.domain === "light" && isOn && typeof device.attributes["brightness"] === "number" && (
+        <span className={s.deviceBrightness}>
+          {Math.round(((device.attributes["brightness"] as number) / 255) * 100)}%
+        </span>
+      )}
       {isToggleable && (
         <button
           onClick={handleToggle}
@@ -869,17 +613,10 @@ function DeviceRow({ device, onToggle }: { device: Device; onToggle: (device: De
           aria-label={`Toggle ${device.friendly_name}`}
           aria-checked={isOn}
           role="switch"
-          className={[
-            "shrink-0 relative inline-flex h-5 w-9 items-center rounded-full",
-            "transition-colors duration-200",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-aura-purple focus-visible:ring-offset-2 focus-visible:ring-offset-aura-card",
-            loading ? "opacity-50 cursor-wait" : "cursor-pointer",
-            isOn ? "bg-aura-purple" : "bg-aura-border",
-          ].join(" ")}
+          className={[s.toggleSwitch, isOn ? s.toggleSwitchOn : s.toggleSwitchOff].join(" ")}
+          style={loading ? { opacity: 0.5, cursor: "wait" } : undefined}
         >
-          <span
-            className={["inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform duration-200", isOn ? "translate-x-[18px]" : "translate-x-[3px]"].join(" ")}
-          />
+          <span className={[s.toggleThumb, isOn ? s.toggleThumbOn : s.toggleThumbOff].join(" ")} />
         </button>
       )}
     </div>
@@ -887,7 +624,7 @@ function DeviceRow({ device, onToggle }: { device: Device; onToggle: (device: De
 }
 
 // ---------------------------------------------------------------------------
-// RoomExpandableCard — for Rooms tab
+// RoomExpandableCard
 // ---------------------------------------------------------------------------
 
 function RoomExpandableCard({ room, onDeviceToggle }: { room: Room; onDeviceToggle: (device: Device) => Promise<void> }) {
@@ -897,66 +634,51 @@ function RoomExpandableCard({ room, onDeviceToggle }: { room: Room; onDeviceTogg
   const totalCount  = room.devices.length;
 
   return (
-    <div className="glass-card rounded-2xl overflow-hidden" style={{ animation: "slide-up 0.4s ease-out both" }}>
-      {/* Header row — always visible */}
+    <div className={s.roomCard}>
       <button
         onClick={() => setExpanded((p) => !p)}
-        className="flex items-center gap-3 w-full p-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-aura-purple focus-visible:ring-inset"
+        className={s.roomCardHeader}
         aria-expanded={expanded}
       >
-        <div
-          className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-          style={{ background: "rgba(124,58,237,0.12)", border: "1px solid rgba(124,58,237,0.20)" }}
-        >
-          <RoomIcon size={16} className="text-aura-purple-light" aria-hidden="true" />
+        <div className={s.roomIconWrap}>
+          <RoomIcon size={16} aria-hidden="true" />
         </div>
-
-        <div className="flex-1 min-w-0">
-          <p className="font-semibold text-sm text-aura-text">{room.name}</p>
-          <p className="text-xs text-aura-text-muted mt-0.5">
+        <div className={s.roomInfo}>
+          <div className={s.roomName}>{room.name}</div>
+          <div className={s.roomDeviceCount}>
             {totalCount === 0 ? "No devices" : `${totalCount} device${totalCount !== 1 ? "s" : ""}`}
-          </p>
+          </div>
         </div>
-
-        {/* Status + chevron */}
-        <div className="flex items-center gap-3 shrink-0">
+        <div className={s.roomStatus}>
           {onlineCount > 0 ? (
-            <span className="flex items-center gap-1.5 text-xs font-medium text-aura-green">
-              <span className="w-1.5 h-1.5 rounded-full status-online" aria-hidden="true" />
+            <span className={s.roomOnlineCount}>
+              <span className={[s.deviceDot, s.deviceDotOn].join(" ")} aria-hidden="true" />
               {onlineCount} on
             </span>
           ) : (
-            <span className="text-xs text-aura-text-muted">All off</span>
+            <span style={{ fontSize: 11, color: "#64748B" }}>All off</span>
           )}
-
-          {expanded
-            ? <ChevronUp size={14} className="text-aura-text-muted" aria-hidden="true" />
-            : <ChevronDown size={14} className="text-aura-text-muted" aria-hidden="true" />
-          }
+          <span className={s.roomChevron}>
+            {expanded
+              ? <ChevronUp size={14} aria-hidden="true" />
+              : <ChevronDown size={14} aria-hidden="true" />
+            }
+          </span>
         </div>
       </button>
 
-      {/* Expanded device list */}
       {expanded && (
-        <div
-          className="px-4 pb-4"
-          style={{ borderTop: "1px solid rgba(30,30,64,0.60)" }}
-        >
+        <div className={s.roomDeviceList}>
           {room.devices.length === 0 ? (
-            <div
-              className="flex items-center gap-2 rounded-xl px-3 py-3 mt-3 border border-dashed"
-              style={{ borderColor: "rgba(124,58,237,0.20)", background: "rgba(124,58,237,0.05)" }}
-            >
-              <Lightbulb size={14} className="text-aura-purple shrink-0" aria-hidden="true" />
-              <p className="text-xs text-aura-text-muted">Connect HA to see live device states.</p>
+            <div className={s.noDevicesNote}>
+              <Lightbulb size={14} style={{ color: "#7C3AED", flexShrink: 0 }} aria-hidden="true" />
+              Connect HA to see live device states.
             </div>
           ) : (
             <>
-              <div className="flex flex-col mt-1">
-                {room.devices.map((device) => (
-                  <DeviceRow key={device.entity_id} device={device} onToggle={onDeviceToggle} />
-                ))}
-              </div>
+              {room.devices.map((device) => (
+                <DeviceRow key={device.entity_id} device={device} onToggle={onDeviceToggle} />
+              ))}
               {onlineCount > 0 && (
                 <button
                   onClick={async () => {
@@ -964,7 +686,7 @@ function RoomExpandableCard({ room, onDeviceToggle }: { room: Room; onDeviceTogg
                       await onDeviceToggle(device);
                     }
                   }}
-                  className="mt-3 flex items-center justify-center gap-1.5 w-full rounded-xl border border-aura-border/60 py-2 text-xs text-aura-text-muted hover:border-aura-red/50 hover:text-aura-red transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-aura-red/50"
+                  className={s.turnOffAllBtn}
                 >
                   <Power size={12} aria-hidden="true" />
                   Turn off all
@@ -979,12 +701,96 @@ function RoomExpandableCard({ room, onDeviceToggle }: { room: Room; onDeviceTogg
 }
 
 // ---------------------------------------------------------------------------
-// Tab views
+// formatRelativeTime helper
+// ---------------------------------------------------------------------------
+
+function formatRelativeTime(isoString: string | null): string {
+  if (!isoString) return "never";
+  const diff    = Date.now() - new Date(isoString).getTime();
+  const seconds = Math.floor(diff / 1000);
+  if (seconds < 60) return `${seconds}s ago`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  return `${Math.floor(minutes / 60)}h ago`;
+}
+
+// ---------------------------------------------------------------------------
+// Sidebar
+// ---------------------------------------------------------------------------
+
+interface SidebarProps {
+  activeTab: Tab;
+  onTabChange: (tab: Tab) => void;
+  residents: ResidentPresence[];
+  isOpen: boolean;
+}
+
+function Sidebar({ activeTab, onTabChange, residents, isOpen }: SidebarProps) {
+  const TABS: { id: Tab; icon: React.ComponentType<LucideProps>; label: string; section: string }[] = [
+    { id: "home",    icon: Home,     label: "Dashboard", section: "OVERVIEW" },
+    { id: "scenes",  icon: Grid3X3,  label: "Scenes",    section: "CONTROLS" },
+    { id: "rooms",   icon: DoorOpen, label: "Rooms",     section: "CONTROLS" },
+    { id: "profile", icon: User,     label: "System",    section: "SYSTEM"   },
+  ];
+
+  const sections = Array.from(new Set(TABS.map((t) => t.section)));
+
+  return (
+    <nav
+      className={[s.sidebar, isOpen ? s.sidebarOpen : ""].join(" ")}
+      aria-label="Main navigation"
+    >
+      <div className={s.logo}>
+        <span className={s.logoText}>AURA</span>
+        <span className={s.logoSub}>by OASIS AI</span>
+      </div>
+
+      {sections.map((section) => (
+        <div key={section} className={s.navSection}>
+          <span className={s.navLabel}>{section}</span>
+          {TABS.filter((t) => t.section === section).map((tab) => {
+            const isActive = activeTab === tab.id;
+            const Icon = tab.icon;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => onTabChange(tab.id)}
+                aria-label={`Go to ${tab.label}`}
+                aria-current={isActive ? "page" : undefined}
+                className={[s.navItem, isActive ? s.navItemActive : ""].join(" ")}
+              >
+                <Icon size={18} strokeWidth={isActive ? 2.5 : 1.75} aria-hidden="true" />
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
+      ))}
+
+      <div className={s.presenceSection}>
+        <span className={s.presenceSectionLabel}>Who&apos;s Home</span>
+        {residents.map((r) => (
+          <div key={r.name} className={s.presenceRow}>
+            <span
+              className={[s.presenceDot, r.home ? s.presenceOnline : s.presenceOffline].join(" ")}
+              aria-hidden="true"
+            />
+            <span className={r.home ? s.presenceNameOnline : undefined}>{r.name}</span>
+          </div>
+        ))}
+      </div>
+    </nav>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// HomeView
 // ---------------------------------------------------------------------------
 
 interface HomeViewProps {
   time: string;
   date: string;
+  greeting: string;
   residents: ResidentPresence[];
   scenes: Scene[];
   onScenePress: (scene: Scene) => Promise<void>;
@@ -1003,6 +809,7 @@ interface HomeViewProps {
 function HomeView({
   time,
   date,
+  greeting,
   residents,
   scenes,
   onScenePress,
@@ -1014,369 +821,365 @@ function HomeView({
   onHabitToggle,
   haConnected,
 }: HomeViewProps) {
-  const completedCount  = habits.filter((h) => h.completed).length;
-  const totalCount      = habits.length;
-  const progressPercent = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
+  const activeScene = scenes.find((s) => s.active);
+
+  // Stat card data
+  const statCards = [
+    {
+      label: "Active Scene",
+      value: activeScene?.name ?? "None",
+      sub: activeScene ? "Active" : "No scene active",
+      iconBg: "rgba(124,58,237,0.15)",
+      iconColor: "#A78BFA",
+      icon: <Grid3X3 size={18} aria-hidden="true" />,
+    },
+    {
+      label: "Temperature",
+      value: climate?.current_temp != null ? `${climate.current_temp}°` : "--°",
+      sub: climate?.mode ? MODE_LABELS[climate.mode] ?? climate.mode : "No thermostat",
+      iconBg: "rgba(245,158,11,0.15)",
+      iconColor: "#F59E0B",
+      icon: <Thermometer size={18} aria-hidden="true" />,
+    },
+    {
+      label: "Gym Streak",
+      value: String(habits.find((h) => h.id === "gym")?.streak ?? 0),
+      sub: "consecutive days",
+      iconBg: "rgba(16,185,129,0.15)",
+      iconColor: "#10B981",
+      icon: <Flame size={18} aria-hidden="true" />,
+    },
+    {
+      label: "Habits Done",
+      value: `${habits.filter((h) => h.completed).length}/${habits.length}`,
+      sub: "today",
+      iconBg: "rgba(96,165,250,0.15)",
+      iconColor: "#60A5FA",
+      icon: <Check size={18} aria-hidden="true" />,
+    },
+    {
+      label: "AURA Status",
+      value: haConnected ? "Live" : "Offline",
+      sub: haConnected ? "HA connected" : "Scaffold mode",
+      iconBg: haConnected ? "rgba(16,185,129,0.15)" : "rgba(100,116,139,0.12)",
+      iconColor: haConnected ? "#10B981" : "#64748B",
+      icon: <Wifi size={18} aria-hidden="true" />,
+    },
+  ];
+
+  const quickActions = [
+    { label: "Control Lights", sub: "Adjust all rooms", iconBg: "rgba(245,158,11,0.15)", iconColor: "#F59E0B", icon: <Zap size={18} aria-hidden="true" /> },
+    { label: "Play Music",     sub: "Spotify + Sonos",  iconBg: "rgba(124,58,237,0.15)", iconColor: "#A78BFA", icon: <Music2 size={18} aria-hidden="true" /> },
+    { label: "Set Climate",    sub: "Temperature control", iconBg: "rgba(96,165,250,0.15)", iconColor: "#60A5FA", icon: <Thermometer size={18} aria-hidden="true" /> },
+    { label: "Lock Down",      sub: "Secure all locks",  iconBg: "rgba(16,185,129,0.15)", iconColor: "#10B981", icon: <Server size={18} aria-hidden="true" /> },
+  ];
 
   return (
-    <div className="tab-enter px-4 pt-6 pb-4 flex flex-col gap-6">
-      {/* ── Clock hero ─────────────────────────────────────────── */}
-      <div className="flex flex-col items-center pt-2 pb-1">
-        {/* AURA wordmark */}
-        <p
-          className="text-xs font-black tracking-[0.35em] uppercase mb-4 wordmark-glow"
-          style={{
-            backgroundImage: "linear-gradient(135deg, #9F67FF 0%, #60A5FA 60%, #9F67FF 100%)",
-            WebkitBackgroundClip: "text",
-            WebkitTextFillColor: "transparent",
-            backgroundClip: "text",
-          }}
-        >
-          AURA
-        </p>
-
-        {/* Time */}
-        <p
-          className="font-black tabular-nums leading-none tracking-tight text-aura-text"
-          style={{ fontSize: "clamp(64px, 20vw, 88px)" }}
-          aria-label={`Current time: ${time}`}
-        >
-          {time}
-        </p>
-
-        {/* Date */}
-        <p className="text-sm text-aura-text-muted mt-2 tracking-wide">{date}</p>
-
-        {/* Connection badge */}
-        <div className="mt-3">
-          {haConnected ? (
-            <div
-              className="flex items-center gap-1.5 rounded-full px-3 py-1"
-              style={{ background: "rgba(16,185,129,0.10)", border: "1px solid rgba(16,185,129,0.22)" }}
-            >
-              <Wifi size={10} className="text-aura-green" aria-hidden="true" />
-              <span className="text-xs font-medium text-aura-green">Connected</span>
-            </div>
-          ) : (
-            <div
-              className="flex items-center gap-1.5 rounded-full px-3 py-1"
-              style={{ background: "rgba(245,158,11,0.10)", border: "1px solid rgba(245,158,11,0.22)" }}
-            >
-              <WifiOff size={10} className="text-aura-amber" aria-hidden="true" />
-              <span className="text-xs font-medium text-aura-amber">Scaffold mode</span>
-            </div>
-          )}
-        </div>
-
-        {/* Presence pills */}
-        <div className="flex items-center gap-3 mt-4" aria-label="Who is home">
-          {residents.map((r) => (
-            <div
-              key={r.name}
-              className="flex items-center gap-2 rounded-full px-4 py-1.5"
-              style={{
-                background: r.home ? "rgba(16,185,129,0.12)" : "rgba(18,18,42,0.70)",
-                border: r.home ? "1px solid rgba(16,185,129,0.28)" : "1px solid rgba(30,30,64,0.80)",
-              }}
-            >
-              <span
-                className={["w-2 h-2 rounded-full shrink-0", r.home ? "status-online" : "bg-aura-border"].join(" ")}
-                aria-hidden="true"
-              />
-              <span className={["text-xs font-semibold", r.home ? "text-aura-green" : "text-aura-text-muted"].join(" ")}>
-                {r.name}
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* ── Quick scenes ────────────────────────────────────────── */}
-      <div>
-        <SectionHeader>Scenes</SectionHeader>
-        <div
-          className="flex gap-2 overflow-x-auto scroll-hide pb-1"
-          role="list"
-          aria-label="Quick scene selection"
-        >
-          {scenes.map((scene) => (
-            <div key={scene.id} role="listitem">
-              <ScenePill scene={scene} onPress={onScenePress} />
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* ── Now Playing ─────────────────────────────────────────── */}
-      <div>
-        <SectionHeader>Now Playing</SectionHeader>
-        <NowPlayingCard state={nowPlaying} onAction={onMediaAction} />
-      </div>
-
-      {/* ── Climate ─────────────────────────────────────────────── */}
-      <div>
-        <SectionHeader>Climate</SectionHeader>
-        <ClimateCard state={climate} onSetTemperature={onSetTemperature} />
-      </div>
-
-      {/* ── Habit tracker ───────────────────────────────────────── */}
-      <div>
-        <SectionHeader>Today</SectionHeader>
-        <div className="glass-card rounded-2xl p-4">
-          {/* Ring + count */}
-          <div className="flex items-center gap-4 mb-4">
-            <div className="relative shrink-0">
-              <ProgressRing percent={progressPercent} size={72} />
-              <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-lg font-black tabular-nums text-aura-text leading-none">
-                  {completedCount}
-                </span>
-                <span className="text-[9px] text-aura-text-muted">/{totalCount}</span>
-              </div>
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-semibold text-sm text-aura-text leading-tight">
-                {completedCount === totalCount && totalCount > 0
-                  ? "All habits done"
-                  : `${totalCount - completedCount} left today`}
-              </p>
-              <p className="text-xs text-aura-text-muted mt-0.5">
-                {progressPercent === 0
-                  ? "Tap a habit to mark it complete"
-                  : progressPercent < 100
-                  ? "Keep going"
-                  : "Outstanding work"}
-              </p>
-            </div>
+    <div>
+      {/* Header */}
+      <div className={s.header}>
+        <div className={s.headerLeft}>
+          <div className={s.greeting}>
+            {greeting},{" "}
+            <span className={s.greetingName}>Conaugh</span>
           </div>
-
-          {/* Habit chips */}
-          <div className="flex flex-col gap-2">
-            {habits.map((habit) => (
-              <HabitChip key={habit.id} habit={habit} onToggle={onHabitToggle} />
+          <div className={s.headerDate}>{date}</div>
+          <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
+            {residents.map((r) => (
+              <div
+                key={r.name}
+                className={[s.presencePill, r.home ? s.presencePillHome : s.presencePillAway].join(" ")}
+              >
+                <span
+                  className={[s.presenceDot, r.home ? s.presenceOnline : s.presenceOffline].join(" ")}
+                  aria-hidden="true"
+                />
+                {r.name}
+              </div>
             ))}
           </div>
         </div>
+        <div className={s.headerRight}>
+          <div className={s.clockDisplay} aria-label={`Current time: ${time}`}>{time}</div>
+          <div className={[s.statusBadge, haConnected ? "" : s.statusBadgeOffline].join(" ")}>
+            <span className={s.statusDot} aria-hidden="true" />
+            {haConnected ? "Connected" : "Scaffold mode"}
+          </div>
+        </div>
       </div>
-    </div>
-  );
-}
 
-// ---------------------------------------------------------------------------
+      {/* Stat cards */}
+      <div className={s.statsGrid} role="list" aria-label="System stats">
+        {statCards.map((card) => (
+          <div key={card.label} className={s.statCard} role="listitem">
+            <div className={s.statIcon} style={{ background: card.iconBg, color: card.iconColor }}>
+              {card.icon}
+            </div>
+            <div className={s.statLabel}>{card.label}</div>
+            <div className={s.statValue}>{card.value}</div>
+            <div className={s.statSub}>{card.sub}</div>
+          </div>
+        ))}
+      </div>
 
-interface ScenesViewProps {
-  scenes: Scene[];
-  onScenePress: (scene: Scene) => Promise<void>;
-}
-
-function ScenesView({ scenes, onScenePress }: ScenesViewProps) {
-  return (
-    <div className="tab-enter px-4 pt-6 pb-4">
-      <SectionHeader>All Scenes</SectionHeader>
-      <div className="grid grid-cols-2 gap-3" role="list" aria-label="All scenes">
+      {/* Quick Scenes */}
+      <div className={s.sectionTitle}>
+        <span className={s.sectionTitleBar} aria-hidden="true" />
+        Quick Scenes
+      </div>
+      <div className={s.scenesGrid} role="list" aria-label="Quick scene selection">
         {scenes.map((scene) => (
           <div key={scene.id} role="listitem">
             <SceneCard scene={scene} onPress={onScenePress} />
           </div>
         ))}
       </div>
+
+      {/* Quick Actions */}
+      <div className={s.sectionTitle}>
+        <span className={s.sectionTitleBar} aria-hidden="true" />
+        Quick Actions
+      </div>
+      <div className={s.quickActions} role="list" aria-label="Quick actions">
+        {quickActions.map((action) => (
+          <button key={action.label} className={s.quickAction} role="listitem" aria-label={action.label}>
+            <div className={s.quickActionIcon} style={{ background: action.iconBg, color: action.iconColor }}>
+              {action.icon}
+            </div>
+            <div className={s.quickActionText}>
+              <div className={s.quickActionTitle}>{action.label}</div>
+              <div className={s.quickActionSub}>{action.sub}</div>
+            </div>
+            <ChevronRight size={16} className={s.quickActionArrow} aria-hidden="true" />
+          </button>
+        ))}
+      </div>
+
+      {/* Now Playing + Habits side by side */}
+      <div className={s.sectionTitle}>
+        <span className={s.sectionTitleBar} aria-hidden="true" />
+        Live Status
+      </div>
+      <div className={s.infoGrid}>
+        <NowPlayingCard state={nowPlaying} onAction={onMediaAction} />
+        <HabitsCard habits={habits} onToggle={onHabitToggle} />
+      </div>
+
+      {/* Climate */}
+      <div className={s.sectionTitle}>
+        <span className={s.sectionTitleBar} aria-hidden="true" />
+        Climate
+      </div>
+      <ClimateCard state={climate} onSetTemperature={onSetTemperature} />
     </div>
   );
 }
 
 // ---------------------------------------------------------------------------
+// ScenesView
+// ---------------------------------------------------------------------------
 
-interface RoomsViewProps {
-  rooms: Room[];
-  onDeviceToggle: (device: Device) => Promise<void>;
+function ScenesView({ scenes, onScenePress }: { scenes: Scene[]; onScenePress: (scene: Scene) => Promise<void> }) {
+  return (
+    <div>
+      <div className={s.sectionTitle}>
+        <span className={s.sectionTitleBar} aria-hidden="true" />
+        All Scenes
+      </div>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))",
+          gap: 14,
+        }}
+        role="list"
+        aria-label="All scenes"
+      >
+        {scenes.map((scene) => {
+          const Icon = SCENE_ICON_MAP[scene.icon] ?? Zap;
+          return (
+            <div key={scene.id} role="listitem">
+              <button
+                onClick={async () => { await onScenePress(scene); }}
+                aria-label={`Activate ${scene.name} scene`}
+                aria-pressed={scene.active}
+                className={[s.sceneCard, scene.active ? s.sceneCardActive : ""].join(" ")}
+                style={{ padding: "20px 16px", gap: 12 }}
+              >
+                {scene.active && <span className={s.sceneActiveDot} aria-hidden="true" />}
+                <span className={s.sceneIconWrap} style={{ width: 52, height: 52, borderRadius: 14 }}>
+                  <Icon size={24} strokeWidth={scene.active ? 2.5 : 1.75} aria-hidden="true" />
+                </span>
+                <span className={s.sceneName} style={{ fontSize: 13 }}>{scene.name}</span>
+                <span className={s.sceneDesc}>{scene.description}</span>
+              </button>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
 }
 
-function RoomsView({ rooms, onDeviceToggle }: RoomsViewProps) {
+// ---------------------------------------------------------------------------
+// RoomsView
+// ---------------------------------------------------------------------------
+
+function RoomsView({ rooms, onDeviceToggle }: { rooms: Room[]; onDeviceToggle: (device: Device) => Promise<void> }) {
   return (
-    <div className="tab-enter px-4 pt-6 pb-4 flex flex-col gap-3">
-      <SectionHeader>Rooms</SectionHeader>
+    <div>
+      <div className={s.sectionTitle}>
+        <span className={s.sectionTitleBar} aria-hidden="true" />
+        Rooms
+      </div>
       {rooms.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 text-center">
-          <DoorOpen size={48} className="text-aura-border mb-4" aria-hidden="true" />
-          <p className="text-aura-text font-semibold">No rooms configured</p>
-          <p className="text-aura-text-muted text-sm mt-1">Connect Home Assistant to see your rooms</p>
+        <div className={s.emptyState}>
+          <DoorOpen size={48} style={{ color: "#1E1E40" }} aria-hidden="true" />
+          <div className={s.emptyStateTitle}>No rooms configured</div>
+          <div className={s.emptyStateSub}>Connect Home Assistant to see your rooms</div>
         </div>
       ) : (
-        rooms.map((room) => (
-          <RoomExpandableCard key={room.name} room={room} onDeviceToggle={onDeviceToggle} />
-        ))
+        <div className={s.roomsGrid}>
+          {rooms.map((room) => (
+            <RoomExpandableCard key={room.name} room={room} onDeviceToggle={onDeviceToggle} />
+          ))}
+        </div>
       )}
     </div>
   );
 }
 
 // ---------------------------------------------------------------------------
+// ProfileView
+// ---------------------------------------------------------------------------
 
-function formatRelativeTime(isoString: string | null): string {
-  if (!isoString) return "never";
-  const diff    = Date.now() - new Date(isoString).getTime();
-  const seconds = Math.floor(diff / 1000);
-  if (seconds < 60) return `${seconds}s ago`;
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
-  return `${Math.floor(minutes / 60)}h ago`;
-}
-
-interface ProfileViewProps {
-  residents: ResidentPresence[];
-  status: AuraStatus;
-}
-
-function ProfileView({ residents, status }: ProfileViewProps) {
-  const runningServices = status.services.filter((s) => s.running).length;
+function ProfileView({ residents, status }: { residents: ResidentPresence[]; status: AuraStatus }) {
+  const runningServices = status.services.filter((svc) => svc.running).length;
   const totalServices   = status.services.length;
 
   return (
-    <div className="tab-enter px-4 pt-6 pb-4 flex flex-col gap-6">
+    <div>
       {/* Wordmark */}
-      <div className="flex flex-col items-center py-4">
-        <p
-          className="text-3xl font-black tracking-[0.22em] wordmark-glow"
-          style={{
-            backgroundImage: "linear-gradient(135deg, #9F67FF 0%, #60A5FA 50%, #9F67FF 100%)",
-            WebkitBackgroundClip: "text",
-            WebkitTextFillColor: "transparent",
-            backgroundClip: "text",
-          }}
-        >
-          AURA
-        </p>
-        <p className="text-xs text-aura-text-muted mt-1 tracking-widest uppercase">by OASIS AI Solutions</p>
+      <div className={s.wordmark}>
+        <span className={s.wordmarkText}>AURA</span>
+        <span className={s.wordmarkSub}>by OASIS AI Solutions</span>
       </div>
 
       {/* Who's home */}
-      <div>
-        <SectionHeader>Who&apos;s Home</SectionHeader>
-        <div className="glass-card rounded-2xl p-4 flex flex-col gap-3">
-          {residents.map((r) => (
-            <div key={r.name} className="flex items-center gap-3">
-              <div
-                className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 font-bold text-sm"
-                style={{
-                  background: r.home ? "rgba(16,185,129,0.15)" : "rgba(18,18,42,0.80)",
-                  border: r.home ? "1px solid rgba(16,185,129,0.35)" : "1px solid rgba(30,30,64,0.80)",
-                  color: r.home ? "#10B981" : "#64748B",
-                }}
-              >
-                {r.name.slice(0, 2).toUpperCase()}
+      <div className={s.profileSection}>
+        <div className={s.sectionTitle}>
+          <span className={s.sectionTitleBar} aria-hidden="true" />
+          Who&apos;s Home
+        </div>
+        <div className={s.systemCard}>
+          {residents.map((r, idx) => (
+            <div key={r.name}>
+              <div className={s.systemRow}>
+                <div
+                  className={s.systemRowIcon}
+                  style={r.home ? { background: "rgba(16,185,129,0.1)", border: "1px solid rgba(16,185,129,0.25)", color: "#10B981" } : undefined}
+                >
+                  <span style={{ fontSize: 13, fontWeight: 700 }}>{r.name.slice(0, 2).toUpperCase()}</span>
+                </div>
+                <div>
+                  <div className={s.systemRowLabel}>{r.name}</div>
+                  <div className={s.systemRowSub}>
+                    {r.home ? "At home" : r.last_seen ? `Last seen ${formatRelativeTime(r.last_seen)}` : "Away"}
+                  </div>
+                </div>
+                <span
+                  className={[s.presenceDot, r.home ? s.presenceOnline : s.presenceOffline].join(" ")}
+                  style={{ marginLeft: "auto" }}
+                  aria-hidden="true"
+                />
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-aura-text">{r.name}</p>
-                <p className="text-xs text-aura-text-muted">
-                  {r.home ? "At home" : r.last_seen ? `Last seen ${formatRelativeTime(r.last_seen)}` : "Away"}
-                </p>
-              </div>
-              <span
-                className={["w-2.5 h-2.5 rounded-full shrink-0", r.home ? "status-online animate-pulse" : "bg-aura-border"].join(" ")}
-                aria-hidden="true"
-              />
+              {idx < residents.length - 1 && <div className={s.systemDivider} aria-hidden="true" />}
             </div>
           ))}
         </div>
       </div>
 
       {/* System status */}
-      <div>
-        <SectionHeader>System Status</SectionHeader>
-        <div className="glass-card rounded-2xl p-4 flex flex-col gap-3">
+      <div className={s.profileSection}>
+        <div className={s.sectionTitle}>
+          <span className={s.sectionTitleBar} aria-hidden="true" />
+          System Status
+        </div>
+        <div className={s.systemCard}>
           {/* Pi */}
-          <div className="flex items-center gap-3">
-            <div
-              className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-              style={{ background: "rgba(18,18,42,0.80)", border: "1px solid rgba(30,30,64,0.80)" }}
-            >
-              <Server size={15} className="text-aura-text-muted" aria-hidden="true" />
+          <div className={s.systemRow}>
+            <div className={s.systemRowIcon}>
+              <Server size={15} aria-hidden="true" />
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-aura-text">Raspberry Pi</p>
-              <p className={["text-xs font-semibold", status.pi_online ? "text-aura-green" : "text-aura-red"].join(" ")}>
-                {status.pi_online ? "Online" : "Offline"}
-              </p>
+            <div>
+              <div className={s.systemRowLabel}>Raspberry Pi</div>
+              <div className={s.systemRowSub}>{status.uptime ? `Uptime: ${status.uptime}` : "No uptime data"}</div>
             </div>
-            <span
-              className={["w-2 h-2 rounded-full shrink-0", status.pi_online ? "status-online animate-pulse" : "status-offline"].join(" ")}
-              aria-hidden="true"
-            />
+            <span className={[s.systemRowValue, status.pi_online ? s.systemRowValueOnline : s.systemRowValueOffline].join(" ")}>
+              {status.pi_online ? "Online" : "Offline"}
+            </span>
           </div>
 
-          <div style={{ height: 1, background: "rgba(30,30,64,0.60)" }} aria-hidden="true" />
+          <div className={s.systemDivider} aria-hidden="true" />
 
           {/* Services */}
-          <div className="flex items-center gap-3">
-            <div
-              className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-              style={{ background: "rgba(18,18,42,0.80)", border: "1px solid rgba(30,30,64,0.80)" }}
-            >
-              <Activity size={15} className="text-aura-text-muted" aria-hidden="true" />
+          <div className={s.systemRow}>
+            <div className={s.systemRowIcon}>
+              <Activity size={15} aria-hidden="true" />
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-aura-text">Services</p>
-              <p className="text-xs text-aura-text-muted">
+            <div>
+              <div className={s.systemRowLabel}>Services</div>
+              <div className={s.systemRowSub}>
                 {totalServices === 0 ? "None configured" : `${runningServices} of ${totalServices} running`}
-              </p>
+              </div>
             </div>
           </div>
 
-          {/* Per-service rows */}
           {status.services.length > 0 && (
-            <div
-              className="rounded-xl overflow-hidden"
-              style={{ background: "rgba(18,18,42,0.50)", border: "1px solid rgba(30,30,64,0.50)" }}
-            >
+            <div className={s.servicesTable}>
               {status.services.map((svc, idx) => (
-                <div
-                  key={svc.name}
-                  className="flex items-center justify-between px-3 py-2"
-                  style={idx < status.services.length - 1 ? { borderBottom: "1px solid rgba(30,30,64,0.50)" } : undefined}
-                >
-                  <div className="flex items-center gap-2">
+                <div key={svc.name} className={s.serviceTableRow} style={idx === 0 ? undefined : undefined}>
+                  <div className={s.serviceTableName}>
                     <span
-                      className={["w-1.5 h-1.5 rounded-full shrink-0", svc.running ? "status-online" : "status-offline"].join(" ")}
+                      className={[s.presenceDot, svc.running ? s.presenceOnline : s.presenceOffline].join(" ")}
                       aria-hidden="true"
                     />
-                    <span className="text-xs text-aura-text-muted">{svc.name}</span>
+                    {svc.name}
                   </div>
-                  <span className="text-xs" style={{ color: "rgba(100,116,139,0.60)" }}>
-                    {svc.running ? "running" : `stopped · ${formatRelativeTime(svc.last_seen)}`}
+                  <span
+                    className={[s.servicePill, svc.running ? s.servicePillRunning : s.servicePillStopped].join(" ")}
+                  >
+                    {svc.running ? "running" : `stopped`}
                   </span>
                 </div>
               ))}
             </div>
           )}
 
+          <div className={s.systemDivider} style={{ marginTop: 12 }} aria-hidden="true" />
+
           {/* Last command */}
-          <div style={{ height: 1, background: "rgba(30,30,64,0.60)" }} aria-hidden="true" />
-          <div className="flex items-start gap-2">
-            <Terminal size={13} className="text-aura-purple shrink-0 mt-0.5" aria-hidden="true" />
-            <div className="min-w-0 flex-1">
-              <p className="text-xs text-aura-text-muted mb-0.5">Last command</p>
-              <p className="text-xs text-aura-text truncate">{status.last_command ?? "None yet"}</p>
+          <div className={s.systemRow} style={{ alignItems: "flex-start" }}>
+            <div className={s.systemRowIcon}>
+              <Terminal size={15} style={{ color: "#7C3AED" }} aria-hidden="true" />
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div className={s.systemRowSub} style={{ marginBottom: 2 }}>Last command</div>
+              <div className={s.systemRowLabel} style={{ fontSize: 12, wordBreak: "break-all" }}>
+                {status.last_command ?? "None yet"}
+              </div>
             </div>
             {status.last_command_time && (
-              <div className="flex items-center gap-1 shrink-0">
-                <Clock3 size={10} className="text-aura-text-muted" aria-hidden="true" />
-                <span className="text-xs text-aura-text-muted">{formatRelativeTime(status.last_command_time)}</span>
+              <div style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
+                <Clock3 size={10} style={{ color: "#64748B" }} aria-hidden="true" />
+                <span style={{ fontSize: 11, color: "#64748B" }}>{formatRelativeTime(status.last_command_time)}</span>
               </div>
             )}
           </div>
-
-          {status.uptime && (
-            <p className="text-xs text-aura-text-muted text-center">
-              Uptime: <span className="text-aura-text font-medium">{status.uptime}</span>
-            </p>
-          )}
         </div>
       </div>
 
-      {/* Version */}
-      <p className="text-center text-xs pb-2" style={{ color: "rgba(100,116,139,0.40)" }}>
-        AURA v0.1.0 &middot; OASIS AI Solutions
-      </p>
+      <div className={s.versionText}>AURA v0.1.0 &middot; OASIS AI Solutions</div>
     </div>
   );
 }
@@ -1386,9 +1189,10 @@ function ProfileView({ residents, status }: ProfileViewProps) {
 // ---------------------------------------------------------------------------
 
 export default function DashboardPage() {
-  const { time, date } = useCurrentTime();
+  const { time, date, greeting } = useCurrentTime();
 
   const [activeTab, setActiveTab]   = useState<Tab>("home");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [scenes, setScenes]         = useState<Scene[]>(PLACEHOLDER_SCENES);
   const [rooms]                     = useState<Room[]>(PLACEHOLDER_ROOMS);
   const [habits, setHabits]         = useState<HabitEntry[]>(DEFAULT_HABITS);
@@ -1399,16 +1203,22 @@ export default function DashboardPage() {
   const nowPlaying: NowPlayingState | null = null;
   const climateState: ClimateState | null  = null;
 
+  // Close sidebar on tab change (mobile)
+  const handleTabChange = useCallback((tab: Tab) => {
+    setActiveTab(tab);
+    setSidebarOpen(false);
+  }, []);
+
   // Scene activation
   const handleScenePress = useCallback(async (pressedScene: Scene) => {
-    setScenes((prev) => prev.map((s) => ({ ...s, active: s.id === pressedScene.id })));
+    setScenes((prev) => prev.map((sc) => ({ ...sc, active: sc.id === pressedScene.id })));
     const res = await fetch("/api/scene", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ webhook_id: pressedScene.webhook_id }),
     });
     if (!res.ok) {
-      setScenes((prev) => prev.map((s) => ({ ...s, active: false })));
+      setScenes((prev) => prev.map((sc) => ({ ...sc, active: false })));
       throw new Error(`Webhook failed: ${res.status}`);
     }
   }, []);
@@ -1461,81 +1271,89 @@ export default function DashboardPage() {
     );
   }, []);
 
-  // Tab navigation config
-  const TABS: { id: Tab; icon: React.ComponentType<LucideProps>; label: string }[] = [
-    { id: "home",    icon: Home,    label: "Home"   },
-    { id: "scenes",  icon: Grid3X3, label: "Scenes" },
-    { id: "rooms",   icon: DoorOpen, label: "Rooms" },
-    { id: "profile", icon: User,    label: "Profile" },
+  const BOTTOM_TABS: { id: Tab; icon: React.ComponentType<LucideProps>; label: string }[] = [
+    { id: "home",    icon: Home,     label: "Home"   },
+    { id: "scenes",  icon: Grid3X3,  label: "Scenes" },
+    { id: "rooms",   icon: DoorOpen, label: "Rooms"  },
+    { id: "profile", icon: User,     label: "System" },
   ];
 
   return (
-    <div className="min-h-dvh pb-24 max-w-lg mx-auto">
+    <div className={s.container}>
+      {/* Mobile hamburger */}
+      <button
+        className={s.hamburger}
+        onClick={() => setSidebarOpen((p) => !p)}
+        aria-label={sidebarOpen ? "Close navigation" : "Open navigation"}
+        aria-expanded={sidebarOpen}
+      >
+        {sidebarOpen ? <X size={20} aria-hidden="true" /> : <Menu size={20} aria-hidden="true" />}
+      </button>
 
-      {/* ── Tab content ─────────────────────────────────────────── */}
-      {activeTab === "home" && (
-        <HomeView
-          time={time}
-          date={date}
-          residents={residents}
-          scenes={scenes}
-          onScenePress={handleScenePress}
-          nowPlaying={nowPlaying}
-          onMediaAction={handleMediaAction}
-          climate={climateState}
-          onSetTemperature={handleSetTemperature}
-          habits={habits}
-          onHabitToggle={handleHabitToggle}
-          haConnected={haConnected}
+      {/* Mobile sidebar overlay */}
+      {sidebarOpen && (
+        <div
+          className={s.overlayVisible}
+          onClick={() => setSidebarOpen(false)}
+          aria-hidden="true"
         />
       )}
-      {activeTab === "scenes" && (
-        <ScenesView scenes={scenes} onScenePress={handleScenePress} />
-      )}
-      {activeTab === "rooms" && (
-        <RoomsView rooms={rooms} onDeviceToggle={handleDeviceToggle} />
-      )}
-      {activeTab === "profile" && (
-        <ProfileView residents={residents} status={auraStatus} />
-      )}
 
-      {/* ── Bottom navigation ───────────────────────────────────── */}
-      <nav className="bottom-nav" aria-label="Main navigation">
-        <div className="flex items-center justify-around py-2 px-2 max-w-lg mx-auto">
-          {TABS.map((tab) => {
+      {/* Sidebar */}
+      <Sidebar
+        activeTab={activeTab}
+        onTabChange={handleTabChange}
+        residents={residents}
+        isOpen={sidebarOpen}
+      />
+
+      {/* Main content */}
+      <main className={s.main}>
+        {activeTab === "home" && (
+          <HomeView
+            time={time}
+            date={date}
+            greeting={greeting}
+            residents={residents}
+            scenes={scenes}
+            onScenePress={handleScenePress}
+            nowPlaying={nowPlaying}
+            onMediaAction={handleMediaAction}
+            climate={climateState}
+            onSetTemperature={handleSetTemperature}
+            habits={habits}
+            onHabitToggle={handleHabitToggle}
+            haConnected={haConnected}
+          />
+        )}
+        {activeTab === "scenes" && (
+          <ScenesView scenes={scenes} onScenePress={handleScenePress} />
+        )}
+        {activeTab === "rooms" && (
+          <RoomsView rooms={rooms} onDeviceToggle={handleDeviceToggle} />
+        )}
+        {activeTab === "profile" && (
+          <ProfileView residents={residents} status={auraStatus} />
+        )}
+      </main>
+
+      {/* Mobile bottom nav */}
+      <nav className={s.bottomNav} aria-label="Mobile navigation">
+        <div className={s.bottomNavInner}>
+          {BOTTOM_TABS.map((tab) => {
             const isActive = activeTab === tab.id;
+            const Icon = tab.icon;
             return (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => handleTabChange(tab.id)}
                 aria-label={`Go to ${tab.label}`}
                 aria-current={isActive ? "page" : undefined}
-                className={[
-                  "relative flex flex-col items-center gap-1 py-2 px-5 rounded-2xl",
-                  "transition-all duration-200 select-none",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-aura-purple",
-                  "active:scale-95",
-                  isActive ? "text-aura-purple-light" : "text-aura-text-muted hover:text-aura-text",
-                ].join(" ")}
-                style={
-                  isActive
-                    ? { background: "rgba(124,58,237,0.12)" }
-                    : undefined
-                }
+                className={[s.bottomNavBtn, isActive ? s.bottomNavBtnActive : ""].join(" ")}
               >
-                <tab.icon
-                  size={20}
-                  strokeWidth={isActive ? 2.5 : 1.5}
-                  aria-hidden="true"
-                />
-                <span className="text-[10px] font-semibold">{tab.label}</span>
-                {isActive && (
-                  <span
-                    aria-hidden="true"
-                    className="absolute -bottom-0 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full"
-                    style={{ background: "#9F67FF" }}
-                  />
-                )}
+                <Icon size={20} strokeWidth={isActive ? 2.5 : 1.5} aria-hidden="true" />
+                <span style={{ fontSize: 10, fontWeight: 600 }}>{tab.label}</span>
+                {isActive && <span className={s.bottomNavDot} aria-hidden="true" />}
               </button>
             );
           })}
