@@ -89,7 +89,7 @@ const HABIT_ICON_MAP: Record<string, React.ComponentType<LucideProps>> = {
 };
 
 const ROOM_ICON_MAP: Record<string, React.ComponentType<LucideProps>> = {
-  Sofa, BedDouble, UtensilsCrossed, Home,
+  Sofa, BedDouble, UtensilsCrossed, Home, Monitor,
 };
 
 // ---------------------------------------------------------------------------
@@ -172,9 +172,36 @@ const PLACEHOLDER_SCENES: Scene[] = [
 ];
 
 const PLACEHOLDER_ROOMS: Room[] = [
-  { name: "Living Room", icon: "Sofa",           temperature: null, devices: [] },
-  { name: "Bedroom",     icon: "BedDouble",       temperature: null, devices: [] },
-  { name: "Kitchen",     icon: "UtensilsCrossed", temperature: null, devices: [] },
+  {
+    name: "Living Room",
+    icon: "Sofa",
+    temperature: null,
+    devices: [
+      { entity_id: "light.living_room_leds",         domain: "light",        friendly_name: "LED Strip",    state: "off", attributes: {} },
+      { entity_id: "light.desk_accent",              domain: "light",        friendly_name: "Floor Lamp",   state: "off", attributes: {} },
+      { entity_id: "light.overhead",                 domain: "light",        friendly_name: "Smart Bulbs",  state: "off", attributes: {} },
+      { entity_id: "switch.coffee_maker",            domain: "switch",       friendly_name: "Coffee Maker", state: "off", attributes: {} },
+      { entity_id: "media_player.living_room_speaker", domain: "media_player", friendly_name: "Echo Dot",   state: "idle", attributes: {} },
+    ],
+  },
+  {
+    name: "Bedroom",
+    icon: "BedDouble",
+    temperature: null,
+    devices: [
+      { entity_id: "light.tv_backlight_leds",     domain: "light",        friendly_name: "Neon Rope Light", state: "off",  attributes: {} },
+      { entity_id: "media_player.bedroom_speaker", domain: "media_player", friendly_name: "Echo Dot",       state: "idle", attributes: {} },
+    ],
+  },
+  {
+    name: "Studio",
+    icon: "Monitor",
+    temperature: null,
+    devices: [
+      { entity_id: "switch.air_purifier",         domain: "switch",       friendly_name: "Air Purifier", state: "off",  attributes: {} },
+      { entity_id: "media_player.studio_speaker",  domain: "media_player", friendly_name: "Echo Dot",     state: "idle", attributes: {} },
+    ],
+  },
 ];
 
 const DEFAULT_HABITS: HabitEntry[] = [
@@ -1539,10 +1566,9 @@ export default function DashboardPage() {
   const [activeTab, setActiveTab]   = useState<Tab>("home");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [scenes, setScenes]         = useState<Scene[]>(PLACEHOLDER_SCENES);
-  // rooms/residents/auraStatus setters reserved for future HA API integration
   const [rooms]                     = useState<Room[]>(PLACEHOLDER_ROOMS);
   const [habits, setHabits]         = useState<HabitEntry[]>(DEFAULT_HABITS);
-  const [residents]                 = useState<ResidentPresence[]>(PLACEHOLDER_RESIDENTS);
+  const [residents, setResidents]   = useState<ResidentPresence[]>(PLACEHOLDER_RESIDENTS);
   const [auraStatus]                = useState<AuraStatus>(PLACEHOLDER_STATUS);
   const [haConnected, setHaConnected] = useState(false);
 
@@ -1561,6 +1587,46 @@ export default function DashboardPage() {
         setHaConnected(data.ha_connected === true);
       } catch {
         setHaConnected(false);
+      }
+
+      // Also fetch current apartment state from HA to sync active scene and presence
+      try {
+        const statsRes = await fetch("/api/stats", { cache: "no-store" });
+        if (statsRes.ok) {
+          const stats = await statsRes.json() as {
+            active_mode: string | null;
+            presence: { name: string; home: boolean; entity_id: string }[];
+          };
+
+          // Sync active scene indicator with HA input_boolean state
+          if (stats.active_mode) {
+            setScenes((prev) =>
+              prev.map((sc) => ({
+                ...sc,
+                active: sc.name.toLowerCase() === stats.active_mode!.toLowerCase(),
+              }))
+            );
+          } else {
+            setScenes((prev) => prev.map((sc) => ({ ...sc, active: false })));
+          }
+
+          // Sync presence from HA person entities
+          if (stats.presence && stats.presence.length > 0) {
+            setResidents(
+              stats.presence.map((p) => ({
+                name:
+                  p.name.toLowerCase() === "conaugh"
+                    ? "CC"
+                    : p.name.charAt(0).toUpperCase() + p.name.slice(1),
+                home: p.home,
+                entity_id: p.entity_id,
+                last_seen: null,
+              }))
+            );
+          }
+        }
+      } catch {
+        // Stats fetch is non-critical — presence and scenes keep their last known state
       }
     }
 
