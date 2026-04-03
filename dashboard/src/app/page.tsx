@@ -48,7 +48,6 @@ import {
   Clock3,
   Activity,
   Wifi,
-  WifiOff,
   Menu,
   X,
   ChevronRight,
@@ -1524,14 +1523,31 @@ export default function DashboardPage() {
   const [activeTab, setActiveTab]   = useState<Tab>("home");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [scenes, setScenes]         = useState<Scene[]>(PLACEHOLDER_SCENES);
+  // rooms/residents/auraStatus setters reserved for future HA API integration
   const [rooms]                     = useState<Room[]>(PLACEHOLDER_ROOMS);
   const [habits, setHabits]         = useState<HabitEntry[]>(DEFAULT_HABITS);
   const [residents]                 = useState<ResidentPresence[]>(PLACEHOLDER_RESIDENTS);
   const [auraStatus]                = useState<AuraStatus>(PLACEHOLDER_STATUS);
-  const [haConnected]               = useState(false);
+  const [haConnected, setHaConnected] = useState(false);
 
   const nowPlaying: NowPlayingState | null = null;
   const climateState: ClimateState | null  = null;
+
+  // Poll /api/health on mount to reflect real HA connection status
+  useEffect(() => {
+    async function checkHealth() {
+      try {
+        const res = await fetch("/api/health", { cache: "no-store" });
+        setHaConnected(res.ok);
+      } catch {
+        setHaConnected(false);
+      }
+    }
+
+    checkHealth();
+    const intervalId = setInterval(checkHealth, 30_000);
+    return () => clearInterval(intervalId);
+  }, []);
 
   // Close sidebar on tab change (mobile)
   const handleTabChange = useCallback((tab: Tab) => {
@@ -1541,27 +1557,39 @@ export default function DashboardPage() {
 
   // Scene activation
   const handleScenePress = useCallback(async (pressedScene: Scene) => {
+    // Optimistic update: mark the pressed scene active immediately
     setScenes((prev) => prev.map((sc) => ({ ...sc, active: sc.id === pressedScene.id })));
-    const res = await fetch("/api/scene", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ webhook_id: pressedScene.webhook_id }),
-    });
-    if (!res.ok) {
+    try {
+      const res = await fetch("/api/scene", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ webhook_id: pressedScene.webhook_id }),
+      });
+      if (!res.ok) {
+        // Roll back optimistic update on failure
+        setScenes((prev) => prev.map((sc) => ({ ...sc, active: false })));
+      }
+    } catch {
+      // Network error — roll back optimistic update
       setScenes((prev) => prev.map((sc) => ({ ...sc, active: false })));
-      throw new Error(`Webhook failed: ${res.status}`);
     }
   }, []);
 
   // Device toggle
   const handleDeviceToggle = useCallback(async (device: Device) => {
     const service = device.state === "on" ? "turn_off" : "turn_on";
-    const res = await fetch("/api/service", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ domain: device.domain, service, entity_id: device.entity_id }),
-    });
-    if (!res.ok) throw new Error(`Service call failed: ${res.status}`);
+    try {
+      const res = await fetch("/api/service", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ domain: device.domain, service, entity_id: device.entity_id }),
+      });
+      if (!res.ok) {
+        // Service call failed — DeviceRow's finally block will re-enable the button
+      }
+    } catch {
+      // Network error — DeviceRow's finally block will re-enable the button
+    }
   }, []);
 
   // Media controls
@@ -1570,17 +1598,24 @@ export default function DashboardPage() {
       action: "media_play_pause" | "media_next_track" | "media_previous_track" | "volume_mute",
       entityId: string
     ) => {
-      const res = await fetch("/api/service", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ domain: "media_player", service: action, entity_id: entityId }),
-      });
-      if (!res.ok) throw new Error(`Media service call failed: ${res.status}`);
+      try {
+        const res = await fetch("/api/service", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ domain: "media_player", service: action, entity_id: entityId }),
+        });
+        if (!res.ok) {
+          // NowPlayingCard's finally block will clear actionLoading
+        }
+      } catch {
+        // Network error — NowPlayingCard's finally block will clear actionLoading
+      }
     },
     []
   );
 
-  // Climate control
+  // Climate control — intentionally propagates errors so ClimateCard.adjust
+  // can catch them and reset pendingTemp via its own catch block.
   const handleSetTemperature = useCallback(async (entityId: string, newTemp: number) => {
     const res = await fetch("/api/service", {
       method: "POST",
