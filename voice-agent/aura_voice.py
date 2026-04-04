@@ -916,6 +916,40 @@ class AuraVoiceAgent:
                 log.info("Habit auto-detection complete: %s", detected)
             self._dispatcher.register("aura_habit_detect", _handle_habit_detect)
 
+        # ── Habit log (dashboard → Pi) ───────────────────────────────────
+        if self._habit_tracker is not None:
+            _habit_ref = self._habit_tracker
+
+            def _handle_habit_log(payload: dict) -> None:
+                person = payload.get("person", "conaugh")
+                habit = payload.get("habit", "")
+                completed = payload.get("completed", True)
+                if habit:
+                    _habit_ref.log_habit(person, habit, completed)
+                    log.info(
+                        "Habit logged via dashboard: %s/%s = %s",
+                        person,
+                        habit,
+                        completed,
+                    )
+
+            self._dispatcher.register("aura_habit_log", _handle_habit_log)
+
+        # ── Mirror Mode (dashboard → Pi) ─────────────────────────────────
+        if self._mirror_mode is not None:
+            _mirror_ref = self._mirror_mode
+
+            def _handle_mirror_mode(payload: dict) -> None:
+                mood = payload.get("mood", "")
+                if mood:
+                    result = _mirror_ref.activate(mood)
+                    if result:
+                        self._speak(f"Setting the mood to {mood}.")
+                    else:
+                        self._speak("Couldn't set that mood right now.")
+
+            self._dispatcher.register("aura_mirror_mode", _handle_mirror_mode)
+
         self._dispatcher.start()
 
     # ------------------------------------------------------------------

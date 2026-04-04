@@ -1553,6 +1553,63 @@ function ProfileView({ residents, status }: { residents: ResidentPresence[]; sta
         </div>
       </div>
 
+      {/* Feature Toggles */}
+      <div className={s.profileSection}>
+        <div className={s.sectionTitle}>
+          <span className={s.sectionTitleBar} aria-hidden="true" />
+          Feature Toggles
+        </div>
+        <div className={s.systemCard}>
+          {(
+            [
+              {
+                id: "input_boolean.vibe_sync_enabled",
+                label: "Vibe Sync",
+                desc: "Music-reactive lighting",
+              },
+              {
+                id: "input_boolean.deja_vu_enabled",
+                label: "Deja Vu",
+                desc: "Predictive scene activation",
+              },
+            ] as const
+          ).map((feature, idx, arr) => (
+            <div key={feature.id}>
+              <div className={s.systemRow}>
+                <div className={s.systemRowBody}>
+                  <div className={s.systemRowLabel}>{feature.label}</div>
+                  <div className={s.systemRowSub}>{feature.desc}</div>
+                </div>
+                <button
+                  className={s.quickAction}
+                  style={{ padding: "8px 16px", fontSize: 12 }}
+                  onClick={async () => {
+                    try {
+                      await fetch("/api/service", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                          domain: "input_boolean",
+                          service: "toggle",
+                          entity_id: feature.id,
+                        }),
+                      });
+                    } catch {
+                      // Toggle failed silently — HA may be unreachable
+                    }
+                  }}
+                >
+                  Toggle
+                </button>
+              </div>
+              {idx < arr.length - 1 && (
+                <div className={s.systemDivider} aria-hidden="true" />
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+
       <div className={s.versionText}>AURA v0.1.0 &middot; OASIS AI Solutions</div>
     </div>
   );
@@ -1714,16 +1771,34 @@ export default function DashboardPage() {
     if (!res.ok) throw new Error(`Climate service call failed: ${res.status}`);
   }, []);
 
-  // Habit toggle
+  // Habit toggle — updates local state immediately then persists to the Pi
+  // via /api/habits → aura_habit_log webhook → habit_tracker.log_habit().
   const handleHabitToggle = useCallback((habitId: string) => {
     setHabits((prev) =>
-      prev.map((h) =>
-        h.id === habitId
-          ? { ...h, completed: !h.completed, streak: !h.completed ? h.streak + 1 : Math.max(0, h.streak - 1) }
-          : h
-      )
+      prev.map((h) => {
+        if (h.id !== habitId) return h;
+        const newCompleted = !h.completed;
+        // Non-blocking fire-and-forget — local state is the source of truth
+        // for this session; the Pi persists the entry for long-term tracking.
+        fetch("/api/habits", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            person: activeUser,
+            habit: habitId,
+            completed: newCompleted,
+          }),
+        }).catch(() => {
+          // Non-critical — local state already reflects the toggle
+        });
+        return {
+          ...h,
+          completed: newCompleted,
+          streak: newCompleted ? h.streak + 1 : Math.max(0, h.streak - 1),
+        };
+      })
     );
-  }, []);
+  }, [activeUser]);
 
   const BOTTOM_TABS: { id: Tab; icon: React.ComponentType<LucideProps>; label: string }[] = [
     { id: "home",    icon: Home,     label: "Home"   },
