@@ -3,23 +3,26 @@
 wake_word:
   # Wake phrase: "Hey Aura"
   #
-  # Uses Picovoice Porcupine for custom wake word detection.
-  # To generate the "Hey Aura" model file:
-  #   1. Sign up at https://console.picovoice.ai (free tier)
-  #   2. Go to Porcupine → Custom Wake Word
-  #   3. Type "Hey Aura" → select Raspberry Pi (Linux ARM) platform
-  #   4. Download the .ppn file → place at voice-agent/models/hey-aura.ppn
-  #   5. Copy your Access Key from the Picovoice console
-  #   6. Set PICOVOICE_ACCESS_KEY in .env
+  # Uses OpenWakeWord with a custom-trained "Hey Aura" model.
+  # Completely free, open source, runs locally on the Pi.
   #
-  # The .ppn file is platform-specific. Generate for "Raspberry Pi" (ARM Cortex-A76).
-  engine: "porcupine"
-  model_path: "models/hey-aura.ppn"
+  # To train the model (run on the Pi after setup):
+  #   cd /config/aura/voice-agent
+  #   python train_wake_word.py
+  #   (Say "Hey Aura" ~16 times when prompted — takes 2 minutes)
+  #
+  # The script generates models/hey_aura.onnx which is loaded automatically.
+  # Until trained, falls back to the built-in "hey_jarvis" model.
+  engine: "openwakeword"
+  model: "hey_aura"
+  custom_model_path: "models/hey_aura.onnx"
+  fallback_model: "hey_jarvis"
   phrase: "Hey Aura"
 
-  # Sensitivity (0.0 - 1.0). Higher = more sensitive but more false positives.
-  # 0.6 is a good balance for a quiet apartment.
-  sensitivity: 0.6
+  # Confidence threshold (0.0 - 1.0).
+  # Higher = fewer false activations but may miss quiet commands.
+  # 0.6 is a good starting point.
+  threshold: 0.6
 
 audio:
   sample_rate: 16000
