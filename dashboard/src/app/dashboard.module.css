@@ -468,6 +468,12 @@
   font-size: 10px;
   color: #475569;
   line-height: 1.3;
+  /* Prevent long descriptions from overflowing card boundaries */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  max-width: 100%;
 }
 
 .sceneActiveDot {
@@ -2172,13 +2178,13 @@
   }
 
   .main {
-    padding-bottom: 120px;
+    padding-bottom: 80px;
   }
 }
 
 @media (min-width: 769px) {
   .main {
-    padding-bottom: 120px;
+    padding-bottom: 32px;
   }
 }
 

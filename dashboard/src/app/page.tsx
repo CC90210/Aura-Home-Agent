@@ -1798,13 +1798,7 @@ export default function DashboardPage() {
         )}
       </main>
 
-      {/* Floating quick actions bar — desktop only */}
-      <FloatingQuickBar
-        onScenePress={handleScenePress}
-        scenes={scenes}
-        nowPlaying={nowPlaying}
-        onMediaAction={handleMediaAction}
-      />
+      {/* Floating quick bar removed — redundant with scene buttons on dashboard */}
 
       {/* Mobile bottom nav */}
       <nav className={s.bottomNav} aria-label="Mobile navigation">
