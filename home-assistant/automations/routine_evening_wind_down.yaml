@@ -37,7 +37,7 @@ condition:
 
 action:
   - choose:
-      # ── 9:00 PM: Shift to warm, lower volume, set sleep thermostat ───────────
+      # ── 10:00 PM: Shift to warm, lower volume, set sleep thermostat ──────────
       - conditions:
           - condition: trigger
             id: wind_down_start
@@ -81,7 +81,7 @@ action:
               transition: 30
             continue_on_error: true
 
-      # ── 10:00 PM: Dim further + check-in voice prompt ────────────────────────
+      # ── 11:00 PM: Dim further + check-in voice prompt ────────────────────────
       - conditions:
           - condition: trigger
             id: wind_down_mid
@@ -108,7 +108,7 @@ action:
                 }
             continue_on_error: true
 
-      # ── 10:30 PM: Near-dark ──────────────────────────────────────────────────
+      # ── 11:30 PM: Near-dark ──────────────────────────────────────────────────
       - conditions:
           - condition: trigger
             id: wind_down_dim
@@ -133,7 +133,7 @@ action:
               volume_level: 0.10
             continue_on_error: true
 
-      # ── 11:00 PM: Prompt goodnight protocol ─────────────────────────────────
+      # ── Midnight: Prompt goodnight protocol ─────────────────────────────────
       - conditions:
           - condition: trigger
             id: wind_down_goodnight_prompt

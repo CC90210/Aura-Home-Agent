@@ -512,8 +512,15 @@ You should see "active (running)."
 
 **USB Microphone Sharing**: Both the clap detector and voice agent need the microphone. If you have ONE USB mic, you need to configure ALSA to share it:
 
-1. SSH into the Pi terminal
-2. Run the following command to create the dsnoop shared capture device:
+1. SSH into the Pi terminal and find the ALSA card and device numbers for your USB mic:
+
+```bash
+arecord -l
+```
+
+Look for a line like `card 1: Device [USB Audio Device], device 0:`. The numbers after `card` and `device` are your hardware address — in this example `hw:1,0`. Substitute your own numbers in the config block below.
+
+2. Create the dsnoop shared capture device using the correct hardware address:
 
 ```bash
 cat >> /etc/asound.conf << 'EOF'
@@ -521,7 +528,7 @@ pcm.dsnoop_mic {
     type dsnoop
     ipc_key 1234
     slave {
-        pcm "hw:1,0"
+        pcm "hw:1,0"   # Replace 1,0 with your card,device numbers from arecord -l
         channels 1
         rate 16000
     }
@@ -529,7 +536,8 @@ pcm.dsnoop_mic {
 EOF
 ```
 
-3. Set `input_device_index` in both `voice-agent/config.yaml` and `clap-trigger/config.yaml` to use the shared device
+3. Set `input_device_name: dsnoop_mic` in both `voice-agent/config.yaml` and `clap-trigger/config.yaml` so both services use the shared virtual device instead of the raw hardware device.
+
 4. Restart both services:
 
 ```bash
@@ -537,7 +545,11 @@ systemctl restart clap_service
 systemctl restart aura_voice
 ```
 
-Alternatively, use TWO USB mics — one for clap detection, one for voice. Plug both into the Pi and set each `input_device_index` to the corresponding PyAudio device index (run `python -c "import pyaudio; p = pyaudio.PyAudio(); [print(i, p.get_device_info_by_index(i)['name']) for i in range(p.get_device_count())]"` to list device indexes).
+Alternatively, use TWO USB mics — one for clap detection, one for voice. Plug both into the Pi and set each `input_device_index` to the corresponding PyAudio device index:
+
+```bash
+/config/aura/.venv/bin/python -c "import pyaudio; p = pyaudio.PyAudio(); [print(i, p.get_device_info_by_index(i)['name']) for i in range(p.get_device_count())]"
+```
 
 ---
 

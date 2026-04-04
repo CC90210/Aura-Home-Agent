@@ -54,7 +54,7 @@ condition:
 
 action:
   - choose:
-      # ── Phase 1 (6:15): Near-black warm glow — sunrise simulation start ──────
+      # ── Phase 1 (7:00): Near-black warm glow — sunrise simulation start ──────
       - conditions:
           - condition: trigger
             id: phase_1
@@ -73,7 +73,7 @@ action:
               transition: 60
             continue_on_error: true
 
-      # ── Phase 2 (6:25): Slightly brighter, still sunrise amber ───────────────
+      # ── Phase 2 (7:10): Slightly brighter, still sunrise amber ───────────────
       - conditions:
           - condition: trigger
             id: phase_2
@@ -89,7 +89,7 @@ action:
               transition: 120
             continue_on_error: true
 
-      # ── Phase 3 (6:30): Comfortable warm white — coffee + playlist ───────────
+      # ── Phase 3 (7:20): Comfortable warm white — coffee + playlist ───────────
       - conditions:
           - condition: trigger
             id: phase_3
@@ -123,7 +123,7 @@ action:
               media_content_type: music
             continue_on_error: true
 
-      # ── Phase 4 (6:45): Cooler, brighter — "time to move" energy ─────────────
+      # ── Phase 4 (7:35): Cooler, brighter — "time to move" energy ─────────────
       - conditions:
           - condition: trigger
             id: phase_4
@@ -148,7 +148,7 @@ action:
               volume_level: 0.28
             continue_on_error: true
 
-      # ── Phase 5 (7:00): Full brightness + gym voice callout ──────────────────
+      # ── Phase 5 (7:50): Full brightness + gym voice callout ──────────────────
       - conditions:
           - condition: trigger
             id: phase_5

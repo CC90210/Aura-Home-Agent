@@ -67,7 +67,7 @@ At a high level:
 | Storage | 32GB+ microSD or USB SSD | SSD preferred for longevity |
 | Microphone | Any USB microphone | Required for clap detection |
 | Lighting | Govee LED strips (H6159/H6163) | Enable LAN Control in Govee app |
-| Speakers | Sonos Era 100 | SoCo Python library for control |
+| Speakers | Amazon Echo Dot (5th Gen) | Alexa + HA integration; x3 for living room, bedroom, studio |
 | Smart plugs | TP-Link Kasa EP25 | python-kasa, energy monitoring |
 | Network | Wired ethernet to Pi | WiFi works but ethernet is preferred |
 
