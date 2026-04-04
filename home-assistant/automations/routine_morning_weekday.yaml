@@ -1,37 +1,35 @@
 alias: "AURA - Routine: Weekday Morning (Conaugh & Adon)"
 description: >
-  Five-phase weekday morning routine tailored for Conaugh and Adon — both work
-  from home and hit the gym in the morning. Starts at 6:15 AM with an extremely
-  gentle sunrise simulation so the body clock wakes naturally, then escalates
-  every 10-15 minutes to full energy lighting by 7:00 AM with a direct gym
-  reminder. Enhances (does not replace) the legacy morning_routine.yaml which
-  fires at 7:30 AM — this routine is intentionally earlier and more granular.
+  Five-phase weekday morning routine for Conaugh and Adon. Starts at 7:00 AM
+  with a gentle sunrise simulation, escalates every 10-15 minutes to full
+  energy lighting by 8:00 AM with a gym reminder. Both residents typically
+  wake between 7-8 AM on weekdays and go to bed around midnight.
   Only runs when at least one person is home.
 
 trigger:
   # Phase 1 — very gentle sunrise start
   - platform: time
-    at: "06:15:00"
+    at: "07:00:00"
     id: phase_1
 
   # Phase 2 — step up
   - platform: time
-    at: "06:25:00"
+    at: "07:10:00"
     id: phase_2
 
   # Phase 3 — coffee and music
   - platform: time
-    at: "06:30:00"
+    at: "07:20:00"
     id: phase_3
 
   # Phase 4 — energy ramp
   - platform: time
-    at: "06:45:00"
+    at: "07:35:00"
     id: phase_4
 
   # Phase 5 — full brightness, gym callout
   - platform: time
-    at: "07:00:00"
+    at: "07:50:00"
     id: phase_5
 
 condition:

@@ -33,18 +33,20 @@ tracking:
   evolution_interval: 168
 
 habits:
-  wake_target: "06:30"
-  gym_window: "06:30-08:30"
+  # Weekday schedule: bed by midnight, wake at 7-8 AM
+  # Weekend: flexible, no fixed schedule
+  wake_target: "07:30"
+  gym_window: "08:00-10:00"
 
   tracked_habits:
     - name: "wake_up_on_time"
       detection: "first_light_on_or_motion"
-      target_time: "06:30"
-      tolerance_minutes: 15
+      target_time: "07:30"
+      tolerance_minutes: 30
 
     - name: "gym"
       detection: "left_home_during_window"
-      window: "06:30-08:30"
+      window: "08:00-10:00"
 
     - name: "deep_work"
       detection: "studio_mode_duration"
@@ -56,7 +58,7 @@ habits:
 
     - name: "bedtime"
       detection: "goodnight_scene_activated"
-      target_time: "23:00"
+      target_time: "00:00"
       tolerance_minutes: 30
 
   accountability:

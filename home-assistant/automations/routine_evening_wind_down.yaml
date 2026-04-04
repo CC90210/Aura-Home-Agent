@@ -1,27 +1,27 @@
 alias: "AURA - Routine: Evening Wind Down"
 description: >
-  Three-stage nightly wind-down for Conaugh and Adon. At 9:00 PM lights shift
-  to warm 2200K at 40% and music drops to 20%. At 10:00 PM lights dim further
-  to 20% with a soft "hour to bedtime" check-in. At 10:30 PM lights reach near-
-  dark at 10%. At 11:00 PM AURA prompts the goodnight protocol. Each stage is an
-  independent time trigger with its own condition check so missing one stage
-  (e.g., someone manually turned lights off earlier) doesn't break the sequence.
+  Three-stage nightly wind-down for Conaugh and Adon (bed by midnight on
+  weekdays). At 10:00 PM lights shift to warm 2200K at 40% and music drops
+  to 20%. At 11:00 PM lights dim further to 20% with a check-in. At 11:30 PM
+  lights reach near-dark at 10%. At midnight AURA prompts the goodnight
+  protocol. Each stage fires independently so missing one doesn't break
+  the sequence.
 
 trigger:
   - platform: time
-    at: "21:00:00"
+    at: "22:00:00"
     id: wind_down_start
 
   - platform: time
-    at: "22:00:00"
+    at: "23:00:00"
     id: wind_down_mid
 
   - platform: time
-    at: "22:30:00"
+    at: "23:30:00"
     id: wind_down_dim
 
   - platform: time
-    at: "23:00:00"
+    at: "00:00:00"
     id: wind_down_goodnight_prompt
 
 condition:
