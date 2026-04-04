@@ -18,6 +18,7 @@ Usage (standalone test):
 from __future__ import annotations
 
 import logging
+import threading
 import time
 from pathlib import Path
 from typing import Any
@@ -44,7 +45,16 @@ class WakeWordDetector:
     or the built-in "hey_jarvis" model as a fallback.
     """
 
-    def __init__(self, config: dict[str, Any]) -> None:
+    def __init__(
+        self,
+        config: dict[str, Any],
+        suppress_event: threading.Event | None = None,
+    ) -> None:
+        # When set, the detector discards mic chunks instead of scoring them.
+        # aura_voice.py sets this during TTS playback to prevent AURA's own
+        # voice from triggering the wake word (feedback loop prevention).
+        self._suppress_event = suppress_event
+
         ww_cfg = config.get("wake_word", {})
         audio_cfg = config.get("audio", {})
 
@@ -103,6 +113,11 @@ class WakeWordDetector:
                 self._close_stream()
                 time.sleep(1)
                 self._ensure_stream_open()
+                continue
+
+            # Discard this chunk if TTS is currently playing so AURA's own
+            # voice cannot trigger the wake word (acoustic feedback loop).
+            if self._suppress_event is not None and self._suppress_event.is_set():
                 continue
 
             audio_int16 = np.frombuffer(raw, dtype=np.int16)

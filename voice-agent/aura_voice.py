@@ -397,6 +397,9 @@ class AuraVoiceAgent:
         #   _feature_lock held → _speak() → _tts_lock acquired → safe.
         self._feature_lock = threading.RLock()
         self._tts_lock = threading.RLock()
+        # Set while TTS is playing (plus a post-speech tail) so the wake word
+        # detector ignores mic input during that window and avoids a feedback loop.
+        self._tts_speaking = threading.Event()
 
     # ------------------------------------------------------------------
     # Lifecycle
@@ -535,7 +538,7 @@ class AuraVoiceAgent:
         from intent_handler import IntentHandler
 
         log.info("Initialising wake word detector…")
-        self._detector = WakeWordDetector(self._config)
+        self._detector = WakeWordDetector(self._config, suppress_event=self._tts_speaking)
 
         log.info("Initialising speech recorder…")
         self._recorder = SpeechRecorder(self._config)
@@ -1035,10 +1038,21 @@ class AuraVoiceAgent:
             return
 
         with self._tts_lock:
-            if self._tts is not None:
-                self._tts.speak(text)
-            else:
-                log.info("[TTS disabled] Response: %r", text)
+            self._tts_speaking.set()
+            try:
+                if self._tts is not None:
+                    self._tts.speak(text)
+                else:
+                    log.info("[TTS disabled] Response: %r", text)
+            finally:
+                # Hold the suppress flag for 1.5 s after speech ends so any
+                # audio tail in the mic buffer is discarded before we listen
+                # for the next wake word.
+                def _clear_after_tail() -> None:
+                    time.sleep(1.5)
+                    self._tts_speaking.clear()
+
+                threading.Thread(target=_clear_after_tail, daemon=True).start()
 
     @staticmethod
     def _coerce_bool(value: Any) -> bool:
