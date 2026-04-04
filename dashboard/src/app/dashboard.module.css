@@ -269,7 +269,7 @@
 /* === Stat Cards Row === */
 .statsGrid {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 14px;
   margin-bottom: 28px;
 }
@@ -1507,9 +1507,7 @@
 
 /* === Responsive === */
 @media (max-width: 900px) {
-  .statsGrid {
-    grid-template-columns: repeat(3, 1fr);
-  }
+  /* statsGrid stays at 2 columns — no override needed */
 }
 
 @media (max-width: 768px) {

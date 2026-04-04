@@ -150,7 +150,7 @@ const PLACEHOLDER_SCENES: Scene[] = [
     name: "Gaming",
     icon: "Gamepad2",
     webhook_id: "aura_gaming_mode",
-    description: "RGB lighting, monitor brightness up, surround audio",
+    description: "Deep blue/purple LEDs, overheads off, surround audio at 60%",
     active: false,
   },
   {
@@ -1132,6 +1132,7 @@ interface HomeViewProps {
   habits: HabitEntry[];
   onHabitToggle: (id: string) => void;
   haConnected: boolean;
+  haChecked: boolean;
   onTabChange: (tab: Tab) => void;
 }
 
@@ -1151,6 +1152,7 @@ function HomeView({
   habits,
   onHabitToggle,
   haConnected,
+  haChecked,
   onTabChange,
 }: HomeViewProps) {
   const activeScene = scenes.find((s) => s.active);
@@ -1186,11 +1188,18 @@ function HomeView({
     },
     {
       label: "Play Music",
-      sub: "Spotify + Echo",
+      sub: nowPlaying?.state === "playing" ? "Now playing — tap to pause" : "Spotify + Echo",
       iconBg: "rgba(124,58,237,0.15)",
       iconColor: "#A78BFA",
       icon: <Music2 size={18} aria-hidden="true" />,
-      onClick: () => { if (nowPlaying) onMediaAction("media_play_pause", nowPlaying.entity_id); },
+      onClick: () => {
+        if (nowPlaying) {
+          onMediaAction("media_play_pause", nowPlaying.entity_id);
+        } else {
+          // Nothing playing — navigate to Rooms tab so user can find speakers
+          onTabChange("rooms");
+        }
+      },
     },
     {
       label: "Set Climate",
@@ -1234,10 +1243,12 @@ function HomeView({
             </div>
             <div className={s.clockDate}>{date}</div>
           </div>
-          <div className={[s.statusBadge, haConnected ? "" : s.statusBadgeOffline].join(" ")}>
-            <span className={s.statusDot} aria-hidden="true" />
-            {haConnected ? "Connected" : "Scaffold mode"}
-          </div>
+          {haChecked && (
+            <div className={[s.statusBadge, haConnected ? "" : s.statusBadgeOffline].join(" ")}>
+              <span className={s.statusDot} aria-hidden="true" />
+              {haConnected ? "Connected" : "Scaffold mode"}
+            </div>
+          )}
         </div>
       </div>
 
@@ -1433,6 +1444,30 @@ function ProfileView({ residents, status }: { residents: ResidentPresence[]; sta
   const runningServices = status.services.filter((svc) => svc.running).length;
   const totalServices   = status.services.length;
 
+  // Local state for feature toggles — unknown until HA confirms.
+  // Clicking a toggle fires /api/service and flips local state optimistically.
+  const [featureStates, setFeatureStates] = useState<Record<string, boolean | null>>({
+    "input_boolean.vibe_sync_enabled": null,
+    "input_boolean.deja_vu_enabled": null,
+  });
+
+  // Fetch current toggle states from HA on mount
+  useEffect(() => {
+    async function fetchToggles() {
+      try {
+        const res = await fetch("/api/health", { cache: "no-store" });
+        if (!res.ok) return;
+        // health endpoint doesn't expose arbitrary entity states, so we use
+        // /api/stats which calls getStates() — but that's not exposed either.
+        // For now we leave null (unknown) until the user toggles manually.
+        // TODO: expose toggle states through /api/stats when HA is connected.
+      } catch {
+        // Non-critical — stays unknown
+      }
+    }
+    fetchToggles();
+  }, []);
+
   return (
     <div>
       {/* Wordmark */}
@@ -1573,7 +1608,9 @@ function ProfileView({ residents, status }: { residents: ResidentPresence[]; sta
                 desc: "Predictive scene activation",
               },
             ] as const
-          ).map((feature, idx, arr) => (
+          ).map((feature, idx, arr) => {
+            const isOn = featureStates[feature.id];
+            return (
             <div key={feature.id}>
               <div className={s.systemRow}>
                 <div className={s.systemRowBody}>
@@ -1581,11 +1618,18 @@ function ProfileView({ residents, status }: { residents: ResidentPresence[]; sta
                   <div className={s.systemRowSub}>{feature.desc}</div>
                 </div>
                 <button
-                  className={s.quickAction}
-                  style={{ padding: "8px 16px", fontSize: 12 }}
+                  role="switch"
+                  aria-checked={isOn ?? false}
+                  aria-label={`Toggle ${feature.label} — currently ${isOn === null ? "unknown" : isOn ? "on" : "off"}`}
+                  className={[s.toggleSwitch, isOn ? s.toggleSwitchOn : s.toggleSwitchOff].join(" ")}
+                  style={{ flexShrink: 0 }}
                   onClick={async () => {
+                    const prev = featureStates[feature.id];
+                    const next = prev === null ? true : !prev;
+                    // Optimistic
+                    setFeatureStates((p) => ({ ...p, [feature.id]: next }));
                     try {
-                      await fetch("/api/service", {
+                      const res = await fetch("/api/service", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({
@@ -1594,19 +1638,25 @@ function ProfileView({ residents, status }: { residents: ResidentPresence[]; sta
                           entity_id: feature.id,
                         }),
                       });
+                      if (!res.ok) {
+                        // Roll back
+                        setFeatureStates((p) => ({ ...p, [feature.id]: prev }));
+                      }
                     } catch {
-                      // Toggle failed silently — HA may be unreachable
+                      // Roll back on network error
+                      setFeatureStates((p) => ({ ...p, [feature.id]: prev }));
                     }
                   }}
                 >
-                  Toggle
+                  <span className={[s.toggleThumb, isOn ? s.toggleThumbOn : s.toggleThumbOff].join(" ")} />
                 </button>
               </div>
               {idx < arr.length - 1 && (
                 <div className={s.systemDivider} aria-hidden="true" />
               )}
             </div>
-          ))}
+          );
+          })}
         </div>
       </div>
 
@@ -1626,11 +1676,12 @@ export default function DashboardPage() {
   const [activeTab, setActiveTab]   = useState<Tab>("home");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [scenes, setScenes]         = useState<Scene[]>(PLACEHOLDER_SCENES);
-  const [rooms]                     = useState<Room[]>(PLACEHOLDER_ROOMS);
+  const [rooms, setRooms]           = useState<Room[]>(PLACEHOLDER_ROOMS);
   const [habits, setHabits]         = useState<HabitEntry[]>(DEFAULT_HABITS);
   const [residents, setResidents]   = useState<ResidentPresence[]>(PLACEHOLDER_RESIDENTS);
   const [auraStatus]                = useState<AuraStatus>(PLACEHOLDER_STATUS);
-  const [haConnected, setHaConnected] = useState(false);
+  const [haConnected, setHaConnected]     = useState(false);
+  const [haChecked, setHaChecked]         = useState(false); // true after first health check completes
 
   const nowPlaying: NowPlayingState | null = null;
   const climateState: ClimateState | null  = null;
@@ -1688,6 +1739,10 @@ export default function DashboardPage() {
       } catch {
         // Stats fetch is non-critical — presence and scenes keep their last known state
       }
+
+      // Mark that at least one health check has completed so the badge
+      // doesn't flash "Scaffold mode" while the first request is in-flight.
+      setHaChecked(true);
     }
 
     checkHealth();
@@ -1721,9 +1776,22 @@ export default function DashboardPage() {
     }
   }, []);
 
-  // Device toggle
+  // Device toggle — optimistic update: flip the device state immediately,
+  // roll back to the previous state if the API call fails.
   const handleDeviceToggle = useCallback(async (device: Device) => {
-    const service = device.state === "on" ? "turn_off" : "turn_on";
+    const newState = device.state === "on" ? "off" : "on";
+    const service  = device.state === "on" ? "turn_off" : "turn_on";
+
+    // Optimistic flip
+    setRooms((prev) =>
+      prev.map((room) => ({
+        ...room,
+        devices: room.devices.map((d) =>
+          d.entity_id === device.entity_id ? { ...d, state: newState } : d
+        ),
+      }))
+    );
+
     try {
       const res = await fetch("/api/service", {
         method: "POST",
@@ -1731,12 +1799,28 @@ export default function DashboardPage() {
         body: JSON.stringify({ domain: device.domain, service, entity_id: device.entity_id }),
       });
       if (!res.ok) {
-        // Service call failed — DeviceRow's finally block will re-enable the button
+        // Roll back on failure
+        setRooms((prev) =>
+          prev.map((room) => ({
+            ...room,
+            devices: room.devices.map((d) =>
+              d.entity_id === device.entity_id ? { ...d, state: device.state } : d
+            ),
+          }))
+        );
       }
     } catch {
-      // Network error — DeviceRow's finally block will re-enable the button
+      // Roll back on network error
+      setRooms((prev) =>
+        prev.map((room) => ({
+          ...room,
+          devices: room.devices.map((d) =>
+            d.entity_id === device.entity_id ? { ...d, state: device.state } : d
+          ),
+        }))
+      );
     }
-  }, []);
+  }, [setRooms]);
 
   // Media controls
   const handleMediaAction = useCallback(
@@ -1856,6 +1940,7 @@ export default function DashboardPage() {
             habits={habits}
             onHabitToggle={handleHabitToggle}
             haConnected={haConnected}
+            haChecked={haChecked}
             onTabChange={handleTabChange}
           />
         )}
