@@ -888,6 +888,18 @@ class AuraVoiceAgent:
 
         self._dispatcher.register("aura_device_health_check", _handle_device_health_check)
 
+        # ── AURA Drops activation (from dashboard) ───────────────────────
+        if self._aura_drops is not None:
+            _drops_ref = self._aura_drops
+
+            def _handle_activate_drop(payload: dict) -> None:
+                name = payload.get("name", "")
+                if name:
+                    result = _drops_ref.activate_drop(name)
+                    log.info("Drop activation via dashboard: %s → %s", name, result)
+
+            self._dispatcher.register("aura_activate_drop", _handle_activate_drop)
+
         # ── Learning evolution cycle ─────────────────────────────────────
         if self._context is not None and hasattr(self._context, "_engine"):
             _engine_ref = self._context._engine  # noqa: SLF001 — captured for closure

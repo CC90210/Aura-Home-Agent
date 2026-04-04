@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Plus, Play, Layers } from 'lucide-react';
 
 // ---------------------------------------------------------------------------
@@ -261,13 +261,48 @@ function AddDropCard() {
 // Component
 // ---------------------------------------------------------------------------
 
-export default function AuraDropsGallery({ drops = [], onActivate }: AuraDropsGalleryProps) {
-  const defaultActivate = async (_drop: AuraDrop): Promise<void> => {
-    // Caller should pass a real onActivate handler that POSTs to /api/scene
-    await new Promise<void>((resolve) => setTimeout(resolve, 600));
-  };
+export default function AuraDropsGallery({ drops: propDrops, onActivate }: AuraDropsGalleryProps) {
+  const [fetchedDrops, setFetchedDrops] = useState<AuraDrop[]>([]);
 
-  const handleActivate = onActivate ?? defaultActivate;
+  // Fetch drops from the API on mount and every 30 seconds
+  useEffect(() => {
+    async function fetchDrops() {
+      try {
+        const res = await fetch("/api/drops", { cache: "no-store" });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (Array.isArray(data.drops)) {
+          setFetchedDrops(data.drops);
+        }
+      } catch {
+        // Non-critical — keep existing drops
+      }
+    }
+
+    fetchDrops();
+    const interval = setInterval(fetchDrops, 30_000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Use prop drops if provided, otherwise use fetched drops
+  const drops = propDrops ?? fetchedDrops;
+
+  const handleActivate = useCallback(async (drop: AuraDrop) => {
+    if (onActivate) {
+      await onActivate(drop);
+      return;
+    }
+    // Default: POST to /api/drops to activate
+    try {
+      await fetch("/api/drops", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: drop.name }),
+      });
+    } catch {
+      // Activation failed — button will reset via finally block
+    }
+  }, [onActivate]);
 
   return (
     <div
