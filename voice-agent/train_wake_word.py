@@ -39,8 +39,16 @@ SAMPLES_DIR = MODELS_DIR / "training_samples"
 SAMPLE_RATE = 16000
 CHANNELS = 1
 SAMPLE_DURATION = 1.5  # seconds per recording
-NUM_SAMPLES = 16
 PAUSE_BETWEEN = 1.5  # seconds between prompts
+
+# Train on multiple natural phrases so AURA responds to how you actually talk.
+# Each phrase gets recorded multiple times by each person.
+PHRASES = [
+    ("Hey Aura", 6),
+    ("Aura", 4),
+    ("Yo Aura", 4),
+    ("Aye Aura", 2),
+]
 
 
 def record_sample(pa: "pyaudio.PyAudio", duration: float) -> np.ndarray:
@@ -84,46 +92,55 @@ def main() -> None:
     MODELS_DIR.mkdir(parents=True, exist_ok=True)
     SAMPLES_DIR.mkdir(parents=True, exist_ok=True)
 
+    total_samples = sum(count for _, count in PHRASES)
+
     print()
     print("=" * 50)
     print("  AURA — Wake Word Training")
-    print("  Train custom 'Hey Aura' detection")
+    print("  Train custom 'Aura' detection")
     print("=" * 50)
     print()
-    print(f"  You'll say 'Hey Aura' {NUM_SAMPLES} times.")
-    print(f"  Each recording is {SAMPLE_DURATION} seconds.")
-    print(f"  Total time: ~{int(NUM_SAMPLES * (SAMPLE_DURATION + PAUSE_BETWEEN))} seconds.")
+    print("  AURA will respond to how you naturally talk:")
+    for phrase, count in PHRASES:
+        print(f"    '{phrase}' — {count} times")
     print()
-    print("  Speak clearly, at normal volume, toward the mic.")
-    print("  Vary your tone slightly each time (natural speech).")
+    print(f"  {total_samples} total samples, {SAMPLE_DURATION}s each.")
+    print(f"  Total time: ~{int(total_samples * (SAMPLE_DURATION + PAUSE_BETWEEN))} seconds.")
+    print()
+    print("  Both CC and Adon should each run this script so")
+    print("  AURA recognizes both voices.")
     print()
     input("  Press Enter when ready… ")
     print()
 
     pa = pyaudio.PyAudio()
     samples = []
+    sample_num = 0
 
-    for i in range(NUM_SAMPLES):
-        print(f"  [{i + 1}/{NUM_SAMPLES}] Say 'Hey Aura' now…", end="", flush=True)
-        time.sleep(0.3)  # Brief pause so the prompt is visible
+    for phrase, count in PHRASES:
+        print(f"\n  --- Say '{phrase}' ({count} times) ---\n")
+        for i in range(count):
+            sample_num += 1
+            print(f"  [{sample_num}/{total_samples}] Say '{phrase}' now…", end="", flush=True)
+            time.sleep(0.3)
 
-        audio = record_sample(pa, SAMPLE_DURATION)
-        samples.append(audio)
+            audio = record_sample(pa, SAMPLE_DURATION)
+            samples.append(audio)
 
-        # Save individual sample as .npy for debugging
-        sample_path = SAMPLES_DIR / f"hey_aura_{i + 1:02d}.npy"
-        np.save(sample_path, audio)
+            safe_phrase = phrase.lower().replace(" ", "_")
+            sample_path = SAMPLES_DIR / f"{safe_phrase}_{i + 1:02d}.npy"
+            np.save(sample_path, audio)
 
-        rms = float(np.sqrt(np.mean(audio.astype(np.float32) ** 2)))
-        print(f" recorded (RMS: {rms:.0f})")
+            rms = float(np.sqrt(np.mean(audio.astype(np.float32) ** 2)))
+            print(f" recorded (RMS: {rms:.0f})")
 
-        if i < NUM_SAMPLES - 1:
-            time.sleep(PAUSE_BETWEEN)
+            if sample_num < total_samples:
+                time.sleep(PAUSE_BETWEEN)
 
     pa.terminate()
 
     print()
-    print(f"  {NUM_SAMPLES} samples recorded.")
+    print(f"  {total_samples} samples recorded across {len(PHRASES)} phrases.")
     print()
 
     # Train the model using OpenWakeWord's training utilities
