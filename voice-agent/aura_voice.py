@@ -793,11 +793,30 @@ class AuraVoiceAgent:
 
         self._dispatcher = WebhookDispatcher(port=5123)
 
-        # ── Pulse check ──────────────────────────────────────────────────
+        # ── Pulse check (suppressed in guest mode) ────────────────────────
         if self._pulse_check:
             def _handle_pulse_check(payload: dict) -> None:
+                from guest_mode import GuestMode
+                if GuestMode().active:
+                    log.info("Pulse check suppressed — guest mode active")
+                    return
                 for person_key in ["conaugh", "adon"]:
                     if self._coerce_bool(payload.get(f"{person_key}_home")):
+                        # Weekly reflection on Sundays
+                        try:
+                            from weekly_reflection import WeeklyReflection
+                            wr = WeeklyReflection(
+                                habit_tracker=self._habit_tracker,
+                                personality=self._personality
+                            )
+                            if wr.should_reflect(person_key):
+                                reflection = wr.generate_reflection(person_key)
+                                if reflection:
+                                    self._speak(reflection)
+                                    continue  # Skip daily pulse — weekly covers it
+                        except Exception as exc:
+                            log.debug("Weekly reflection skipped: %s", exc)
+
                         if self._pulse_check.should_check_in(person_key):
                             text = self._pulse_check.generate_check_in(person_key)
                             if text:
@@ -1023,6 +1042,20 @@ class AuraVoiceAgent:
 
         log.info("Transcribed command: %r", user_text)
 
+        # ── Step 5.5: Guest mode check ─────────────────────────────────
+        from guest_mode import GuestMode
+        guest = GuestMode()
+
+        if guest.is_activation_intent(user_text):
+            reply = guest.activate(activated_by="voice")
+            self._speak(reply)
+            return
+
+        if guest.is_deactivation_intent(user_text):
+            reply = guest.deactivate()
+            self._speak(reply)
+            return
+
         # ── Step 6: Process intent + execute HA actions ─────────────────
         assert self._intent is not None
 
@@ -1034,11 +1067,17 @@ class AuraVoiceAgent:
         if self._recognizer:
             person = self._recognizer.identify_by_context()
 
-        if self._context:
+        # Guest mode overrides context and suppresses personal data
+        context_override = guest.get_context_override()
+        if context_override:
+            context = context_override
+            person = None  # Don't identify speaker in guest mode
+            habit_data = None  # No habit data in guest mode
+        elif self._context:
             ctx = self._context.get_current_context()
             context = ctx.activity.value if ctx.activity is not None else "casual"
 
-        if self._habit_tracker and person:
+        if not guest.active and self._habit_tracker and person:
             try:
                 report = self._habit_tracker.get_weekly_report(person)
                 habit_data = {

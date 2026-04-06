@@ -62,6 +62,7 @@ VALID_CONTEXTS = frozenset(
         "waking_up",
         "going_to_bed",
         "party",
+        "guest",
         "accountability_check",
     }
 )
@@ -167,7 +168,6 @@ class AuraPersonality:
         habit_block = self._build_habit_block(person, habit_data)
         avoid_block = self._build_avoid_block()
         speech_pattern_block = self._build_speech_pattern_block(person)
-        business_block = self._build_business_block(person)
 
         return "\n\n".join(
             block
@@ -176,7 +176,6 @@ class AuraPersonality:
                 context_block,
                 resident_block,
                 habit_block,
-                business_block,
                 speech_pattern_block,
                 avoid_block,
             ]
@@ -493,23 +492,6 @@ class AuraPersonality:
             "do not lecture unprompted."
         )
         return "\n".join(lines)
-
-    def _build_business_block(self, person: str | None) -> str:
-        """Inject business context from Bravo for CC's pulse checks and greetings.
-        Only included for Conaugh — Adon doesn't need business metrics."""
-        if person != "conaugh":
-            return ""
-        try:
-            from bravo_bridge import BravoBridge
-            bridge = BravoBridge()
-            if not bridge.enabled:
-                return ""
-            context_str = bridge.format_for_prompt()
-            if context_str:
-                return f"BUSINESS CONTEXT (CC's live data from Bravo):\n{context_str}"
-        except Exception as e:
-            log.debug(f"Business context unavailable: {e}")
-        return ""
 
     def _build_avoid_block(self) -> str:
         """Return the list of phrases and patterns AURA must never use."""

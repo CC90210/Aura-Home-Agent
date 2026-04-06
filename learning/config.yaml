@@ -61,11 +61,37 @@ habits:
       target_time: "00:00"
       tolerance_minutes: 30
 
+    - name: "hydration"
+      detection: "manual_log"
+      daily_target: 8  # glasses
+      reminder_times: ["10:00", "13:00", "16:00", "19:00"]
+
+    - name: "mood_energy"
+      detection: "manual_log"
+      scale: 1-10  # "energy is 7" or "mood is low"
+      log_times: ["09:00", "14:00", "20:00"]  # optional nudge times
+
+    - name: "screen_break"
+      detection: "no_motion_during_work"
+      interval_minutes: 60  # remind to move every 60 min during deep work
+      min_break_minutes: 5
+
   accountability:
     # Days of missed habit before AURA proactively mentions it
     nudge_threshold: 2
     # Tone: supportive but direct — matches AURA personality
     nudge_style: "homie"
+
+  isolation:
+    # CRITICAL: Each resident's data is fully isolated.
+    # - CC never sees Adon's habits, streaks, or reports
+    # - Adon never sees CC's habits, streaks, or reports
+    # - AURA NEVER compares residents ("Adon went to the gym but you didn't")
+    # - AURA NEVER mentions one resident's data to the other
+    # - In guest mode, AURA mentions NO personal data at all
+    enforce: true
+    never_compare_residents: true
+    never_share_cross_resident: true
 
 persons:
   - id: conaugh
