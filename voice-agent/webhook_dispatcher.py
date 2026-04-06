@@ -25,7 +25,7 @@ from typing import Callable
 log = logging.getLogger("aura.webhook")
 
 DEFAULT_PORT = 5123
-DEFAULT_HOST = "127.0.0.1"
+DEFAULT_HOST = "0.0.0.0"  # Bind to all interfaces so health checks work over LAN
 
 
 class WebhookHandler(BaseHTTPRequestHandler):
@@ -34,6 +34,27 @@ class WebhookHandler(BaseHTTPRequestHandler):
     # Populated by WebhookDispatcher before starting the server.
     # Class-level so all handler instances share the same route table.
     _routes: dict[str, Callable[[dict], None]] = {}
+
+    def do_GET(self) -> None:
+        """Handle GET requests — used for health checks."""
+        path = self.path.strip("/")
+        if path == "health":
+            try:
+                from health import health_response
+                body = health_response()
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(body.encode("utf-8"))
+            except Exception as exc:  # noqa: BLE001
+                log.error("Health endpoint error: %s", exc)
+                self.send_response(500)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(b'{"status": "error", "detail": "health check failed"}')
+        else:
+            self.send_response(404)
+            self.end_headers()
 
     def do_POST(self) -> None:
         content_length = int(self.headers.get("Content-Length", 0))

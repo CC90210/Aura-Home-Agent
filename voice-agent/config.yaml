@@ -31,9 +31,13 @@ audio:
   format: paInt16
 
   # Recording settings — used by SpeechRecorder
-  max_record_seconds: 10
-  silence_threshold: 500      # RMS amplitude below which audio is "silence"
-  silence_duration: 1.5       # Seconds of silence required to end recording
+  max_record_seconds: 30       # Max recording length (humans talk slowly, give them time)
+  silence_threshold: 400       # RMS amplitude below which audio is "silence" (lower = more sensitive)
+  silence_duration: 3.0        # Seconds of CONTINUOUS silence required to end recording
+                               # People pause mid-sentence — 3s ensures we capture full thoughts
+  min_speech_duration: 0.5     # Minimum speech before silence detection kicks in (prevents instant cutoff)
+  end_of_turn_silence: 2.5     # After significant speech detected, wait this long before stopping
+                               # Shorter than silence_duration because we know they started talking
 
   # Input device index for PyAudio.
   # Set to null for system default, or specify a device index.

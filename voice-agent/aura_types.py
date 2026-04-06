@@ -9,7 +9,7 @@ before runtime.
 
 Usage::
 
-    from types import ContentStats, WeeklyReport, TrackInfo
+    from aura_types import ContentStats, WeeklyReport, TrackInfo
 
     def get_stats(person: str) -> ContentStats:
         return {"total_sessions": 5, ...}  # type checker verifies all keys

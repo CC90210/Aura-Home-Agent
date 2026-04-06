@@ -60,6 +60,8 @@ class WakeWordDetector:
 
         self._phrase: str = ww_cfg.get("phrase", "Hey Aura")
         self._threshold: float = float(ww_cfg.get("threshold", 0.6))
+        self._cooldown_seconds: float = float(ww_cfg.get("cooldown", 2.0))
+        self._last_detection: float = 0.0
 
         # Try custom model first, fall back to built-in
         custom_path = ww_cfg.get("custom_model_path", "models/hey_aura.onnx")
@@ -135,6 +137,14 @@ class WakeWordDetector:
 
             score = self._extract_score(prediction)
             if score >= self._threshold:
+                now = time.monotonic()
+                if (now - self._last_detection) < self._cooldown_seconds:
+                    log.debug(
+                        "Wake word cooldown active — ignoring detection (%.1fs since last)",
+                        now - self._last_detection,
+                    )
+                    continue
+                self._last_detection = now
                 log.info("Wake word detected! confidence=%.3f", score)
                 return True
 

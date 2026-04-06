@@ -2,6 +2,10 @@
 # Defines character, tone, and per-resident settings for the AURA voice agent.
 # All sensitive values come from .env — nothing secret lives here.
 
+# Timezone for time-of-day greetings and routines.
+# The Pi may run UTC — this ensures "good morning" triggers at Montreal time.
+timezone: "America/Toronto"
+
 identity:
   name: "Aura"
   full_name: "AURA by OASIS"

@@ -33,6 +33,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import re
 from datetime import datetime, timezone
 from pathlib import Path
@@ -362,12 +363,22 @@ class AuraPersonality:
             return
 
         # Keep the log bounded at 500 entries to prevent unbounded disk growth.
+        # Uses atomic write (temp file + rename) to prevent corruption on power loss.
         try:
             lines = _SPEECH_PATTERN_LOG.read_text(encoding="utf-8").strip().split("\n")
             if len(lines) > 500:
-                _SPEECH_PATTERN_LOG.write_text(
-                    "\n".join(lines[-500:]) + "\n", encoding="utf-8"
+                import tempfile
+                truncated = "\n".join(lines[-500:]) + "\n"
+                tmp_fd, tmp_path = tempfile.mkstemp(
+                    dir=str(_SPEECH_PATTERN_LOG.parent), suffix=".tmp"
                 )
+                try:
+                    with os.fdopen(tmp_fd, "w", encoding="utf-8") as tmp_fh:
+                        tmp_fh.write(truncated)
+                    Path(tmp_path).replace(_SPEECH_PATTERN_LOG)
+                except Exception:
+                    Path(tmp_path).unlink(missing_ok=True)
+                    raise
         except Exception:  # noqa: BLE001 — truncation failure is non-fatal
             pass
 
@@ -605,7 +616,15 @@ class AuraPersonality:
         valid_bands = {"morning", "afternoon", "evening", "late_night"}
 
         if time_of_day is None:
-            return _hour_to_band(datetime.now().hour)
+            # Use the configured timezone (defaults to Montreal) so morning
+            # routines trigger at the right local time even if the Pi runs UTC.
+            try:
+                from zoneinfo import ZoneInfo
+                tz_name = self._cfg.get("timezone", "America/Toronto")
+                local_hour = datetime.now(ZoneInfo(tz_name)).hour
+            except (ImportError, KeyError):
+                local_hour = datetime.now().hour
+            return _hour_to_band(local_hour)
 
         if time_of_day in valid_bands:
             return time_of_day

@@ -1018,11 +1018,13 @@ class AuraVoiceAgent:
 
         # ── Step 2: Listening chime ─────────────────────────────────────
         play_listening_chime(self._config)
+        t_cycle_start = time.monotonic()
         log.info("Wake word confirmed — recording command…")
 
         # ── Step 3: Record command ──────────────────────────────────────
         assert self._recorder is not None
         audio = self._recorder.record()
+        t_after_record = time.monotonic()
 
         if audio is None or len(audio) == 0:
             log.warning("No audio captured — returning to wake word detection.")
@@ -1034,6 +1036,7 @@ class AuraVoiceAgent:
         # ── Step 5: Transcribe ──────────────────────────────────────────
         assert self._transcriber is not None
         user_text = self._transcriber.transcribe(audio)
+        t_after_stt = time.monotonic()
 
         if not user_text:
             log.info("Transcription was empty — skipping intent processing.")
@@ -1098,12 +1101,15 @@ class AuraVoiceAgent:
                 self._speak(feedback_reply)
                 return
 
+        t_after_context = time.monotonic()
+
         response_text = self._intent.process(
             user_text,
             person=person,
             context=context,
             habit_data=habit_data,
         )
+        t_after_intent = time.monotonic()
 
         # Log the interaction for pattern learning
         if self._personality is not None and person:
@@ -1116,6 +1122,20 @@ class AuraVoiceAgent:
 
         # ── Step 7: Speak response ──────────────────────────────────────
         self._speak(response_text)
+        t_after_speak = time.monotonic()
+
+        # ── Pipeline latency breakdown ─────────────────────────────────
+        log.info(
+            "LATENCY: record=%.2fs  stt=%.2fs  context=%.2fs  "
+            "intent=%.2fs  tts=%.2fs  total=%.2fs  |  %r",
+            t_after_record - t_cycle_start,
+            t_after_stt - t_after_record,
+            t_after_context - t_after_stt,
+            t_after_intent - t_after_context,
+            t_after_speak - t_after_intent,
+            t_after_speak - t_cycle_start,
+            user_text[:50],
+        )
 
     def _speak(self, text: str) -> None:
         """Speak ``text`` if TTS is available; otherwise log the response."""
@@ -1130,14 +1150,12 @@ class AuraVoiceAgent:
                 else:
                     log.info("[TTS disabled] Response: %r", text)
             finally:
-                # Hold the suppress flag for 1.5 s after speech ends so any
-                # audio tail in the mic buffer is discarded before we listen
-                # for the next wake word.
-                def _clear_after_tail() -> None:
-                    time.sleep(1.5)
-                    self._tts_speaking.clear()
-
-                threading.Thread(target=_clear_after_tail, daemon=True).start()
+                # Hold the suppress flag for 1.5 s after playback ends so any
+                # audio tail in the mic buffer is drained before we listen for
+                # the next wake word.  Sleep is inside the lock so a concurrent
+                # webhook _speak() call queues behind the full tail period.
+                time.sleep(1.5)
+                self._tts_speaking.clear()
 
     @staticmethod
     def _coerce_bool(value: Any) -> bool:

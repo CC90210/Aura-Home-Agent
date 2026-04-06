@@ -1,7 +1,5 @@
 # AURA by OASIS
 
-<!-- Logo placeholder: replace with /docs/assets/aura-logo.png when available -->
-
 **Ambient. Unified. Responsive. Automated.**
 
 AURA by OASIS transforms any apartment or home into an AI-controlled smart living space. A Claude Code agent serves as the central intelligence, controlling lights, music, climate, cleaning, security, and more through clap triggers, voice commands, presence detection, and natural language. Your space does not just have smart devices — it has an AURA.
@@ -121,14 +119,18 @@ aura/
 │
 ├── scripts/
 │   ├── setup/                   # First-time installation + wizard
+│   │   ├── pi_first_clone.sh    # One-command Pi bootstrap (clone + venv + services)
 │   │   ├── pi_setup.sh          # Pi OS-level setup (Alpine packages, venv, systemd)
-│   │   ├── verify_install.sh    # Post-install verification
-│   │   └── wizard.sh            # Interactive setup wizard
-│   └── deploy/                  # Push to Pi, deploy to clients
-│       ├── update_configs.sh    # Deploy HA YAML configs
-│       ├── deploy_services.sh   # Deploy Python services
-│       ├── deploy_client.sh     # Client-specific deployment
-│       └── full_deploy.sh       # One-command full deployment
+│   │   ├── verify_install.sh    # Post-install verification (7 checks)
+│   │   └── wizard.sh            # Interactive setup wizard (.env generation)
+│   ├── deploy/                  # Push to Pi, deploy to clients
+│   │   ├── quick_update.sh      # Git pull + deps + restart (one command from desktop)
+│   │   ├── update_configs.sh    # Deploy HA YAML configs
+│   │   ├── deploy_services.sh   # Deploy Python services
+│   │   ├── deploy_client.sh     # Client-specific deployment
+│   │   └── full_deploy.sh       # Orchestrate config + service deploy
+│   ├── health_check.sh          # Remote Pi health verification (10 checks)
+│   └── security_audit.sh        # Security audit (10 checks)
 │
 ├── clients/                     # Client-specific configuration overrides
 │   └── .template/               # Copy this for each new client installation
@@ -163,8 +165,16 @@ Hardware costs are passed through at retail. Service fee covers installation, co
 ## Deployment Commands
 
 ```bash
-# First-time setup (interactive wizard)
+# ── First-time Pi setup ──────────────────────────────────────────────
+# Option A: Interactive wizard (generates .env, tests connections)
 bash scripts/setup/wizard.sh
+
+# Option B: One-command bootstrap (run ON the Pi via SSH)
+bash scripts/setup/pi_first_clone.sh
+
+# ── Ongoing updates (run from desktop) ───────────────────────────────
+# Quick update: git pull + install deps + restart services
+bash scripts/deploy/quick_update.sh --all
 
 # Full deploy: configs + Python services + restart everything
 bash scripts/deploy/full_deploy.sh --restart --env --pip
@@ -172,21 +182,22 @@ bash scripts/deploy/full_deploy.sh --restart --env --pip
 # Deploy only HA YAML configs
 bash scripts/deploy/update_configs.sh --restart
 
-# Deploy only Python services (voice-agent, clap-trigger, learning)
-bash scripts/deploy/deploy_services.sh --restart
-
 # Deploy to a specific client
 bash scripts/deploy/deploy_client.sh smith_residence --restart
 
-# Run security audit
+# ── Monitoring & testing ─────────────────────────────────────────────
+# Remote health check (SSH, HA, services, disk, temp)
+bash scripts/health_check.sh
+
+# Security audit (secrets, permissions, tokens, network)
 bash scripts/security_audit.sh
 
 # Test webhooks
 bash scripts/test_webhook.sh double_clap
 bash scripts/test_webhook.sh goodnight
 
-# Calibrate clap detection mic levels (run on Pi)
-bash scripts/test_clap.sh
+# Desktop voice test (no Pi needed)
+python voice-agent/test_desktop.py --voice
 ```
 
 ---

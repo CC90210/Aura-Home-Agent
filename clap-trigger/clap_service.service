@@ -1,16 +1,40 @@
 [Unit]
-Description=AURA Clap Detection Service
-After=network-online.target
+Description=AURA Clap Detection — ambient trigger system
+After=network-online.target sound.target
 Wants=network-online.target
+StartLimitIntervalSec=300
+StartLimitBurst=5
 
 [Service]
 Type=simple
 User=root
 WorkingDirectory=/config/aura/clap-trigger
+ExecStartPre=/bin/sh -c 'test -f /config/aura/.env && test -d /config/aura/.venv'
 ExecStart=/config/aura/.venv/bin/python clap_listener.py
-Restart=always
-RestartSec=5
+Restart=on-failure
+RestartSec=10
+TimeoutStopSec=10
+
+# Environment
 Environment=PYTHONUNBUFFERED=1
+EnvironmentFile=/config/aura/.env
+
+# Resource limits — clap detection is lightweight
+MemoryMax=128M
+MemoryHigh=96M
+CPUQuota=30%
+
+# Security hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/config/aura
+PrivateTmp=true
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=aura-clap
 
 [Install]
 WantedBy=multi-user.target

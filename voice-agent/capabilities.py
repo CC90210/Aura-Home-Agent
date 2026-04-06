@@ -484,6 +484,30 @@ class AuraCapabilities:
 
         return "\n".join(lines)
 
+    def get_capabilities_compact(self) -> str:
+        """
+        Return a minimal one-line-per-category summary for normal requests.
+
+        This is ~400 tokens vs ~6,200 for the full version.  Used when the
+        user is giving a normal command (not asking about capabilities).
+        Claude still knows what AURA can do, just without the examples and
+        detailed bullet points.
+        """
+        if not self._cfg:
+            return ""
+
+        categories: dict[str, Any] = self._cfg.get("categories", {})
+        lines: list[str] = ["AURA CAPABILITIES (summary — ask user to say 'what can you do' for full list):"]
+
+        for cat_key, cat_data in categories.items():
+            if not isinstance(cat_data, dict):
+                continue
+            name: str = cat_data.get("name", cat_key)
+            description: str = cat_data.get("description", "")
+            lines.append(f"  • {name}: {description}")
+
+        return "\n".join(lines)
+
     # ------------------------------------------------------------------
     # Internal helpers
     # ------------------------------------------------------------------

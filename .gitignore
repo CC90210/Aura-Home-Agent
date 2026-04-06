@@ -44,3 +44,13 @@ home-assistant.log
 *.flac
 recordings/
 repo
+
+# Runtime data (SQLite databases, state files, learned patterns)
+data/
+memory/
+*.db
+*.db-wal
+*.db-shm
+
+# Voice agent generated models (trained on-device)
+voice-agent/models/*.onnx

@@ -459,6 +459,8 @@ class ContentRadar:
         """Yield a sqlite3 connection with row_factory set, auto-committing."""
         conn = sqlite3.connect(str(self._db_path))
         conn.row_factory = sqlite3.Row
+        conn.execute("PRAGMA journal_mode=WAL;")
+        conn.execute("PRAGMA synchronous=NORMAL;")
         try:
             yield conn
             conn.commit()

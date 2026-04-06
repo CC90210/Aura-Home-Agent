@@ -29,6 +29,24 @@ import pyaudio
 
 log = logging.getLogger("aura.stt")
 
+# Known hallucination phrases that faster-whisper emits on silence/ambient noise.
+_HALLUCINATION_PHRASES = {
+    "thanks for watching",
+    "thank you for watching",
+    "subscribe",
+    "please subscribe",
+    "like and subscribe",
+    "thank you",
+    "thanks",
+    "bye",
+    "goodbye",
+    "you",
+    "the end",
+    "silence",
+    "...",
+    "",
+}
+
 
 # ---------------------------------------------------------------------------
 # SpeechRecorder
@@ -62,16 +80,26 @@ class SpeechRecorder:
         self._sample_rate: int = int(audio_cfg["sample_rate"])
         self._chunk_size: int = int(audio_cfg["chunk_size"])
         self._channels: int = int(audio_cfg["channels"])
-        self._max_duration: float = float(audio_cfg.get("max_record_seconds", 10.0))
-        self._silence_threshold: float = float(audio_cfg.get("silence_threshold", 500.0))
-        self._silence_duration: float = float(audio_cfg.get("silence_duration", 1.5))
+        self._max_duration: float = float(audio_cfg.get("max_record_seconds", 30.0))
+        self._silence_threshold: float = float(audio_cfg.get("silence_threshold", 400.0))
+        self._silence_duration: float = float(audio_cfg.get("silence_duration", 3.0))
+        # Minimum speech before silence detection activates — prevents
+        # instant cutoff if the user pauses briefly at the start.
+        self._min_speech_duration: float = float(audio_cfg.get("min_speech_duration", 0.5))
+        # After significant speech is detected, use a shorter silence window
+        # to end recording (user clearly started talking, so a shorter pause
+        # is more likely to mean "done" than a long gap at the start).
+        self._end_of_turn_silence: float = float(audio_cfg.get("end_of_turn_silence", 2.5))
 
         log.info(
             "SpeechRecorder initialised — max_duration=%.1fs  "
-            "silence_threshold=%.0f  silence_duration=%.2fs",
+            "silence_threshold=%.0f  silence_duration=%.2fs  "
+            "min_speech=%.2fs  end_of_turn=%.2fs",
             self._max_duration,
             self._silence_threshold,
             self._silence_duration,
+            self._min_speech_duration,
+            self._end_of_turn_silence,
         )
 
     # ------------------------------------------------------------------
@@ -142,12 +170,32 @@ class SpeechRecorder:
 
     def _capture_frames(self, stream: pyaudio.Stream) -> list[bytes]:
         """
-        Read audio chunks until silence is detected or the max duration is
-        reached.  Returns a list of raw PCM byte strings.
+        Record audio with smart end-of-turn detection.
+
+        Humans pause mid-sentence — a simple "silence = done" approach cuts
+        people off.  Instead we use a two-phase approach:
+
+        Phase 1 (waiting for speech):
+            Use the full ``silence_duration`` (3s default).  The user might
+            be gathering their thoughts before starting to speak.
+
+        Phase 2 (speech detected):
+            Once we've heard at least ``min_speech_duration`` of actual
+            speech, switch to ``end_of_turn_silence`` (2.5s default).
+            This is still generous enough to allow natural pauses between
+            sentences, but won't wait forever after someone clearly finished.
+
+        The ``max_record_seconds`` hard limit (30s default) prevents
+        runaway recordings.
         """
         frames: list[bytes] = []
         silence_start: float | None = None
         start_time = time.monotonic()
+
+        # Track cumulative speech duration to know when Phase 2 kicks in.
+        total_speech_seconds: float = 0.0
+        chunk_duration: float = self._chunk_size / self._sample_rate
+        has_significant_speech: bool = False
 
         while True:
             elapsed = time.monotonic() - start_time
@@ -164,21 +212,46 @@ class SpeechRecorder:
             frames.append(raw)
             rms = self._rms(raw)
 
-            if rms < self._silence_threshold:
+            if rms >= self._silence_threshold:
+                # This chunk contains speech
+                total_speech_seconds += chunk_duration
+                if total_speech_seconds >= self._min_speech_duration:
+                    has_significant_speech = True
+
+                if silence_start is not None:
+                    pause_len = time.monotonic() - silence_start
+                    log.debug("Speech resumed after %.1fs pause (RMS=%.1f)", pause_len, rms)
+                silence_start = None
+            else:
+                # This chunk is silence
                 if silence_start is None:
                     silence_start = time.monotonic()
                     log.debug("Silence started (RMS=%.1f)", rms)
-                elif (time.monotonic() - silence_start) >= self._silence_duration:
-                    log.debug(
-                        "Silence threshold met (%.2f s) — stopping recording.",
-                        time.monotonic() - silence_start,
-                    )
-                    break
-            else:
-                if silence_start is not None:
-                    log.debug("Speech resumed (RMS=%.1f)", rms)
-                silence_start = None
+                else:
+                    silence_elapsed = time.monotonic() - silence_start
 
+                    # Choose the right silence threshold based on phase
+                    if has_significant_speech:
+                        # Phase 2: user has been talking, use end-of-turn window
+                        required_silence = self._end_of_turn_silence
+                    else:
+                        # Phase 1: waiting for speech or very little so far
+                        required_silence = self._silence_duration
+
+                    if silence_elapsed >= required_silence:
+                        log.debug(
+                            "End of turn detected — %.2fs silence after %.2fs speech.",
+                            silence_elapsed,
+                            total_speech_seconds,
+                        )
+                        break
+
+        log.debug(
+            "Capture complete: %.2fs total, %.2fs speech, significant=%s",
+            time.monotonic() - start_time,
+            total_speech_seconds,
+            has_significant_speech,
+        )
         return frames
 
     @staticmethod
@@ -284,6 +357,21 @@ class Transcriber:
             return ""
 
         elapsed = time.monotonic() - t0
+
+        # Hallucination filter — faster-whisper emits these phrases on silence.
+        if text.lower().strip().rstrip(".!?,") in _HALLUCINATION_PHRASES:
+            log.warning("Hallucination detected, discarding: %r", text)
+            return ""
+        if info.language_probability < 0.5:
+            log.warning(
+                "Low language confidence (%.2f) — discarding transcription: %r",
+                info.language_probability,
+                text,
+            )
+            return ""
+        if len(text) < 3:
+            return ""
+
         log.info(
             "Transcription complete in %.2f s (detected language: %s, prob=%.2f): %r",
             elapsed,

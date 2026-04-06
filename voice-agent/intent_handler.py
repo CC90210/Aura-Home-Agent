@@ -89,6 +89,55 @@ _RESPONSE_KEY = "response"
 _ACTIONS_KEY = "actions"
 
 
+# ---------------------------------------------------------------------------
+# Local intent matching — skip Claude API for simple, unambiguous commands.
+# Saves ~$0.001 per matched command and cuts latency by ~1-2 seconds.
+# ---------------------------------------------------------------------------
+
+def _try_local_intent(text: str) -> dict[str, Any] | None:
+    """
+    Attempt to match a simple command locally without calling Claude.
+
+    Returns a parsed response dict ``{"response": ..., "actions": [...]}``
+    if matched, or ``None`` to fall through to Claude.
+
+    Only matches commands that are 100% unambiguous — if there's any doubt
+    about what the user wants, return None and let Claude handle it.
+    """
+    t = text.lower().strip().rstrip(".!?")
+
+    # --- Time / date queries (zero API cost) ---
+    if t in ("what time is it", "what's the time", "time", "whats the time"):
+        from datetime import datetime
+        try:
+            from zoneinfo import ZoneInfo
+            now = datetime.now(ZoneInfo("America/Toronto"))
+        except (ImportError, KeyError):
+            now = datetime.now()
+        hour = now.hour % 12 or 12
+        minute = now.strftime("%M")
+        ampm = "AM" if now.hour < 12 else "PM"
+        return {_RESPONSE_KEY: f"It's {hour}:{minute} {ampm}.", _ACTIONS_KEY: []}
+
+    if t in ("what day is it", "what's the date", "whats the date", "what date is it"):
+        from datetime import datetime
+        try:
+            from zoneinfo import ZoneInfo
+            now = datetime.now(ZoneInfo("America/Toronto"))
+        except (ImportError, KeyError):
+            now = datetime.now()
+        return {_RESPONSE_KEY: now.strftime("%A, %B %d."), _ACTIONS_KEY: []}
+
+    # --- Simple confirmations that don't need Claude ---
+    if t in ("thank you", "thanks", "thanks aura", "thank you aura"):
+        return {_RESPONSE_KEY: "Anytime.", _ACTIONS_KEY: []}
+
+    if t in ("nevermind", "never mind", "forget it", "nah", "nothing"):
+        return {_RESPONSE_KEY: "All good.", _ACTIONS_KEY: []}
+
+    return None
+
+
 class IntentHandler:
     """
     Processes natural language commands by combining real-time Home Assistant
@@ -134,6 +183,15 @@ class IntentHandler:
         # Feature module instances — keyed by feature name (e.g. "mirror_mode").
         # None values are excluded by the caller, so every entry here is live.
         self._features: dict[str, Any] = features or {}
+
+        # Multi-turn conversation memory — sliding window of recent exchanges
+        # so AURA can resolve anaphora ("make them blue" after "turn on lights").
+        # Each entry is {"role": "user"|"assistant", "content": str}.
+        # Session expires after _session_timeout seconds of no interaction.
+        self._conversation_history: list[dict[str, str]] = []
+        self._max_turns: int = 5  # Keep last 5 exchanges (10 messages)
+        self._session_timeout: float = 60.0  # seconds
+        self._last_interaction: float = 0.0
 
         self._ha_url: str = ha_url.rstrip("/")
         self._ha_headers: dict[str, str] = {
@@ -195,6 +253,9 @@ class IntentHandler:
         # missing, so the pipeline keeps running.
         self._capabilities = AuraCapabilities(_CAPABILITIES_YAML)
         log.info("AuraCapabilities loaded.")
+
+        # Cache of last-fetched device states for entity validation
+        self._last_device_states: list[dict[str, Any]] = []
 
         log.info(
             "IntentHandler initialised — HA: %s  model: %s  max_tokens: %d",
@@ -263,6 +324,23 @@ class IntentHandler:
         )
         t0 = time.monotonic()
 
+        # Manage conversation session — expire if too long since last interaction
+        now = time.monotonic()
+        if (now - self._last_interaction) > self._session_timeout:
+            if self._conversation_history:
+                log.debug("Conversation session expired — clearing %d turns.", len(self._conversation_history) // 2)
+            self._conversation_history.clear()
+        self._last_interaction = now
+
+        # Step 0: Try local intent matching first (skip Claude for simple queries)
+        local_result = _try_local_intent(user_text)
+        if local_result is not None:
+            response_text = local_result.get(_RESPONSE_KEY, "Done.")
+            log.info("Local intent matched — skipping Claude API. Response: %r", response_text)
+            self._conversation_history.append({"role": "user", "content": user_text})
+            self._conversation_history.append({"role": "assistant", "content": response_text})
+            return response_text
+
         # Step 1: Fetch device state snapshot
         device_states = self._get_device_states()
 
@@ -273,11 +351,17 @@ class IntentHandler:
             context=context,
             time_of_day=time_of_day,
             habit_data=habit_data,
+            user_text=user_text,
         )
 
-        # Step 3: Call Claude
+        # Step 3: Call Claude with conversation history
+        # Build messages array with recent history for multi-turn context
+        messages: list[dict[str, str]] = []
+        messages.extend(self._conversation_history)
+        messages.append({"role": "user", "content": user_text})
+
         try:
-            raw_response = self._call_claude(system_prompt, user_text)
+            raw_response = self._call_claude(system_prompt, messages)
         except Exception as exc:  # noqa: BLE001
             log.error("Claude API call failed: %s", exc, exc_info=True)
             return "Sorry, I had trouble thinking about that. Please try again."
@@ -315,6 +399,15 @@ class IntentHandler:
         if self._security_feedback:
             response_text = self._security_feedback
             log.info("Response overridden by security feedback: %r", response_text)
+
+        # Step 6: Update conversation history for multi-turn context
+        self._conversation_history.append({"role": "user", "content": user_text})
+        # Store the spoken response (not the raw JSON) so Claude sees what AURA said
+        self._conversation_history.append({"role": "assistant", "content": response_text})
+        # Trim to max turns (each turn = 2 messages)
+        max_messages = self._max_turns * 2
+        if len(self._conversation_history) > max_messages:
+            self._conversation_history = self._conversation_history[-max_messages:]
 
         elapsed = time.monotonic() - t0
         log.info("Intent processed in %.2f s — response: %r", elapsed, response_text[:80])
@@ -360,7 +453,9 @@ class IntentHandler:
             len(all_states),
             len(controllable),
         )
-        return controllable[:_MAX_ENTITIES_IN_PROMPT]
+        result = controllable[:_MAX_ENTITIES_IN_PROMPT]
+        self._last_device_states = result
+        return result
 
     def _execute_action(self, action: dict[str, Any]) -> None:
         """
@@ -458,6 +553,17 @@ class IntentHandler:
         payload: dict[str, Any] = {**extra_data}
         if entity_id:
             payload["entity_id"] = entity_id
+
+        # Validate entity exists before sending to HA — catches renamed/removed devices
+        if entity_id and self._last_device_states:
+            known_ids = {s.get("entity_id") for s in self._last_device_states}
+            if entity_id not in known_ids:
+                friendly = entity_id.replace("_", " ").replace(".", " ")
+                log.warning("Entity %s not found in current HA states — skipping action.", entity_id)
+                self._security_feedback = (
+                    f"I can't find {friendly}. It might have been renamed or disconnected."
+                )
+                return
 
         log.info("HA action: %s.%s  entity=%s  data=%s", domain, service, entity_id, extra_data)
 
@@ -697,36 +803,89 @@ class IntentHandler:
     # Claude integration
     # ------------------------------------------------------------------
 
-    def _call_claude(self, system_prompt: str, user_text: str) -> str:
+    def _call_claude(self, system_prompt: str, messages: list[dict[str, str]] | str) -> str:
         """
-        Send the system prompt and user message to Claude and return the
+        Send the system prompt and messages to Claude and return the
         raw text content of the first response block.
+
+        ``messages`` can be a list of message dicts (for multi-turn) or a
+        single string (legacy, wrapped as a single user message).
+
+        Retries on transient failures (rate limits, server errors, timeouts)
+        with exponential backoff.  Gives up after 3 attempts so the user
+        isn't left waiting forever.
         """
-        log.debug("Calling Claude %s…", self._claude_model)
-        t0 = time.monotonic()
+        import anthropic as _anthropic
 
-        message = self._client.messages.create(
-            model=self._claude_model,
-            max_tokens=self._max_tokens,
-            temperature=self._temperature,
-            system=system_prompt,
-            messages=[
-                {"role": "user", "content": user_text},
-            ],
-        )
+        # Support both list and legacy string format
+        if isinstance(messages, str):
+            msg_list = [{"role": "user", "content": messages}]
+        else:
+            msg_list = messages
 
-        elapsed = time.monotonic() - t0
-        log.debug(
-            "Claude responded in %.2f s (input_tokens=%d, output_tokens=%d)",
-            elapsed,
-            message.usage.input_tokens,
-            message.usage.output_tokens,
-        )
+        max_retries = 3
+        base_delay = 1.5  # seconds
 
-        # Extract text from the first content block
-        if message.content and hasattr(message.content[0], "text"):
-            return message.content[0].text
-        return ""
+        for attempt in range(1, max_retries + 1):
+            log.debug("Calling Claude %s (attempt %d/%d, %d messages)…",
+                      self._claude_model, attempt, max_retries, len(msg_list))
+            t0 = time.monotonic()
+
+            try:
+                message = self._client.messages.create(
+                    model=self._claude_model,
+                    max_tokens=self._max_tokens,
+                    temperature=self._temperature,
+                    system=system_prompt,
+                    messages=msg_list,
+                )
+
+                elapsed = time.monotonic() - t0
+                log.debug(
+                    "Claude responded in %.2f s (input_tokens=%d, output_tokens=%d)",
+                    elapsed,
+                    message.usage.input_tokens,
+                    message.usage.output_tokens,
+                )
+
+                # Extract text from the first content block
+                if message.content and hasattr(message.content[0], "text"):
+                    return message.content[0].text
+                return ""
+
+            except _anthropic.RateLimitError:
+                if attempt < max_retries:
+                    delay = base_delay * (2 ** (attempt - 1))
+                    log.warning("Claude rate limited (429) — retrying in %.1fs…", delay)
+                    time.sleep(delay)
+                else:
+                    raise
+
+            except _anthropic.InternalServerError:
+                if attempt < max_retries:
+                    delay = base_delay * (2 ** (attempt - 1))
+                    log.warning("Claude server error (5xx) — retrying in %.1fs…", delay)
+                    time.sleep(delay)
+                else:
+                    raise
+
+            except _anthropic.APITimeoutError:
+                if attempt < max_retries:
+                    delay = base_delay
+                    log.warning("Claude request timed out — retrying in %.1fs…", delay)
+                    time.sleep(delay)
+                else:
+                    raise
+
+            except _anthropic.APIConnectionError:
+                if attempt < max_retries:
+                    delay = base_delay * (2 ** (attempt - 1))
+                    log.warning("Claude connection failed — retrying in %.1fs…", delay)
+                    time.sleep(delay)
+                else:
+                    raise
+
+        return ""  # Should not reach here, but safety fallback
 
     def _parse_response(self, raw: str) -> dict[str, Any]:
         """
@@ -801,6 +960,7 @@ class IntentHandler:
         context: str = "casual",
         time_of_day: str | None = None,
         habit_data: dict[str, Any] | None = None,
+        user_text: str = "",
     ) -> str:
         """
         Build the full system prompt for Claude.
@@ -916,7 +1076,15 @@ class IntentHandler:
         # The full capabilities map is injected so Claude knows the complete
         # scope of what AURA can do.  This powers accurate answers to "what
         # can you do?", "can you do X?", and category-specific help questions.
-        capabilities_block = self._capabilities.get_capabilities_for_prompt()
+        # Adaptive capability injection — full list only when user asks about
+        # capabilities.  Normal commands get a compact summary, saving ~5,800
+        # tokens per request (60% cost reduction).
+        _CAP_TRIGGERS = {"what can you do", "help", "capabilities", "what do you do",
+                         "what are you capable of", "what can you control", "what are your features"}
+        if any(trigger in user_text.lower() for trigger in _CAP_TRIGGERS):
+            capabilities_block = self._capabilities.get_capabilities_for_prompt()
+        else:
+            capabilities_block = self._capabilities.get_capabilities_compact()
 
         # ── Feature actions block ──────────────────────────────────────
         available_features = list(self._features.keys())
@@ -990,6 +1158,14 @@ class IntentHandler:
         json_contract = """\
 RESPONSE FORMAT:
 You MUST respond with a single valid JSON object and nothing else — no explanation, no markdown fences. The JSON must have exactly these two keys:
+
+CRITICAL — BREVITY RULE:
+Your "response" text is spoken aloud through a speaker. Keep it SHORT:
+- Simple actions (lights, music): 1 sentence max. "Done." or "Lights on." is perfect.
+- Questions/info: 2-3 sentences max. Get to the point.
+- Complex explanations: 4-5 sentences absolute maximum.
+- NEVER exceed 200 characters for simple commands. NEVER exceed 500 characters total.
+- Every extra word costs real money (TTS billing per character). Be concise.
 
 {
   "response": "What you say aloud to the user. Conversational, brief, no markdown.",
