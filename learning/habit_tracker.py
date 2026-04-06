@@ -540,6 +540,32 @@ class HabitTracker:
             worst_habit=worst,
         )
 
+    def sync_to_bravo(self, person: str) -> None:
+        """Push current habit data to the Bravo bridge for cross-agent awareness."""
+        try:
+            import sys
+            sys.path.insert(0, str(Path(__file__).parent.parent / "voice-agent"))
+            from bravo_bridge import BravoBridge
+
+            report = self.get_daily_report(person)
+            streaks = {
+                h["name"]: self.get_streak(person, h["name"])
+                for h in self._tracked_habits
+            }
+            habits = {
+                entry.habit_type: {
+                    "completed": entry.completed,
+                    "streak": streaks.get(entry.habit_type, 0),
+                }
+                for entry in report.entries
+            }
+
+            bridge = BravoBridge()
+            bridge.push_aura_state(habits=habits)
+            log.info("Synced %s's habit data to Bravo bridge", person)
+        except Exception as e:
+            log.debug("Bravo sync skipped: %s", e)
+
     def get_accountability_nudge(self, person: str) -> Optional[AccountabilityNudge]:
         """
         Return an ``AccountabilityNudge`` if any habit has been missed for
