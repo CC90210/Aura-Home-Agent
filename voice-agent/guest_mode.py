@@ -32,7 +32,7 @@ from typing import Any
 log = logging.getLogger("aura.guest_mode")
 
 _STATE_FILE = Path("/config/aura/data/guest_mode.json")
-# Fallback for dev machines (Windows/macOS)
+# Fallback when not running on Pi (local development)
 if not _STATE_FILE.parent.exists():
     _STATE_FILE = Path(__file__).parent.parent / "memory" / "guest_mode.json"
 

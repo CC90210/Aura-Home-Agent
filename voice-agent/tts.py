@@ -250,25 +250,16 @@ class TTSEngine:
 
     def _play_audio(self, audio_bytes: bytes) -> None:
         """
-        Play MP3 audio through the configured output device.
+        Decode MP3 audio via pydub and play through the configured output.
 
-        Tries pygame first (reliable on Windows), then pydub as fallback.
+        Requires ffmpeg on the system (``apk add ffmpeg`` on Alpine/Pi).
+        Falls back to direct PyAudio playback for a specific output device.
 
         Parameters
         ----------
         audio_bytes:
             Raw MP3 data as returned by ``_generate_audio``.
         """
-        # Strategy 1: pygame.mixer — handles MP3 directly, no temp file issues
-        try:
-            self._play_via_pygame(audio_bytes)
-            return
-        except ImportError:
-            log.debug("pygame not available — trying pydub…")
-        except Exception as exc:
-            log.warning("pygame playback failed: %s — trying pydub…", exc)
-
-        # Strategy 2: pydub (requires ffmpeg)
         try:
             from pydub import AudioSegment  # type: ignore[import-untyped]
             from pydub.playback import play as pydub_play  # type: ignore[import-untyped]
@@ -283,25 +274,10 @@ class TTSEngine:
 
         except ImportError:
             log.error(
-                "Neither pygame nor pydub is installed — cannot play audio.  "
-                "Install one: pip install pygame  OR  pip install pydub"
+                "pydub is not installed — cannot play audio.  "
+                "Install it with: pip install pydub  "
+                "(also requires ffmpeg: apk add ffmpeg)"
             )
-
-    def _play_via_pygame(self, audio_bytes: bytes) -> None:
-        """Play raw MP3 bytes using pygame.mixer — works reliably on Windows."""
-        import pygame
-
-        if not pygame.mixer.get_init():
-            pygame.mixer.init()
-
-        sound_file = io.BytesIO(audio_bytes)
-        pygame.mixer.music.load(sound_file, "mp3")
-        pygame.mixer.music.play()
-        log.debug("Playing audio via pygame…")
-
-        # Block until playback finishes
-        while pygame.mixer.music.get_busy():
-            pygame.time.wait(50)
 
     def _play_via_pyaudio(self, segment: Any) -> None:
         """
