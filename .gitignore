@@ -46,8 +46,13 @@ recordings/
 repo
 
 # Runtime data (SQLite databases, state files, learned patterns)
-data/
+data/*
 memory/
+# EXCEPTION: Cross-agent pulse files are tracked (4-agent protocol)
+!data/pulse/
+data/pulse/*
+!data/pulse/*.json
+!data/pulse/*.md
 *.db
 *.db-wal
 *.db-shm

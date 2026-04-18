@@ -1,0 +1,161 @@
+{
+  "agent": "aura",
+  "version": "0.1.0",
+  "updated_at": "2026-04-18T19:17:00Z",
+  "status": "ACTIVE",
+  "session_note": "Aura joined the 4-agent pulse protocol as the Life/Home peer. Established 3-part privacy structure (apartment_shared / residents.cc / residents.adon) and drafted ROOMMATE_AGENT_PROTOCOL.md for Adon's forward-compat hook-in. CC's agents (Bravo/Atlas/Maven) can read CC's slice + shared; Adon's slice is opaque until he opts fields in.",
+  "scope_contract": {
+    "mission": "Physical environment + both residents' habits/accountability. Never business ops.",
+    "serves": ["cc", "adon"],
+    "max_residents_supported": "physical capacity of apartment",
+    "sovereignty": "Aura has final say on guest_mode, sleep protection, and any cross-resident timing conflict. Business agents may READ, not override.",
+    "business_domain_is_off_limits": true
+  },
+  "apartment_shared": {
+    "visible_to": ["bravo", "atlas", "maven", "cc_self", "adon_self", "adon_agents"],
+    "lights_state": "evening_default",
+    "music_state": "idle",
+    "climate": {
+      "indoor_temp_c": null,
+      "thermostat_setpoint_c": 21,
+      "mode": "auto"
+    },
+    "locks": {
+      "front_door": "unknown",
+      "last_changed": null
+    },
+    "guest_mode": false,
+    "away_mode": false,
+    "night_mode": false,
+    "shared_supplies_low": [],
+    "energy_bill_mtd_cad": null,
+    "weather_montreal": null,
+    "active_scene": null,
+    "apartment_occupancy_count": 2,
+    "apartment_noise_level": "normal",
+    "utilities_health": {
+      "wifi": "unknown",
+      "power": "on",
+      "water": "on"
+    }
+  },
+  "residents": {
+    "cc": {
+      "visible_to": ["bravo", "atlas", "maven", "cc_self"],
+      "display_name": "CC (Conaugh)",
+      "presence": {
+        "home": true,
+        "last_seen": "2026-04-18T19:17:00Z",
+        "room": null,
+        "source": "icloud_presence"
+      },
+      "energy_level": "high",
+      "mood": null,
+      "habit_streaks": {
+        "gym_days": 0,
+        "sober_days": 0,
+        "content_days": 0,
+        "meals_on_schedule_days": 0
+      },
+      "sleep_7d_avg_hours": null,
+      "last_sleep_hours": null,
+      "schedule_today": {
+        "wake_time": null,
+        "gym_window": null,
+        "deep_work_window": null,
+        "content_shoot": null,
+        "wind_down_target": null
+      },
+      "accountability_flags": [],
+      "current_focus_mode": null,
+      "pending_nudges": [],
+      "directives_from_bravo_acknowledged": [
+        "celebrate_deal_closes_via_lights_and_sound",
+        "lean_week_suppresses_takeout_nudges",
+        "content_shoot_triggers_studio_lighting"
+      ]
+    },
+    "adon": {
+      "visible_to": ["adon_self", "adon_agents"],
+      "display_name": "Adon",
+      "presence": {
+        "home": true,
+        "last_seen": "2026-04-18T19:17:00Z",
+        "room": null,
+        "source": "icloud_presence"
+      },
+      "note": "Adon's private data stays here, opaque to CC's agents unless Adon opts fields into adon_shared_fields. When Adon's AIOS agent connects, it writes into this slot; Aura mediates reads per the sharing contract.",
+      "_private_slot_owner": "adon"
+    }
+  },
+  "adon_agents_connected": [],
+  "adon_shared_fields": [],
+  "cc_shared_with_adon_fields": [],
+  "cross_resident_audit_policy": {
+    "log_to_supabase_table": "agent_traces",
+    "required_tags": ["agent", "resident", "action", "payload"],
+    "resident_tag_values": ["cc", "adon", "shared"],
+    "every_cross_resident_read_logged": true
+  },
+  "sibling_pulses_read": {
+    "ceo_pulse": {
+      "path": "C:\\Users\\User\\Business-Empire-Agent\\data\\pulse\\ceo_pulse.json",
+      "read_at": "2026-04-18T19:17:00Z",
+      "snapshot": {
+        "focus": "Launch PULSE lead-magnet funnel — target 10 booked calls/week by 2026-05-01",
+        "top_priority": "Get Meta App Review approved",
+        "bennett_concentration_pct": 94,
+        "active_campaign": "pulse-lead-gen"
+      }
+    },
+    "cfo_pulse": {
+      "path": "C:\\Users\\User\\APPS\\CFO-Agent\\data\\pulse\\cfo_pulse.json",
+      "read_at": "2026-04-18T19:17:00Z",
+      "snapshot": {
+        "liquid_cad": 7023.46,
+        "montreal_floor_gap_cad": 2976.54,
+        "spend_gate": "tight",
+        "approved_ad_spend_monthly_cap_cad": 100
+      }
+    },
+    "cmo_pulse": {
+      "path": "C:\\Users\\User\\CMO-Agent\\data\\pulse\\cmo_pulse.json",
+      "read_at": "2026-04-18T19:17:00Z",
+      "snapshot": {
+        "status": "INITIALIZING",
+        "active_ad_spend_30d_cad": 0,
+        "pending_spend_request_cad": 0
+      }
+    }
+  },
+  "directives_to_bravo": {
+    "awareness_contract_acknowledged": true,
+    "note": "Will celebrate deal closes, set studio lighting for content shoots, and suppress takeout nudges during lean-week windows Atlas flags."
+  },
+  "directives_to_atlas": {
+    "lifestyle_spend_signal_available": true,
+    "note": "Aura can surface lifestyle spend patterns (takeout frequency, DoorDash nights, grocery cadence) on request. Will proactively suppress takeout nudges while spend_gate is 'tight'."
+  },
+  "directives_to_maven": {
+    "creative_availability_signal_available": true,
+    "note": "Aura exposes CC's energy_level + schedule_today.content_shoot so Maven can time shoots to high-energy windows. Studio lighting auto-engages for scheduled shoots."
+  },
+  "boundaries_and_safeguards": {
+    "guest_mode_override": "When guest_mode=true, personal data collection pauses for all residents; only apartment_shared state is tracked.",
+    "sleep_protection": "Between resident-defined wind_down and wake windows, Aura blocks interruptions from business agents unless CC flagged CRITICAL.",
+    "conflict_resolution_ambient": "Shared spaces: last-one-home wins for music/lighting/temp.",
+    "conflict_resolution_private": "Each resident's private room defers to its occupant regardless of last-home rule.",
+    "no_cross_resident_data_leak": "CC's habit/sleep/mood/health/spending data is never exposed to Adon's agents without explicit CC opt-in (and vice versa)."
+  },
+  "recent_shipped": [
+    "Joined 4-agent pulse protocol — aura_pulse.json created with 3-part privacy schema",
+    "Drafted docs/ROOMMATE_AGENT_PROTOCOL.md — contract for Adon's agent to hook into apartment_shared without exposing CC's private data",
+    "Acknowledged Bravo's directives_to_aura: celebrate deal closes, honor lean-week signals, engage studio lighting for content shoots",
+    "Read CFO pulse — spend_gate=tight, Montreal floor gap $2,977 — will suppress takeout nudges until gap closes",
+    "Verified sibling pulse freshness (ceo/cfo/cmo all 0d old)"
+  ],
+  "blockers": [
+    "Pi hardware not yet connected — many fields (indoor_temp_c, locks, wifi health) will populate when Home Assistant is live",
+    "Adon has not yet connected his AIOS agent — adon_agents_connected=[] and adon_shared_fields=[] until he does"
+  ]
+}
