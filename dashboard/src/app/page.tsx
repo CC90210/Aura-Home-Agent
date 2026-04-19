@@ -177,14 +177,14 @@ const PLACEHOLDER_ROOMS: Room[] = [
     icon: "Sofa",
     temperature: null,
     devices: [
-      { entity_id: "light.living_room_leds",           domain: "light",        friendly_name: "LED Strip",       state: "off", attributes: {} },
-      { entity_id: "light.tv_backlight_leds",          domain: "light",        friendly_name: "Neon Rope (TV)",  state: "off", attributes: {} },
-      { entity_id: "light.desk_accent",                domain: "light",        friendly_name: "Floor Lamp",      state: "off", attributes: {} },
-      { entity_id: "light.overhead",                   domain: "light",        friendly_name: "Smart Bulbs",     state: "off", attributes: {} },
-      { entity_id: "switch.coffee_maker",              domain: "switch",       friendly_name: "Coffee Maker",    state: "off", attributes: {} },
-      { entity_id: "switch.smart_plug_3",              domain: "switch",       friendly_name: "Smart Plug 3",    state: "off", attributes: {} },
-      { entity_id: "switch.smart_plug_4",              domain: "switch",       friendly_name: "Smart Plug 4",    state: "off", attributes: {} },
-      { entity_id: "media_player.living_room_speaker", domain: "media_player", friendly_name: "Echo Dot",        state: "idle", attributes: {} },
+      { entity_id: "light.living_room_leds", domain: "light", friendly_name: "LED Strip", state: "off", attributes: {} },
+      { entity_id: "light.tv_backlight_leds", domain: "light", friendly_name: "Neon Rope (TV)", state: "off", attributes: {} },
+      { entity_id: "light.desk_accent", domain: "light", friendly_name: "Floor Lamp", state: "off", attributes: {} },
+      { entity_id: "light.overhead", domain: "light", friendly_name: "Smart Bulbs", state: "off", attributes: {} },
+      { entity_id: "switch.coffee_maker", domain: "switch", friendly_name: "Coffee Maker", state: "off", attributes: {} },
+      { entity_id: "switch.smart_plug_3", domain: "switch", friendly_name: "Smart Plug 3", state: "off", attributes: {} },
+      { entity_id: "switch.smart_plug_4", domain: "switch", friendly_name: "Smart Plug 4", state: "off", attributes: {} },
+      { entity_id: "media_player.living_room_speaker", domain: "media_player", friendly_name: "Echo Dot", state: "idle", attributes: {} },
     ],
   },
   {
@@ -192,9 +192,9 @@ const PLACEHOLDER_ROOMS: Room[] = [
     icon: "BedDouble",
     temperature: null,
     devices: [
-      { entity_id: "light.bedroom_leds",               domain: "light",        friendly_name: "LED Strip",       state: "off",  attributes: {} },
-      { entity_id: "switch.air_purifier",              domain: "switch",       friendly_name: "Air Purifier",    state: "off",  attributes: {} },
-      { entity_id: "media_player.bedroom_speaker",     domain: "media_player", friendly_name: "Echo Dot",        state: "idle", attributes: {} },
+      { entity_id: "light.bedroom_leds", domain: "light", friendly_name: "LED Strip", state: "off", attributes: {} },
+      { entity_id: "switch.air_purifier", domain: "switch", friendly_name: "Air Purifier", state: "off", attributes: {} },
+      { entity_id: "media_player.bedroom_speaker", domain: "media_player", friendly_name: "Echo Dot", state: "idle", attributes: {} },
     ],
   },
   {
@@ -202,28 +202,28 @@ const PLACEHOLDER_ROOMS: Room[] = [
     icon: "Monitor",
     temperature: null,
     devices: [
-      { entity_id: "media_player.studio_speaker",      domain: "media_player", friendly_name: "Echo Dot",        state: "idle", attributes: {} },
+      { entity_id: "media_player.studio_speaker", domain: "media_player", friendly_name: "Echo Dot", state: "idle", attributes: {} },
     ],
   },
 ];
 
 const DEFAULT_HABITS: HabitEntry[] = [
-  { id: "gym",       name: "Gym",                icon: "Dumbbell", target_time: "09:00", completed: false, streak: 0 },
-  { id: "meals",     name: "Meals tracked",       icon: "Salad",    target_time: "20:00", completed: false, streak: 0 },
-  { id: "deep-work", name: "Deep work",           icon: "Monitor",  target_time: "13:00", completed: false, streak: 0 },
-  { id: "bedtime",   name: "Bedtime by midnight", icon: "Moon",     target_time: "23:59", completed: false, streak: 0 },
+  { id: "gym", name: "Gym", icon: "Dumbbell", target_time: "09:00", completed: false, streak: 0 },
+  { id: "meals", name: "Meals tracked", icon: "Salad", target_time: "20:00", completed: false, streak: 0 },
+  { id: "deep-work", name: "Deep work", icon: "Monitor", target_time: "13:00", completed: false, streak: 0 },
+  { id: "bedtime", name: "Bedtime by midnight", icon: "Moon", target_time: "23:59", completed: false, streak: 0 },
 ];
 
 const PLACEHOLDER_RESIDENTS: ResidentPresence[] = [
-  { name: "CC",   home: false, entity_id: "device_tracker.conaugh_phone", last_seen: null },
-  { name: "Adon", home: false, entity_id: "device_tracker.adon_phone",    last_seen: null },
+  { name: "CC", home: false, entity_id: "device_tracker.conaugh_phone", last_seen: null },
+  { name: "Adon", home: false, entity_id: "device_tracker.adon_phone", last_seen: null },
 ];
 
 const PLACEHOLDER_STATUS: AuraStatus = {
   pi_online: false,
   services: [
     { name: "clap-listener", running: false, last_seen: null },
-    { name: "ha-mcp",        running: false, last_seen: null },
+    { name: "ha-mcp", running: false, last_seen: null },
   ],
   last_command: null,
   last_command_time: null,
@@ -270,8 +270,8 @@ function useCurrentTime(): TimeState {
       date: now.toLocaleDateString("en-CA", { weekday: "long", month: "long", day: "numeric" }),
       greeting:
         hour < 12 ? "Good morning" :
-        hour < 17 ? "Good afternoon" :
-        "Good evening",
+          hour < 17 ? "Good afternoon" :
+            "Good evening",
     };
   };
 
@@ -409,7 +409,7 @@ interface WhosHomeWidgetProps {
 function WhosHomeWidget({ residents, activeUser }: WhosHomeWidgetProps) {
   const sorted = [...residents].sort((a) =>
     a.name.toLowerCase() === activeUser ||
-    (activeUser === "conaugh" && a.name.toLowerCase() === "cc")
+      (activeUser === "conaugh" && a.name.toLowerCase() === "cc")
       ? -1 : 1
   );
 
@@ -625,7 +625,7 @@ function NowPlayingCard({ state, onAction }: NowPlayingCardProps) {
     }
   };
 
-  const isPlaying     = state?.state === "playing";
+  const isPlaying = state?.state === "playing";
   const isUnavailable = !state || state.state === "unavailable" || state.state === "off";
 
   return (
@@ -739,7 +739,7 @@ interface HabitsCardProps {
 
 function HabitsCard({ habits, onToggle }: HabitsCardProps) {
   const completedCount = habits.filter((h) => h.completed).length;
-  const totalCount     = habits.length;
+  const totalCount = habits.length;
 
   return (
     <div className={s.infoCard}>
@@ -802,10 +802,10 @@ interface ClimateCardProps {
 
 function ClimateCard({ state, onSetTemperature }: ClimateCardProps) {
   const [pendingTemp, setPendingTemp] = useState<number | null>(null);
-  const [adjusting, setAdjusting]     = useState(false);
+  const [adjusting, setAdjusting] = useState(false);
 
   const displayTarget = pendingTemp ?? state?.target_temp ?? null;
-  const isOff         = !state || state.mode === "off";
+  const isOff = !state || state.mode === "off";
 
   const adjust = async (delta: number) => {
     if (!state || adjusting || isOff) return;
@@ -894,7 +894,7 @@ function ClimateCard({ state, onSetTemperature }: ClimateCardProps) {
 
 function DeviceRow({ device, onToggle }: { device: Device; onToggle: (device: Device) => Promise<void> }) {
   const [loading, setLoading] = useState(false);
-  const isOn         = device.state === "on";
+  const isOn = device.state === "on";
   const isToggleable = ["light", "switch", "fan", "input_boolean"].includes(device.domain);
 
   const handleToggle = async () => {
@@ -938,9 +938,9 @@ function DeviceRow({ device, onToggle }: { device: Device; onToggle: (device: De
 
 function RoomExpandableCard({ room, onDeviceToggle }: { room: Room; onDeviceToggle: (device: Device) => Promise<void> }) {
   const [expanded, setExpanded] = useState(false);
-  const RoomIcon    = ROOM_ICON_MAP[room.icon] ?? Home;
+  const RoomIcon = ROOM_ICON_MAP[room.icon] ?? Home;
   const onlineCount = room.devices.filter((d) => d.state === "on").length;
-  const totalCount  = room.devices.length;
+  const totalCount = room.devices.length;
 
   return (
     <div className={s.roomCard}>
@@ -1015,7 +1015,7 @@ function RoomExpandableCard({ room, onDeviceToggle }: { room: Room; onDeviceTogg
 
 function formatRelativeTime(isoString: string | null): string {
   if (!isoString) return "never";
-  const diff    = Date.now() - new Date(isoString).getTime();
+  const diff = Date.now() - new Date(isoString).getTime();
   const seconds = Math.floor(diff / 1000);
   if (seconds < 60) return `${seconds}s ago`;
   const minutes = Math.floor(seconds / 60);
@@ -1037,10 +1037,10 @@ interface SidebarProps {
 
 function Sidebar({ activeTab, onTabChange, residents, activeUser, isOpen }: SidebarProps) {
   const TABS: { id: Tab; icon: React.ComponentType<LucideProps>; label: string; section: string }[] = [
-    { id: "home",    icon: Home,     label: "Dashboard", section: "OVERVIEW" },
-    { id: "scenes",  icon: Grid3X3,  label: "Scenes",    section: "CONTROLS" },
-    { id: "rooms",   icon: DoorOpen, label: "Rooms",     section: "CONTROLS" },
-    { id: "profile", icon: User,     label: "System",    section: "SYSTEM"   },
+    { id: "home", icon: Home, label: "Dashboard", section: "OVERVIEW" },
+    { id: "scenes", icon: Grid3X3, label: "Scenes", section: "CONTROLS" },
+    { id: "rooms", icon: DoorOpen, label: "Rooms", section: "CONTROLS" },
+    { id: "profile", icon: User, label: "System", section: "SYSTEM" },
   ];
 
   const sections = Array.from(new Set(TABS.map((t) => t.section)));
@@ -1442,7 +1442,7 @@ function RoomsView({ rooms, onDeviceToggle }: { rooms: Room[]; onDeviceToggle: (
 
 function ProfileView({ residents, status }: { residents: ResidentPresence[]; status: AuraStatus }) {
   const runningServices = status.services.filter((svc) => svc.running).length;
-  const totalServices   = status.services.length;
+  const totalServices = status.services.length;
 
   // Local state for feature toggles — unknown until HA confirms.
   // Clicking a toggle fires /api/service and flips local state optimistically.
@@ -1611,51 +1611,51 @@ function ProfileView({ residents, status }: { residents: ResidentPresence[]; sta
           ).map((feature, idx, arr) => {
             const isOn = featureStates[feature.id];
             return (
-            <div key={feature.id}>
-              <div className={s.systemRow}>
-                <div className={s.systemRowBody}>
-                  <div className={s.systemRowLabel}>{feature.label}</div>
-                  <div className={s.systemRowSub}>{feature.desc}</div>
-                </div>
-                <button
-                  role="switch"
-                  aria-checked={isOn ?? false}
-                  aria-label={`Toggle ${feature.label} — currently ${isOn === null ? "unknown" : isOn ? "on" : "off"}`}
-                  className={[s.toggleSwitch, isOn ? s.toggleSwitchOn : s.toggleSwitchOff].join(" ")}
-                  style={{ flexShrink: 0 }}
-                  onClick={async () => {
-                    const prev = featureStates[feature.id];
-                    const next = prev === null ? true : !prev;
-                    // Optimistic
-                    setFeatureStates((p) => ({ ...p, [feature.id]: next }));
-                    try {
-                      const res = await fetch("/api/service", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                          domain: "input_boolean",
-                          service: "toggle",
-                          entity_id: feature.id,
-                        }),
-                      });
-                      if (!res.ok) {
-                        // Roll back
+              <div key={feature.id}>
+                <div className={s.systemRow}>
+                  <div className={s.systemRowBody}>
+                    <div className={s.systemRowLabel}>{feature.label}</div>
+                    <div className={s.systemRowSub}>{feature.desc}</div>
+                  </div>
+                  <button
+                    role="switch"
+                    aria-checked={isOn ?? false}
+                    aria-label={`Toggle ${feature.label} — currently ${isOn === null ? "unknown" : isOn ? "on" : "off"}`}
+                    className={[s.toggleSwitch, isOn ? s.toggleSwitchOn : s.toggleSwitchOff].join(" ")}
+                    style={{ flexShrink: 0 }}
+                    onClick={async () => {
+                      const prev = featureStates[feature.id];
+                      const next = prev === null ? true : !prev;
+                      // Optimistic
+                      setFeatureStates((p) => ({ ...p, [feature.id]: next }));
+                      try {
+                        const res = await fetch("/api/service", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({
+                            domain: "input_boolean",
+                            service: "toggle",
+                            entity_id: feature.id,
+                          }),
+                        });
+                        if (!res.ok) {
+                          // Roll back
+                          setFeatureStates((p) => ({ ...p, [feature.id]: prev }));
+                        }
+                      } catch {
+                        // Roll back on network error
                         setFeatureStates((p) => ({ ...p, [feature.id]: prev }));
                       }
-                    } catch {
-                      // Roll back on network error
-                      setFeatureStates((p) => ({ ...p, [feature.id]: prev }));
-                    }
-                  }}
-                >
-                  <span className={[s.toggleThumb, isOn ? s.toggleThumbOn : s.toggleThumbOff].join(" ")} />
-                </button>
+                    }}
+                  >
+                    <span className={[s.toggleThumb, isOn ? s.toggleThumbOn : s.toggleThumbOff].join(" ")} />
+                  </button>
+                </div>
+                {idx < arr.length - 1 && (
+                  <div className={s.systemDivider} aria-hidden="true" />
+                )}
               </div>
-              {idx < arr.length - 1 && (
-                <div className={s.systemDivider} aria-hidden="true" />
-              )}
-            </div>
-          );
+            );
           })}
         </div>
       </div>
@@ -1672,19 +1672,19 @@ function ProfileView({ residents, status }: { residents: ResidentPresence[]; sta
 export default function DashboardPage() {
   const { time, seconds, date, greeting } = useCurrentTime();
 
-  const [activeUser]                = useState<AuraUser>(readAuraUserCookie);
-  const [activeTab, setActiveTab]   = useState<Tab>("home");
+  const [activeUser] = useState<AuraUser>(readAuraUserCookie);
+  const [activeTab, setActiveTab] = useState<Tab>("home");
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [scenes, setScenes]         = useState<Scene[]>(PLACEHOLDER_SCENES);
-  const [rooms, setRooms]           = useState<Room[]>(PLACEHOLDER_ROOMS);
-  const [habits, setHabits]         = useState<HabitEntry[]>(DEFAULT_HABITS);
-  const [residents, setResidents]   = useState<ResidentPresence[]>(PLACEHOLDER_RESIDENTS);
-  const [auraStatus]                = useState<AuraStatus>(PLACEHOLDER_STATUS);
-  const [haConnected, setHaConnected]     = useState(false);
-  const [haChecked, setHaChecked]         = useState(false); // true after first health check completes
+  const [scenes, setScenes] = useState<Scene[]>(PLACEHOLDER_SCENES);
+  const [rooms, setRooms] = useState<Room[]>(PLACEHOLDER_ROOMS);
+  const [habits, setHabits] = useState<HabitEntry[]>(DEFAULT_HABITS);
+  const [residents, setResidents] = useState<ResidentPresence[]>(PLACEHOLDER_RESIDENTS);
+  const [auraStatus] = useState<AuraStatus>(PLACEHOLDER_STATUS);
+  const [haConnected, setHaConnected] = useState(false);
+  const [haChecked, setHaChecked] = useState(false); // true after first health check completes
 
   const nowPlaying: NowPlayingState | null = null;
-  const climateState: ClimateState | null  = null;
+  const climateState: ClimateState | null = null;
 
   // Poll /api/health on mount to reflect real HA connection status.
   // /api/health always returns HTTP 200 — the real status lives in the
@@ -1780,7 +1780,7 @@ export default function DashboardPage() {
   // roll back to the previous state if the API call fails.
   const handleDeviceToggle = useCallback(async (device: Device) => {
     const newState = device.state === "on" ? "off" : "on";
-    const service  = device.state === "on" ? "turn_off" : "turn_on";
+    const service = device.state === "on" ? "turn_off" : "turn_on";
 
     // Optimistic flip
     setRooms((prev) =>
@@ -1885,10 +1885,10 @@ export default function DashboardPage() {
   }, [activeUser]);
 
   const BOTTOM_TABS: { id: Tab; icon: React.ComponentType<LucideProps>; label: string }[] = [
-    { id: "home",    icon: Home,     label: "Home"   },
-    { id: "scenes",  icon: Grid3X3,  label: "Scenes" },
-    { id: "rooms",   icon: DoorOpen, label: "Rooms"  },
-    { id: "profile", icon: User,     label: "System" },
+    { id: "home", icon: Home, label: "Home" },
+    { id: "scenes", icon: Grid3X3, label: "Scenes" },
+    { id: "rooms", icon: DoorOpen, label: "Rooms" },
+    { id: "profile", icon: User, label: "System" },
   ];
 
   return (
