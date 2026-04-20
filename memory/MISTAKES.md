@@ -1,9 +1,63 @@
 # AURA Agent Mistakes Log
 
-This file records bugs introduced or found by the AI agent during codebase work.
-Format: BUG-NNN, file, root cause, fix, prevention.
+This file records bugs introduced or found by the AI agent during codebase work, plus
+higher-level process mistakes surfaced by the self-improvement-protocol (Protocol 4).
+
+Bug format: BUG-NNN, file, root cause, fix, prevention.
+Process format: MISTAKE-NNN — short name, 5 Whys, prevention, pattern tag.
 
 ---
+
+## MISTAKE-001 — Pi-hardware-delay blocking product development
+
+**Date:** 2026-04-19
+**Surfaced during:** Self-improvement-protocol Protocol 4 review
+
+**What happened:**
+A large fraction of AURA fields (indoor_temp_c, locks.front_door, wifi health, habit-completion detection, voice-signature training, real mode-activation traces) remain null because the Pi 5 is not yet powered on and connected to LAN. `homeassistant.local` does not resolve. As a result: habit tracker writes no real rows, analytics exports have empty sections, weekly reflections have no behavioral data to anchor on, and the pattern engine has no corpus to learn from. The codebase keeps advancing faster than the hardware that would validate it.
+
+**Root cause (5 Whys):**
+1. *Why are habit/scene/presence data all null?* → Because Home Assistant isn't running.
+2. *Why isn't Home Assistant running?* → Pi 5 not powered on / not connected to network.
+3. *Why is the Pi not connected?* → Hardware delivery and first-boot setup is still pending.
+4. *Why are we shipping features that depend on Pi data before Pi is online?* → Because code + docs can be written independently, which creates the illusion of progress.
+5. *Why didn't AURA flag this earlier?* → Before this session there was no `hardware_online` field in the pulse, so agents (and sibling agents) had no single-source flag to check.
+
+**Prevention (specific rules):**
+1. Every module that *requires* Pi data must check `aura_pulse.json → hardware_online`. If false, the module must emit a stub/skip rather than silently returning empty results.
+2. `aura_analytics.py` monthly report must lead with a `hardware_online` status line so empty sections are explainable, not confusing.
+3. Any new feature that depends on live HA data gets a `[HARDWARE_BLOCKED]` tag in `feature_module_status` until a successful Pi query proves it works.
+4. Weekly reflection checks `hardware_online` — if false for > 14 days, surface it as a blocker to CC's top priorities (not just a passive pulse field).
+
+**Pattern tag:** `hardware-gap-illusion-of-progress`
+
+---
+
+## MISTAKE-002 — Hardcoded CC/Adon identifiers blocked clone-ability
+
+**Date:** 2026-04-19
+**Surfaced during:** Protocol 1 HEAL review
+
+**What happened:**
+Resident identifiers `conaugh` and `adon` were hardcoded in 14+ files across `voice-agent/`, `learning/`, and `home-assistant/` configs. This made AURA a personal-only system — a second household (a Business-in-a-Box Tier-2 install) would require hand-editing every file.
+
+**Root cause (5 Whys):**
+1. *Why were identifiers hardcoded?* → Because the initial build was CC-first; productization came later.
+2. *Why didn't we refactor when productization was decided?* → No forcing function existed (no paying client yet).
+3. *Why no forcing function?* → Feature work was prioritized over configurability.
+4. *Why?* → Demo-driven development: impressive scenes beat boring refactors in visible value.
+5. *Root:* We conflated "works for CC" with "works." Productization is a distinct milestone and should have its own checkpoint.
+
+**Prevention:**
+1. All resident-specific config now lives in `personal/USER.md`; the template is `personal/USER.template.md`.
+2. Going forward: no new file in `voice-agent/`, `learning/`, or `home-assistant/` may hardcode `conaugh`, `adon`, `Montreal`, or any household-specific identifier. Use USER.md lookups or `.env`.
+3. CI check (future): grep for known personal strings in the three source directories; fail PR if found outside USER.md.
+
+**Pattern tag:** `personal-vs-productized-boundary`
+
+---
+
+# BUG LOG (runtime / code bugs)
 
 ## BUG-001 — TypeError: `timeout` kwarg on `messages.create()`
 

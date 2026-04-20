@@ -1,15 +1,19 @@
 {
   "agent": "aura",
-  "version": "0.1.0",
-  "updated_at": "2026-04-18T19:17:00Z",
+  "version": "0.2.0",
+  "updated_at": "2026-04-19T23:56:00Z",
   "status": "ACTIVE",
-  "session_note": "Aura joined the 4-agent pulse protocol as the Life/Home peer. Established 3-part privacy structure (apartment_shared / residents.cc / residents.adon) and drafted ROOMMATE_AGENT_PROTOCOL.md for Adon's forward-compat hook-in. CC's agents (Bravo/Atlas/Maven) can read CC's slice + shared; Adon's slice is opaque until he opts fields in.",
+  "session_note": "Ran full 4-protocol self-improvement loop (HEAL/OPTIMIZE/DEVELOP/IMPROVE). Installed LIFE_CANON (10 behavioral-science sources + anti-canon), aura_analytics.py monthly export, weekly-reflection skill. Extracted CC-specific config to personal/USER.md for clone-ability. Flagged 3 deprecation candidates pending 30d idle confirmation. Pi hardware still offline — hardware_online=false.",
+  "hardware_online": false,
+  "hardware_last_seen": null,
+  "hardware_blocker_note": "Pi 5 not yet connected to LAN — homeassistant.local unresolved at 2026-04-19T23:56Z. All habit/scene/presence fields will stay in nullable state until first boot + HA token exchange.",
   "scope_contract": {
     "mission": "Physical environment + both residents' habits/accountability. Never business ops.",
     "serves": ["cc", "adon"],
     "max_residents_supported": "physical capacity of apartment",
     "sovereignty": "Aura has final say on guest_mode, sleep protection, and any cross-resident timing conflict. Business agents may READ, not override.",
-    "business_domain_is_off_limits": true
+    "business_domain_is_off_limits": true,
+    "behavioral_science_sources": "brain/LIFE_CANON.md (Clear, Fogg, Walker, Newport, Duhigg, Ferriss, Ericsson, Kahneman, Stoics, Perel)"
   },
   "apartment_shared": {
     "visible_to": ["bravo", "atlas", "maven", "cc_self", "adon_self", "adon_agents"],
@@ -37,7 +41,10 @@
       "wifi": "unknown",
       "power": "on",
       "water": "on"
-    }
+    },
+    "sleep_window_active": false,
+    "no_nudge_window_utc": "03:00-11:00",
+    "no_nudge_window_local": "23:00-07:00"
   },
   "residents": {
     "cc": {
@@ -45,7 +52,7 @@
       "display_name": "CC (Conaugh)",
       "presence": {
         "home": true,
-        "last_seen": "2026-04-18T19:17:00Z",
+        "last_seen": "2026-04-19T23:56:00Z",
         "room": null,
         "source": "icloud_presence"
       },
@@ -80,7 +87,7 @@
       "display_name": "Adon",
       "presence": {
         "home": true,
-        "last_seen": "2026-04-18T19:17:00Z",
+        "last_seen": "2026-04-19T23:56:00Z",
         "room": null,
         "source": "icloud_presence"
       },
@@ -142,20 +149,54 @@
   },
   "boundaries_and_safeguards": {
     "guest_mode_override": "When guest_mode=true, personal data collection pauses for all residents; only apartment_shared state is tracked.",
-    "sleep_protection": "Between resident-defined wind_down and wake windows, Aura blocks interruptions from business agents unless CC flagged CRITICAL.",
+    "sleep_protection": "Between resident-defined wind_down and wake windows (default 23:00-07:00 local), Aura blocks interruptions from business agents unless CC flagged CRITICAL.",
     "conflict_resolution_ambient": "Shared spaces: last-one-home wins for music/lighting/temp.",
     "conflict_resolution_private": "Each resident's private room defers to its occupant regardless of last-home rule.",
     "no_cross_resident_data_leak": "CC's habit/sleep/mood/health/spending data is never exposed to Adon's agents without explicit CC opt-in (and vice versa)."
+  },
+  "feature_module_status": {
+    "as_of": "2026-04-19",
+    "policy": "Mark [DEPRECATED] after 30+ days idle. Actual idle tracking requires Pi online — candidates below are provisional based on architectural review.",
+    "modules": {
+      "voice_pipeline": {"status": "CORE", "last_review": "2026-04-19", "note": "Wake word + STT + intent + TTS — never deprecate."},
+      "aura_drops": {"status": "ACTIVE", "note": "Contextual audio/TTS 'drops' — integrated with personality engine."},
+      "mirror_mode": {"status": "ACTIVE", "note": "Reflective resident check-ins."},
+      "deja_vu": {"status": "PROBATIONARY", "note": "Recurrence detection — validate with traces once Pi is online."},
+      "ghost_dj": {"status": "ACTIVE", "note": "Music curation + Sonos control. CC's DJ identity — core feature."},
+      "energy_oracle": {"status": "ACTIVE", "note": "Weekly brief. Has Optional None guards (see BUG-003)."},
+      "content_radar": {"status": "ACTIVE", "note": "Content-session tracker. Bravo integration live."},
+      "vibe_sync": {"status": "PROBATIONARY", "note": "Mood/music matching. Re-evaluate in 30d once usage data exists."},
+      "social_sonar": {"status": "PROBATIONARY_DEPRECATE_CANDIDATE", "note": "Social signals — overlap with Maven's scope. Flag for deprecation review 2026-05-19 if idle."},
+      "phantom_presence": {"status": "PROBATIONARY_DEPRECATE_CANDIDATE", "note": "Away-mode simulation — redundant vs HA's native presence_simulation script. Flag for deprecation review 2026-05-19."}
+    }
+  },
+  "recent_optimization": {
+    "date": "2026-04-19",
+    "protocols_run": ["HEAL", "OPTIMIZE", "DEVELOP", "IMPROVE"],
+    "shipped": [
+      "brain/LIFE_CANON.md — 10 behavioral-science sources + anti-canon",
+      "scripts/aura_analytics.py — monthly markdown export to memory/monthly/YYYY-MM.md",
+      "skills/weekly-reflection/SKILL.md — Sunday 18:00 voice prompt, 3-wins/1-lesson/1-adjustment",
+      "personal/USER.md — CC-specific config lifted for clone-ability",
+      "memory/MISTAKES.md seeded with Pi-hardware-delay pattern",
+      "memory/PATTERNS.md seeded with validated CC deep-work pattern"
+    ],
+    "deprecation_candidates": ["social_sonar", "phantom_presence"],
+    "gap_audit_score_before": 8.5,
+    "target_score_after": 9.2
   },
   "recent_shipped": [
     "Joined 4-agent pulse protocol — aura_pulse.json created with 3-part privacy schema",
     "Drafted docs/ROOMMATE_AGENT_PROTOCOL.md — contract for Adon's agent to hook into apartment_shared without exposing CC's private data",
     "Acknowledged Bravo's directives_to_aura: celebrate deal closes, honor lean-week signals, engage studio lighting for content shoots",
     "Read CFO pulse — spend_gate=tight, Montreal floor gap $2,977 — will suppress takeout nudges until gap closes",
-    "Verified sibling pulse freshness (ceo/cfo/cmo all 0d old)"
+    "Verified sibling pulse freshness (ceo/cfo/cmo all 0d old)",
+    "Installed self-improvement-protocol skill + ran full 4-protocol loop",
+    "Shipped LIFE_CANON (behavioral science foundation) + monthly analytics export + weekly-reflection skill"
   ],
   "blockers": [
-    "Pi hardware not yet connected — many fields (indoor_temp_c, locks, wifi health) will populate when Home Assistant is live",
-    "Adon has not yet connected his AIOS agent — adon_agents_connected=[] and adon_shared_fields=[] until he does"
+    "Pi hardware not yet connected — many fields (indoor_temp_c, locks, wifi health, habit-completion detection) will populate when Home Assistant is live",
+    "Adon has not yet connected his AIOS agent — adon_agents_connected=[] and adon_shared_fields=[] until he does",
+    "Voice-signature training pending for both residents until Pi is online and USB mic is captured"
   ]
 }
