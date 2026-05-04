@@ -59,3 +59,9 @@ data/pulse/*
 
 # Voice agent generated models (trained on-device)
 voice-agent/models/*.onnx
+
+# Runtime/private state (local only; public repos ship templates/contracts)
+personal/USER.md
+data/pulse/*.json
+!personal/USER.template.md
+!data/pulse/README.md
