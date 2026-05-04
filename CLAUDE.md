@@ -1,5 +1,7 @@
 # CLAUDE.md — AURA by OASIS
 
+> This file is read by Claude Code. Sibling entry points carry the same AURA identity, only runtime-specific routing differs: [AGENTS.md](AGENTS.md) (Codex / Cursor / Windsurf / Aider, added 2026-05-03) · [GEMINI.md](GEMINI.md) (Gemini CLI, added 2026-05-03) · [ANTIGRAVITY.md](ANTIGRAVITY.md) (Antigravity IDE, added 2026-05-03) · [OPENCODE.md](OPENCODE.md) (OpenCode terminal, added 2026-05-03). Edit one → sync the rest.
+
 ## Identity
 
 **AURA by OASIS** — *Ambient. Unified. Responsive. Automated.*

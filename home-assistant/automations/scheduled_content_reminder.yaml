@@ -1,19 +1,19 @@
-alias: "AURA - Scheduled: Content Creation Reminder (2 PM Weekdays)"
+alias: "AURA - Scheduled: Content Creation Window Open (9 AM Weekdays)"
 description: >
-  At 2:00 PM on weekdays, if both Conaugh and Adon are home and neither
-  studio/content mode is currently active, fires a gentle voice prompt
-  checking in on the day's content output: "Have you guys created any content
-  today? Just checking in." Respects input_boolean.content_reminder_enabled
-  so it can be toggled off from the dashboard or voice command when not
-  needed (e.g., vacation weeks, scheduled days off). Does not trigger if
-  content or studio mode is already running — that means they're already
-  creating. Default trigger time is 2:00 PM; update the trigger time value
-  to reconfigure without touching the logic.
+  At 9:00 AM on weekdays, fires a start-of-window voice prompt and engages
+  Studio Mode lighting. This is CC's dedicated pre-deep-work content block
+  (09:00-11:00) — rationale in brain/SCHEDULE.md and memory/PATTERNS.md:
+  shooting before deep work preserves shoot energy (LIFE_CANON #4 attention
+  residue). Respects input_boolean.content_reminder_enabled for easy opt-out.
+  Skips if content/studio mode is already running (they're already on it) or
+  if guest_mode / away_mode is active. Adon-aware: prompt addresses whichever
+  residents are home.
 
 trigger:
-  # Default: 2:00 PM weekdays. To reconfigure, change the `at` value here.
+  # 9:00 AM weekdays. Content block runs 09:00-11:00. To reconfigure, change
+  # the `at` value AND update brain/SCHEDULE.md so agents stay in sync.
   - platform: time
-    at: "14:00:00"
+    at: "09:00:00"
 
 condition:
   # Weekdays only — content cadence is a work-week concept
@@ -51,24 +51,38 @@ condition:
     state: "off"
 
 action:
-  # Fire the voice prompt webhook. The voice agent reads `message` and
-  # `context` to deliver a natural check-in. The counter allows the
-  # learning engine to track how often this reminder lands on content days.
+  # 1. Auto-engage Studio Mode scene (lights + mic-friendly HVAC)
+  - service: scene.turn_on
+    target:
+      entity_id: scene.studio_mode
+    continue_on_error: true
+
+  # 2. Mark studio_mode_active so downstream automations know we're in the block
+  - service: input_boolean.turn_on
+    target:
+      entity_id: input_boolean.studio_mode_active
+    continue_on_error: true
+
+  # 3. Fire the voice prompt — start-of-window framing, not check-in framing.
+  # The voice agent reads `message` and `context` to deliver a natural prompt.
   - service: rest_command.aura_webhook
     data:
       webhook_id: aura_voice_prompt
       payload: >
         {
-          "message": "Have you guys created any content today? Just checking in.",
+          "message": "9 AM — content window is open, Studio Mode is live. You rolling?",
           "priority": "low",
           "context": {
-            "reminder_type":      "content_creation",
+            "reminder_type":       "content_window_start",
+            "window_start":        "09:00",
+            "window_end":          "11:00",
             "content_mode_active": "{{ states('input_boolean.content_mode_active') }}",
             "studio_mode_active":  "{{ states('input_boolean.studio_mode_active')  }}",
             "time_of_day":         "{{ now().strftime('%H:%M') }}",
-            "day_of_week":         "{{ now().strftime('%A') }}"
+            "day_of_week":         "{{ now().strftime('%A') }}",
+            "canon":               "LIFE_CANON #4 — shoot before deep work"
           },
-          "source": "scheduled_content_reminder"
+          "source": "scheduled_content_window_open"
         }
     continue_on_error: true
 

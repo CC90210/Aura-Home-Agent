@@ -67,11 +67,14 @@
       "sleep_7d_avg_hours": null,
       "last_sleep_hours": null,
       "schedule_today": {
-        "wake_time": null,
-        "gym_window": null,
-        "deep_work_window": null,
-        "content_shoot": null,
-        "wind_down_target": null
+        "wake_time": "06:30",
+        "gym_window": "07:00-08:00",
+        "content_shoot": "09:00-11:00",
+        "deep_work_window": "11:15-12:45 (outreach), 13:45-15:45 (build)",
+        "wind_down_target": "22:00",
+        "sleep_target": "00:00",
+        "canonical_source": "brain/SCHEDULE.md",
+        "last_reconciled": "2026-04-19"
       },
       "accountability_flags": [],
       "current_focus_mode": null,
