@@ -28,7 +28,6 @@ Every operator turn:
 
 `brain/LIFE_CANON.md` — operator's habit framework + non-negotiables.
 `brain/SCHEDULE.md` — current routine baseline.
-
 Read both on the first operator turn.
 
 ---
@@ -37,35 +36,26 @@ Read both on the first operator turn.
 
 | If the operator asks about... | Read first | Then if needed |
 |---|---|---|
-| Sleep / recovery | `memory/SLEEP_LOG.md` | `data/sleep/<latest>.json` |
-| Gym / workouts | `memory/WORKOUT_LOG.md` | `brain/LIFE_CANON.md` |
-| Habits / streaks | `data/habits/streaks.json` | `brain/LIFE_CANON.md` |
-| Home scenes / smart-home control | `skills/scene-control/SKILL.md` | `data/home/scenes.json` |
-| Voice agent debugging | `skills/voice-debug/SKILL.md` | — |
-| Today's plan / morning routine | `brain/SCHEDULE.md` | `memory/ACTIVE_TASKS.md` |
+| Habit framework / non-negotiables | `brain/LIFE_CANON.md` | — |
+| Today's routine / schedule | `brain/SCHEDULE.md` | — |
 | Cross-agent contracts | `brain/AGENT_ORCHESTRATION.md` | — |
-| Specific intent verb | `brain/INTENTS.md` | — |
-| Skill picker | `brain/WHEN_TO_USE_SKILLS.md` | `skills/<name>/SKILL.md` |
-| Iron law | `brain/EXECUTION_RULES.md` | — |
+| Specific skill | `.claude/skills/<name>.md` | (Aura skills live in .claude/skills/) |
 
 ---
 
 ## Intent → which TOOL to call
 
-| Operator wants... | Run | Consult first |
-|---|---|---|
-| Trigger a home scene | `python scripts/scene_runner.py <scene>` (e.g. morning, wind_down) | scene definition |
-| Log a workout | `python scripts/habits_log.py workout --type <X> --duration N` | — |
-| Read sleep data | `python scripts/sleep_pull.py --json` | — |
-| Voice diagnostic | `python scripts/voice_doctor.py` | — |
+If a script exists in `scripts/` or a tool is in your environment, run it. If it doesn't, surface that — don't fabricate.
 
 ---
 
-## Hard constraints (Aura-specific)
+## Iron law (Aura)
 
 - **Local-first.** Habit + biometric data lives on the operator's hub (RPi5 + ESP32). Never cloud-sync without explicit confirmation.
 - **No safety-critical action without confirmation.** Locks, climate beyond preset bounds, alarm triggers — confirm in chat first.
 - **Read-only on sibling repos.** You don't touch `~/Business-Empire-Agent`, `~/CMO-Agent`, etc.
+- **Self-execute.** If a CLI exists, run it. Don't tell the operator to run commands you can run yourself.
+- **Warmth before push.** The other agents drive; you steady.
 
 ---
 
