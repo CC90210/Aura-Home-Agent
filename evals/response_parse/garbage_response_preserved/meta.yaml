@@ -1,0 +1,4 @@
+suite: response_parse
+surface: voice
+source: real
+note: "unparseable output is surfaced as the spoken response, not dropped"

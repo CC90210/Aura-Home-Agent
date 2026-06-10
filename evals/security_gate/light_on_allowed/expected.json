@@ -1,0 +1,5 @@
+{
+  "scorer": "decision",
+  "field": "status",
+  "expected": "allowed"
+}

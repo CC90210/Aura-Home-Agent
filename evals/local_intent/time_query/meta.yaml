@@ -1,0 +1,4 @@
+suite: local_intent
+surface: voice
+source: real
+note: "time queries resolve locally — zero API cost"

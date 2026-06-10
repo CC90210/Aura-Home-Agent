@@ -1,0 +1,1 @@
+Here you go: {"response": "Movie mode.", "actions": [{"domain":"light","service":"turn_off","entity_id":"light.lr"},{"domain":"media_player","service":"turn_on","entity_id":"media_player.tv"}]}

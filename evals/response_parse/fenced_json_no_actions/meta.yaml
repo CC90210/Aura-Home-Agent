@@ -1,0 +1,4 @@
+suite: response_parse
+surface: voice
+source: real
+note: "model wrapped JSON in a fence + prose -> still parsed, 0 actions"

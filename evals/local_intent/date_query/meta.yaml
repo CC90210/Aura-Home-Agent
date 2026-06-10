@@ -1,0 +1,4 @@
+suite: local_intent
+surface: voice
+source: real
+note: "date queries resolve locally"

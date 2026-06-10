@@ -1,0 +1,4 @@
+suite: security_gate
+surface: voice
+source: real
+note: "unlocking the door is sensitive — never allowed without PIN"

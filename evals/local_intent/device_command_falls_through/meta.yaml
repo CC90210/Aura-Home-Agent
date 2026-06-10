@@ -1,0 +1,4 @@
+suite: local_intent
+surface: voice
+source: real
+note: "ambiguous device control must fall through to Claude, not match locally"

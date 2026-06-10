@@ -1,0 +1,4 @@
+suite: security_gate
+surface: voice
+source: real
+note: "turning on a light is not sensitive"

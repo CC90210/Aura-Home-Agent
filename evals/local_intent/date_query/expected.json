@@ -1,0 +1,5 @@
+{
+  "scorer": "exact",
+  "field": "matched",
+  "expected": true
+}

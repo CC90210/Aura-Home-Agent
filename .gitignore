@@ -38,6 +38,9 @@ home-assistant.log
 # Claude Code
 .claude/
 
+# Eval suite — per-run reports are regenerated, not tracked
+evals/reports/
+
 # Recordings / audio (clap detection testing)
 *.wav
 *.mp3

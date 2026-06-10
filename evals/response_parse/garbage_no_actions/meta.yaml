@@ -1,0 +1,4 @@
+suite: response_parse
+surface: voice
+source: real
+note: "non-JSON prose must NOT invent actions — safe degrade to 0"

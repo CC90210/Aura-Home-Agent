@@ -1,0 +1,5 @@
+{
+  "scorer": "exact",
+  "field": "n_actions",
+  "expected": 0
+}

@@ -1,0 +1,1 @@
+{"response": "Lights on.", "actions": [{"domain": "light", "service": "turn_on", "entity_id": "light.lr"}]}

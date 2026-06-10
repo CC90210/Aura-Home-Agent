@@ -1,0 +1,5 @@
+{
+  "scorer": "regex",
+  "field": "response",
+  "expected": "unparseable"
+}

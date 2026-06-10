@@ -1,0 +1,14 @@
+{
+  "local_intent": {
+    "score": 1.0,
+    "tolerance": 0.1
+  },
+  "response_parse": {
+    "score": 1.0,
+    "tolerance": 0.1
+  },
+  "security_gate": {
+    "score": 1.0,
+    "tolerance": 0.1
+  }
+}

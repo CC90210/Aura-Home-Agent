@@ -1,0 +1,4 @@
+suite: response_parse
+surface: voice
+source: real
+note: "JSON embedded in prose, no fence -> brace-extraction parses 2 actions"
