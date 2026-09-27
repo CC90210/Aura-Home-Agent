@@ -137,7 +137,9 @@ The machine-readable mirror stays in `memory/weekly_reflections.json` (existing 
 
 ## Scheduling
 
-AURA's cron trigger:
+**Not wired as of 2026-09-27.** No Home Assistant automation and no cron (timed job) fires this skill; the only Sunday automation in `home-assistant/automations/` is the 10:00 weekly report. The schedule below is the intent, not a live trigger (operating card step 22 in CLAUDE.md). Never say it is live.
+
+AURA's intended cron trigger:
 - `0 18 * * 0` local (Sunday 18:00 America/Toronto)
 - Pre-check: guest_mode off, sleep_window off, resident home
 - If precondition fails, retry at 18:30, 19:00, 20:00. Max 3 retries, then log skip and defer to next Sunday.
