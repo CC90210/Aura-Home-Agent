@@ -1,0 +1,6 @@
+{
+  "name": "aura",
+  "entry_points": ["CLAUDE.md", "GEMINI.md", "ANTIGRAVITY.md", "AGENTS.md", "OPENCODE.md"],
+  "mirror_dir": "",
+  "note": "2026-09-27: written with the cross-runtime operating card install (docs/CROSS_RUNTIME_OPERATING_CARD.md). Why: scripts/genome_sync.py is shared substrate copied byte-identical from Maven's repo and reads its per-repo settings from this file instead of from code. entry_points lists the five entry files that exist here (no ZCODE.md). mirror_dir is empty because Aura has no generated mirror directory; the pinned harness blocks live in .harness/ and are checked by tests/test_harness_canonical.py, not mirrored. Extra keys are ignored by the sync (it reads with .get), as Maven's own genome.json shows."
+}

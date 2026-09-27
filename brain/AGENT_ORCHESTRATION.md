@@ -6,13 +6,13 @@ freshness_threshold_days: 60
 
 # AGENT ORCHESTRATION — AURA (Smart Living) Perspective
 
-> AURA's view of the multi-agent contract. Master version lives at `../Business-Empire-Agent/brain/AGENT_ORCHESTRATION.md`. AURA is **domain-isolated** from the C-suite (Bravo / Atlas / Maven) — no pulse contract, different domain (physical apartment + client installs, not business ops).
+> AURA's view of the multi-agent contract. Master version lives at `../Business-Empire-Agent/brain/AGENT_ORCHESTRATION.md`. AURA is **domain-isolated** from the C-suite (Bravo / Atlas / Maven) — different domain (physical apartment + client installs, not business ops). Pulse contract as of 2026-09-27: AURA writes exactly one pulse file, `data/pulse/aura_pulse.json` (gitignored, one copy per machine), and reads the siblings' pulses read-only (operating card step 9 in CLAUDE.md). No spend gate, no hand-offs.
 
 ## AURA's role in the fleet
 
 AURA is the **smart-living layer**: ambient intelligence for CC + Adon's apartment AND a productizable OASIS service that gets installed for clients. AURA's domain is the physical environment — lights, music, climate, locks, sensors, voice. The C-suite (Bravo / Atlas / Maven) handles digital business ops; AURA handles atoms.
 
-**AURA does NOT participate in the pulse protocol.** AURA's automations live in Home Assistant (on the Pi 5), not in `data/pulse/*.json`. AURA's "state" is the actual physical state of devices, queryable via `ha-mcp`.
+**AURA's only pulse surface is `data/pulse/aura_pulse.json`** (corrected 2026-09-27: earlier text said AURA does not take part in the pulse protocol, while `brain/SCHEDULE.md`, `docs/ROOMMATE_AGENT_PROTOCOL.md`, `docs/SECURITY.md` and `scripts/aura_analytics.py` all treat that file as AURA's contract; the file wins). AURA's automations live in Home Assistant (on the Pi 5), not in the pulse. AURA's "state" is the actual physical state of devices, queryable via `ha-mcp` when the Pi is reachable; the pulse leads with `hardware_online` so a reader never mistakes a stub for a reading.
 
 ## The single cross-link to the C-suite
 
@@ -105,10 +105,10 @@ That's the entire surface. AURA reports out; nobody reports in.
 
 | # | Gap | Effort to close |
 |---|-----|----------------|
-| 1 | Zero test coverage in repo | 4+ hrs — install pytest, write basic clap-trigger and voice-agent unit tests |
+| 1 | Zero test coverage in repo (stale as of 2026-09-27: `tests/test_harness_canonical.py`, `scripts/test_pointer_sync.py` and the three offline suites under `evals/` exist; clap-trigger and voice-agent still have no unit tests) | 4+ hrs — write basic clap-trigger and voice-agent unit tests |
 | 2 | No `.agents/` workflows directory | 30 min — port the relevant subset from Bravo |
 | 3 | No `.gemini/` directory (Gemini CLI workflow registry) | 15 min — minimal scaffold |
-| 4 | No SessionStart hook in `.claude/settings.local.json` (added 2026-05-03 — verify) | done |
+| 4 | No SessionStart hook in `.claude/settings.local.json` (claimed 2026-05-03; on 2026-09-27 no such file is tracked — `.claude/` is gitignored except `skills/`) | not verifiable from the repo |
 | 5 | No client-install fleet_health rollup wiring | 1 hr — when first OASIS client deploys, build a minimal "ping every install" script |
 
 ## Symmetric files in the fleet

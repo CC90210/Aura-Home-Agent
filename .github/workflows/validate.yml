@@ -72,6 +72,24 @@ jobs:
         with:
           python-version: '3.11'
 
+      # Operating-card lockstep gates, added 2026-09-27 (docs/CROSS_RUNTIME_OPERATING_CARD.md).
+      # Why here, and why first: the five entry points and the ten per-tool pointer files are
+      # stamped copies of PERSONAL.md, so a hand edit to any copy must fail CI instead of giving
+      # one AI tool a different first page. They run before the service requirements install
+      # because that step pulls PyAudio (a microphone library) which may not build on a runner,
+      # and the gates need only the standard library plus pytest. Job count stays at four on
+      # purpose: the card's step 18 says "four jobs", and a fifth would make it stale.
+      - name: Entry-point lockstep (genome)
+        run: python scripts/genome_sync.py --check
+
+      - name: Pointer files carry the operating card
+        run: python scripts/pointer_sync.py --check
+
+      - name: Harness-canonical and pointer-sync tests
+        run: |
+          pip install pytest
+          python -m pytest tests/test_harness_canonical.py scripts/test_pointer_sync.py -q -p no:cacheprovider
+
       - name: Install dependencies
         run: |
           pip install -r clap-trigger/requirements.txt

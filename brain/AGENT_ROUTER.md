@@ -3,13 +3,39 @@ name: AGENT ROUTER (Aura)
 description: Aura's routing-by-intent table. Loaded after CLAUDE.md as the lazy-load entry. Tells Aura which deeper file to read for each life/home/habits request.
 mutability: SEMI-MUTABLE
 tags: [brain, router, rag-entry, aura, agent-only]
-last_updated: 2026-05-06
+last_updated: 2026-09-27
 ---
 
 # AGENT ROUTER — Aura (Life)
 
 > Loaded after `CLAUDE.md`. Everything else lazy-loads via `read_file`.
 > Stay under ~200 lines.
+
+---
+
+## Start here: operating card (2026-09-27)
+
+The first thing in every entry point (`CLAUDE.md`, `AGENTS.md`, `OPENCODE.md`, `ANTIGRAVITY.md`, `GEMINI.md`)
+is the `operating_card` block: 45 numbered lines — who you are, triage, the three reads, the read-only commands
+that answer most asks, what the house runs by itself, the NEVER list (a wrong command moves a lock), the four-line
+report, and the model-tier rule. Read it before this file. It is stamped from `PERSONAL.md` by
+`scripts/genome_sync.py`; the per-tool pointer files (`.cursor/rules/`, `.github/copilot-instructions.md`,
+`.windsurf/rules/`, and the rest) carry the same block via `scripts/pointer_sync.py`. If the tool you are in showed
+you none of that, open `AGENTS.md` first. Why this note exists: before the card, this router was the first shared
+page a model saw, and it never said what was safe to run.
+
+## Model tiers
+
+- **Small / fast model (or a tired human):** answer, read, draft, report. Safe to run yourself: any command with
+  `status`, `--help`, `--check`, `--dry-run`, `list` or `report`, plus `bash scripts/health_check.sh` and
+  `bash scripts/setup/verify_install.sh`. A draft scene, automation or doc goes into a file marked DRAFT on your
+  branch once the YAML or syntax gate passes. Do NOT actuate a device, deploy, fire a webhook, run anything under
+  `scripts/deploy/` or `scripts/setup/` (except the two named above), edit `PERSONAL.md`, or edit the code that
+  touches devices. Hand off with a dated `HANDOFF <YYYY-MM-DD> — <what needs a bigger model and why>` line under
+  `## Handoffs` at the end of `memory/MISTAKES.md`, and say "Logged for the full-model session: <title>". Never
+  imply the work is done.
+- **Large model:** build, verify, hand CC the deploy command — with the four-line report and the real command output
+  every time. Nothing reaches the Pi from any model without CC's yes.
 
 ---
 

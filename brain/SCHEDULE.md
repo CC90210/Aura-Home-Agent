@@ -15,7 +15,7 @@
 | `C:\Users\User\Business-Empire-Agent\brain\DAILY_SCHEDULE.md` | Bravo | Work-block semantics, cron jobs, Telegram briefings | Bravo, CC |
 | `C:\Users\User\AURA\data\pulse\aura_pulse.json` → `residents.cc.schedule_today` | AURA | Today's concrete times (wake, gym, deep_work, content_shoot, wind_down) | Bravo, Atlas, Maven |
 | `C:\Users\User\AURA\home-assistant\automations\scheduled_content_reminder.yaml` | AURA | Time-triggered content check-in | HA |
-| `C:\Users\User\AURA\home-assistant\automations\routine_morning_weekday.yaml` | AURA | Lights/music for 7:30 AM wake | HA |
+| `C:\Users\User\AURA\home-assistant\automations\routine_morning_weekday.yaml` | AURA | Lights/music for the weekday morning (trigger times live in the `posting_cadence` block near the top of CLAUDE.md, never restated here) | HA |
 | `C:\Users\User\AURA\home-assistant\automations\routine_evening_wind_down.yaml` | AURA | Wind-down sequence | HA |
 | **This file** | AURA (reconciled) | The merged view | CC (human) |
 
@@ -101,7 +101,7 @@ The schedule is the minimum. On fire days, CC blows past it. On hard days, the m
 ## What AURA Is Wiring Up Tonight
 
 1. `home-assistant/automations/scheduled_content_reminder.yaml` — trigger time moves from `14:00:00` → `09:00:00` + logic flips from "did you record?" to "Studio Mode starting now, you good to roll?"
-2. `data/pulse/aura_pulse.json → residents.cc.schedule_today.content_shoot` — populated daily at boot with today's 09:00–11:00 window so Bravo/Maven see it.
+2. `data/pulse/aura_pulse.json → residents.cc.schedule_today.content_shoot` — populated daily at boot with today's 09:00–11:00 window so Bravo/Maven see it. **Not built as of 2026-09-27:** no code populates `schedule_today` (operating card step 22). Never say it is live.
 3. Triple-clap still fires Studio Mode manually; no change.
 
 ## What Bravo Needs to Update (cross-agent ask)

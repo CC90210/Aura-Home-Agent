@@ -1,0 +1,5 @@
+# Aura (aura-home-agent) — aider configuration, stamped by scripts/pointer_sync.py (2026-09-27).
+# `read:` loads AGENTS.md (the operating card + the full contract) into every aider
+# chat as read-only context, so aider wakes up as Aura too. Never list .env* here.
+read:
+  - AGENTS.md

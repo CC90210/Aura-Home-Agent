@@ -121,7 +121,7 @@ aura/
 │   ├── setup/                   # First-time installation + wizard
 │   │   ├── pi_first_clone.sh    # One-command Pi bootstrap (clone + venv + services)
 │   │   ├── pi_setup.sh          # Pi OS-level setup (Alpine packages, venv, systemd)
-│   │   ├── verify_install.sh    # Post-install verification (7 checks)
+│   │   ├── verify_install.sh    # Post-install verification (13 PASS/FAIL/SKIP checks; read-only)
 │   │   └── wizard.sh            # Interactive setup wizard (.env generation)
 │   ├── deploy/                  # Push to Pi, deploy to clients
 │   │   ├── quick_update.sh      # Git pull + deps + restart (one command from desktop)
@@ -129,7 +129,7 @@ aura/
 │   │   ├── deploy_services.sh   # Deploy Python services
 │   │   ├── deploy_client.sh     # Client-specific deployment
 │   │   └── full_deploy.sh       # Orchestrate config + service deploy
-│   ├── health_check.sh          # Remote Pi health verification (10 checks)
+│   ├── health_check.sh          # Remote Pi health verification (nine labelled read-only checks; the summary line counts 10)
 │   └── security_audit.sh        # Security audit (10 checks)
 │
 ├── clients/                     # Client-specific configuration overrides
@@ -142,7 +142,7 @@ aura/
 │   └── CLIENT_ONBOARDING.md
 │
 └── .github/workflows/
-    └── validate.yml             # CI: lint YAML + validate Python on push
+    └── validate.yml             # CI on push/PR to main: YAML, Python (+ operating-card lockstep checks), shell, dashboard
 ```
 
 ---
@@ -196,8 +196,9 @@ bash scripts/security_audit.sh
 bash scripts/test_webhook.sh double_clap
 bash scripts/test_webhook.sh goodnight
 
-# Desktop voice test (no Pi needed)
-python voice-agent/test_desktop.py --voice
+# Desktop voice test: there is no voice-agent/test_desktop.py in this repo (removed from this
+# list 2026-09-27; the file never existed). Read-only checks that do run without a Pi are listed
+# in the capability map near the top of CLAUDE.md.
 ```
 
 ---
